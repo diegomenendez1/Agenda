@@ -117,7 +117,7 @@ export function AdminView() {
                     </div>
                     <div>
                         <h1 className="text-2xl font-bold">Admin Console</h1>
-                        <p className="text-text-muted text-sm">Manage workspace members and permissions</p>
+                        <p className="text-text-muted text-base">Manage workspace members and permissions</p>
                     </div>
                 </div>
             </header>
@@ -137,21 +137,21 @@ export function AdminView() {
                     <div className="flex items-center gap-4">
                         <button
                             onClick={() => setIsCreateModalOpen(true)}
-                            className="btn btn-primary flex items-center gap-2 text-sm py-1.5 px-3"
+                            className="btn btn-primary flex items-center gap-2 text-base py-1.5 px-3"
                         >
-                            <UserPlus size={16} />
+                            <UserPlus size={18} />
                             <span>Add User</span>
                         </button>
-                        <div className="flex items-center gap-2 text-xs text-text-muted border-l border-white/10 pl-4">
-                            <div className="px-2 py-1 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20">Owner</div>
-                            <div className="px-2 py-1 rounded bg-violet-500/10 text-violet-500 border border-violet-500/20">Admin</div>
-                            <div className="px-2 py-1 rounded bg-zinc-800 border border-white/10">User</div>
+                        <div className="flex items-center gap-2 text-sm text-text-muted border-l border-white/10 pl-4">
+                            <div className="px-2 py-1 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 font-medium">Owner</div>
+                            <div className="px-2 py-1 rounded bg-violet-500/10 text-violet-500 border border-violet-500/20 font-medium">Admin</div>
+                            <div className="px-2 py-1 rounded bg-zinc-800 border border-white/10 font-medium">User</div>
                         </div>
                     </div>
                 </div>
 
                 <div className="flex-1 overflow-auto">
-                    <table className="w-full text-left text-sm">
+                    <table className="w-full text-left text-base">
                         <thead className="bg-white/5 text-text-muted font-medium sticky top-0 backdrop-blur-md">
                             <tr>
                                 <th className="p-4 pl-6">User</th>
@@ -181,7 +181,7 @@ export function AdminView() {
                                         <td className="p-4">
                                             <select
                                                 className={clsx(
-                                                    "bg-transparent border border-transparent rounded px-2 py-1 outline-none text-xs font-medium cursor-pointer transition-all",
+                                                    "bg-transparent border border-transparent rounded px-2 py-1 outline-none text-sm font-semibold cursor-pointer transition-all",
                                                     "hover:bg-black/20 hover:border-white/10 focus:bg-black/40 focus:border-accent-primary",
                                                     u.role === 'owner' ? "text-amber-400" :
                                                         u.role === 'admin' ? "text-violet-400" :
@@ -196,7 +196,7 @@ export function AdminView() {
                                                 <option value="owner" className="bg-bg-card text-amber-400">Owner</option>
                                             </select>
                                         </td>
-                                        <td className="p-4 text-right pr-6 text-text-muted text-xs">
+                                        <td className="p-4 text-right pr-6 text-text-muted text-sm">
                                             {new Date(u.updated_at).toLocaleDateString()}
                                         </td>
                                     </tr>

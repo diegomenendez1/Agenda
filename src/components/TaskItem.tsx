@@ -22,7 +22,7 @@ export function TaskItem({ task, showProject = true, compact = false }: TaskItem
         <>
             <li className={clsx(
                 "group flex items-center gap-3 rounded-md bg-bg-card border border-transparent hover:border-border-subtle transition-all",
-                compact ? "p-2 text-sm" : "p-3",
+                compact ? "p-2 text-base" : "p-3",
                 task.status === 'done' && "opacity-50"
             )}>
                 <button
@@ -38,20 +38,20 @@ export function TaskItem({ task, showProject = true, compact = false }: TaskItem
 
                 <div className="flex-1 flex flex-col gap-0.5 cursor-pointer" onClick={() => setIsEditing(true)}>
                     <span className={clsx(
-                        "text-sm font-medium",
+                        "text-base font-medium",
                         task.status === 'done' && "line-through text-muted"
                     )}>
                         {task.title}
                     </span>
-                    <div className="flex items-center gap-3 text-xs text-muted">
+                    <div className="flex items-center gap-3 text-sm text-muted">
                         {showProject && project && (
                             <span className="flex items-center gap-1 text-accent-primary">
-                                <Folder size={10} /> {project.name}
+                                <Folder size={12} /> {project.name}
                             </span>
                         )}
                         {task.dueDate && (
                             <span className={clsx("flex items-center gap-1", task.dueDate < Date.now() && task.status !== 'done' && "text-danger")}>
-                                <Calendar size={10} /> {format(task.dueDate, 'MMM d')}
+                                <Calendar size={12} /> {format(task.dueDate, 'MMM d')}
                             </span>
                         )}
                     </div>
@@ -61,7 +61,7 @@ export function TaskItem({ task, showProject = true, compact = false }: TaskItem
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 mr-2">
                         <button
                             onClick={() => setIsEditing(true)}
-                            className="p-1 px-2 rounded-md bg-bg-app border border-border-subtle hover:border-violet-500 text-xs text-text-muted hover:text-violet-400 transition-all"
+                            className="p-1 px-2 rounded-md bg-bg-app border border-border-subtle hover:border-violet-500 text-sm text-text-muted hover:text-violet-400 transition-all font-medium"
                         >
                             Edit
                         </button>
@@ -71,7 +71,7 @@ export function TaskItem({ task, showProject = true, compact = false }: TaskItem
 
                     {task.priority !== 'medium' && task.priority !== 'low' && (
                         <span className={clsx(
-                            "text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider font-bold",
+                            "text-xs px-1.5 py-0.5 rounded uppercase tracking-wider font-bold",
                             task.priority === 'critical' ? "bg-red-500/10 text-red-400 border border-red-500/20" :
                                 task.priority === 'high' ? "bg-orange-500/10 text-orange-400 border border-orange-500/20" :
                                     "bg-blue-500/10 text-blue-400 border border-blue-500/20"

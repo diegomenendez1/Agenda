@@ -48,7 +48,7 @@ export function Sidebar() {
                     {!collapsed && (
                         <div className="overflow-hidden">
                             <span className="font-bold text-lg tracking-tight block leading-none text-white">Cortex</span>
-                            <span className="text-[10px] text-violet-400 font-bold tracking-widest uppercase">Pro Workspace</span>
+                            <span className="text-[11px] text-violet-400 font-bold tracking-widest uppercase">Pro Workspace</span>
                         </div>
                     )}
                 </div>
@@ -71,7 +71,7 @@ export function Sidebar() {
                                 <>
                                     <item.icon size={20} />
 
-                                    {!collapsed && <span className="text-sm font-medium">{item.label}</span>}
+                                    {!collapsed && <span className="text-base font-medium">{item.label}</span>}
 
                                     {isActive && !collapsed && (
                                         <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-violet-500" />
@@ -95,7 +95,7 @@ export function Sidebar() {
                             {({ isActive }) => (
                                 <>
                                     <Shield size={20} />
-                                    {!collapsed && <span className="text-sm font-medium">Admin</span>}
+                                    {!collapsed && <span className="text-base font-medium">Admin</span>}
                                     {isActive && !collapsed && (
                                         <div className="absolute right-2 w-1.5 h-1.5 rounded-full bg-amber-500" />
                                     )}
@@ -110,12 +110,12 @@ export function Sidebar() {
             <div className="p-4 border-t border-white/5">
                 {!collapsed && (
                     <button
-                        className="flex items-center gap-3 px-3 py-2.5 w-full text-left text-sm text-text-secondary hover:text-text-primary transition-colors bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 mb-4 group overflow-hidden"
+                        className="flex items-center gap-3 px-3 py-2.5 w-full text-left text-base text-text-secondary hover:text-text-primary transition-colors bg-white/5 hover:bg-white/10 rounded-xl border border-white/5 mb-4 group overflow-hidden"
                         onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
                     >
                         <Command size={14} className="group-hover:text-violet-400 transition-colors" />
-                        <div className="flex-1 text-xs font-medium truncate">Search...</div>
-                        <kbd className="text-[10px] text-text-muted font-mono border border-white/10 px-1.5 rounded bg-black/40">^K</kbd>
+                        <div className="flex-1 text-sm font-medium truncate">Search...</div>
+                        <kbd className="text-xs text-text-muted font-mono border border-white/10 px-1.5 rounded bg-black/40">^K</kbd>
                     </button>
                 )}
 
@@ -126,8 +126,8 @@ export function Sidebar() {
                         </div>
                         {!collapsed && (
                             <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium truncate text-text-primary group-hover:text-violet-300 transition-colors">{user?.name || "User"}</div>
-                                <div className="text-xs text-text-muted truncate">{user?.role || "Team Member"}</div>
+                                <div className="text-base font-medium truncate text-text-primary group-hover:text-violet-300 transition-colors">{user?.name || "User"}</div>
+                                <div className="text-sm text-text-muted truncate">{user?.role || "Team Member"}</div>
                             </div>
                         )}
                     </NavLink>

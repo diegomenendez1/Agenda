@@ -26,7 +26,7 @@ export function InboxView() {
                         <Inbox className="w-8 h-8 text-violet-500" />
                         Capture & Process
                     </h1>
-                    <p className="text-text-muted mt-1 text-lg">
+                    <p className="text-text-muted mt-1 text-xl">
                         Dump anything—emails, thoughts, tasks. I'll sort it out.
                     </p>
                 </header>
@@ -38,8 +38,8 @@ export function InboxView() {
 
             {/* List Section */}
             <div className="flex-1 overflow-y-auto px-8 pb-8 mt-4">
-                <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-4 flex items-center gap-2">
-                    Pending Processing <span className="bg-bg-card border border-border-subtle px-1.5 rounded-full text-[10px]">{inboxItems.length}</span>
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-text-muted mb-4 flex items-center gap-2">
+                    Pending Processing <span className="bg-bg-card border border-border-subtle px-1.5 rounded-full text-xs">{inboxItems.length}</span>
                 </h2>
 
                 {inboxItems.length === 0 ? (
@@ -48,7 +48,7 @@ export function InboxView() {
                             <CheckCircle2 className="text-emerald-500 w-8 h-8" />
                         </div>
                         <p className="text-text-primary font-medium">All caught up!</p>
-                        <p className="text-text-muted text-sm mt-1">Your mind is clear.</p>
+                        <p className="text-text-muted text-base mt-1">Your mind is clear.</p>
                     </div>
                 ) : (
                     <div className="grid gap-3">
@@ -67,14 +67,14 @@ export function InboxView() {
 
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between mb-1">
-                                            <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider">
+                                            <span className="text-xs font-medium text-text-muted uppercase tracking-wider">
                                                 {item.source} capture
                                             </span>
-                                            <span className="text-xs text-text-muted tabular-nums">
+                                            <span className="text-sm text-text-muted tabular-nums">
                                                 {format(item.createdAt, 'HH:mm')}
                                             </span>
                                         </div>
-                                        <p className="text-text-primary text-sm leading-relaxed line-clamp-3">
+                                        <p className="text-text-primary text-base leading-relaxed line-clamp-3">
                                             {item.text}
                                         </p>
                                     </div>
