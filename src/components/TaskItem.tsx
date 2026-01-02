@@ -63,40 +63,39 @@ export function TaskItem({ task, showProject = true, compact = false }: TaskItem
                         </span>
                     )}
                 </div>
-            </div>
 
-            <div className="flex items-center gap-2">
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 mr-2">
-                    <button
-                        onClick={() => setIsEditing(true)}
-                        className="p-1 px-2 rounded-md bg-bg-app border border-border-subtle hover:border-violet-500 text-base text-text-muted hover:text-violet-400 transition-all font-medium"
-                    >
-                        Edit
-                    </button>
+                <div className="flex items-center gap-2">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 mr-2">
+                        <button
+                            onClick={() => setIsEditing(true)}
+                            className="p-1 px-2 rounded-md bg-bg-app border border-border-subtle hover:border-violet-500 text-base text-text-muted hover:text-violet-400 transition-all font-medium"
+                        >
+                            Edit
+                        </button>
+                    </div>
+
+                    {task.priority === 'critical' && <AlertCircle className="w-4 h-4 text-red-500" />}
+
+                    {task.priority !== 'medium' && task.priority !== 'low' && (
+                        <span className={clsx(
+                            "text-sm px-1.5 py-0.5 rounded uppercase tracking-wider font-bold",
+                            task.priority === 'critical' ? "bg-red-500/10 text-red-400 border border-red-500/20" :
+                                task.priority === 'high' ? "bg-orange-500/10 text-orange-400 border border-orange-500/20" :
+                                    "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                        )}>
+                            {task.priority === 'auto' ? 'AI' : task.priority}
+                        </span>
+                    )}
                 </div>
+            </li>
 
-                {task.priority === 'critical' && <AlertCircle className="w-4 h-4 text-red-500" />}
-
-                {task.priority !== 'medium' && task.priority !== 'low' && (
-                    <span className={clsx(
-                        "text-sm px-1.5 py-0.5 rounded uppercase tracking-wider font-bold",
-                        task.priority === 'critical' ? "bg-red-500/10 text-red-400 border border-red-500/20" :
-                            task.priority === 'high' ? "bg-orange-500/10 text-orange-400 border border-orange-500/20" :
-                                "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                    )}>
-                        {task.priority === 'auto' ? 'AI' : task.priority}
-                    </span>
-                )}
-            </div>
-        </li >
-
-            { isEditing && (
+            {isEditing && (
                 <EditTaskModal
                     task={task}
                     onClose={() => setIsEditing(false)}
                 />
             )
-}
+            }
         </>
     );
 }
