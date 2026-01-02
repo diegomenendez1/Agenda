@@ -226,7 +226,7 @@ export const useStore = create<Store>((set, get) => ({
             dueDate: taskData.dueDate,
             ownerId: get().user?.id || '',
             assigneeId: taskData.assigneeId,
-            visibility: taskData.visibility || 'private',
+            visibility: taskData.assigneeId ? 'team' : (taskData.visibility || 'private'),
             created_at: Date.now(),
             tagIds: []
         };
@@ -244,7 +244,7 @@ export const useStore = create<Store>((set, get) => ({
             description: taskData.description,
             owner_id: get().user?.id,
             assignee_id: taskData.assigneeId,
-            visibility: taskData.visibility || 'private'
+            visibility: taskData.assigneeId ? 'team' : (taskData.visibility || 'private')
         });
 
         if (error) console.error(error);
@@ -350,10 +350,8 @@ export const useStore = create<Store>((set, get) => ({
 
         // Uses optimistic methods internally
         await state.addTask({
+            ...taskData, // Pass all fields including assigneeId
             title: taskData.title || inboxItem.text,
-            priority: taskData.priority || 'medium',
-            projectId: taskData.projectId,
-            dueDate: taskData.dueDate,
             status: 'todo'
         });
 

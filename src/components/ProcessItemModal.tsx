@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, CheckSquare, StickyNote, Folder, Flag, Clock } from 'lucide-react';
+import { X, CheckSquare, StickyNote, Folder, Flag, Clock, User } from 'lucide-react';
 import { useStore } from '../core/store';
 import type { InboxItem, Priority } from '../core/types';
 import clsx from 'clsx';
@@ -10,12 +10,13 @@ interface ProcessItemModalProps {
 }
 
 export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
-    const { convertInboxToTask, convertInboxToNote, projects } = useStore();
+    const { convertInboxToTask, convertInboxToNote, projects, team } = useStore();
 
     const [title, setTitle] = useState(item.text);
     const [type, setType] = useState<'task' | 'note'>('task');
     const [projectId, setProjectId] = useState<string>('');
     const [priority, setPriority] = useState<Priority>('medium');
+    const [assigneeId, setAssigneeId] = useState<string>('');
     const [dueDateStr, setDueDateStr] = useState('');
     const [dueTimeStr, setDueTimeStr] = useState('');
     const [noteBody, setNoteBody] = useState('');
@@ -51,7 +52,8 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                 title,
                 projectId: projectId || undefined,
                 priority,
-                dueDate
+                dueDate,
+                assigneeId: assigneeId || undefined
             });
         } else {
             convertInboxToNote(item.id, title, noteBody);
@@ -133,6 +135,23 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                                     <option value="">No Project (Inbox/General)</option>
                                     {Object.values(projects).map(p => (
                                         <option key={p.id} value={p.id}>{p.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Assignee Selector */}
+                            <div className="col-span-2">
+                                <label className="block text-xs uppercase text-muted font-bold mb-2 flex items-center gap-2">
+                                    <User size={12} /> Assignee (Optional)
+                                </label>
+                                <select
+                                    value={assigneeId}
+                                    onChange={e => setAssigneeId(e.target.value)}
+                                    className="input w-full appearance-none"
+                                >
+                                    <option value="">Personal (Private)</option>
+                                    {Object.values(team).map(member => (
+                                        <option key={member.id} value={member.id}>{member.name} ({member.role})</option>
                                     ))}
                                 </select>
                             </div>
