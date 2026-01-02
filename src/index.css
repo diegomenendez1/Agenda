@@ -4,73 +4,46 @@
 
 :root {
   /* 
-    THEME: Midnight Pro (Inspired by Linear, Cron, Raycast)
-    Concept: Deep, desaturated blues/grays for reduced eye strain, 
-    with high-contrast content and vivid, contained accents.
+    THEME: Obsidian Void (Ultra-Modern & Elegant)
+    Inspiration: Linear, Vercel, Raycast.
+    Values: Premium, Depth, Subtle Noise, High Contrast Text.
   */
 
-  /* Base Backgrounds - LCH-inspired depths */
-  --bg-app: #0E1016;
-  /* Darker, slightly blue-tinted void */
-  --bg-sidebar: #13151C;
-  /* Slightly elevated from app bg */
-  --bg-card: #1C1F2A;
-  /* Primary surface */
-  --bg-card-hover: #252936;
-  --bg-input: #181B24;
-  --bg-modal: #161922;
+  /* Base - Richer, deeper blacks */
+  --bg-app: #03040B;
+  /* Deepest void */
+  --bg-sidebar: #08090F;
+  /* Slightly brighter context */
+  --bg-card: rgba(20, 22, 28, 0.6);
+  /* Glassy default */
+  --bg-card-hover: rgba(255, 255, 255, 0.03);
+  /* Subtle light wash */
+  --bg-input: #0F1116;
 
-  /* Borders - Subtle & Refined */
-  --border-subtle: #2E323E;
-  --border-focus: #7C3AED;
-  --border-highlight: rgba(255, 255, 255, 0.1);
+  /* Text - Crisp & Elegant */
+  --text-primary: #F7F8F8;
+  /* Nearly white, high purity */
+  --text-secondary: #8A8F98;
+  /* Cool gray, legible */
+  --text-muted: #545864;
+  /* Deep gray for ignore-able details */
 
-  /* Text - Optimised for Readability */
-  --text-primary: #EDEDEF;
-  /* Close to white but softer */
-  --text-secondary: #9B9CA6;
-  /* Neutral cool gray */
-  --text-muted: #626572;
-  /* Deep gray for non-essentials */
+  /* Borders - The "Shimmer" */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-highlight: rgba(255, 255, 255, 0.12);
 
-  /* Accents - "Electric Violet" Brand */
-  --accent-primary: #7C3AED;
-  --accent-hover: #8B5CF6;
-  --accent-glow: rgba(124, 58, 237, 0.4);
+  /* Accents - "Aurora" */
+  --accent-primary: #5E6AD2;
+  /* Indigo/Blurple */
+  --accent-glow: rgba(94, 106, 210, 0.5);
 
-  /* Semantic Colors */
-  --danger: #F43F5E;
-  --success: #10B981;
-  --warning: #F59E0B;
-  --info: #3B82F6;
+  /* Spacing */
+  --radius-panel: 24px;
+  --radius-card: 16px;
+  --radius-sm: 8px;
 
-  /* Status Tokens */
-  --status-todo: #626572;
-  --status-progress: #F59E0B;
-  --status-done: #5E6AD2;
-  /* Indigo for done, Linear style */
-  --status-canceled: #3F3F46;
-
-  /* Spacing & Radius */
-  --radius-sm: 0.375rem;
-  /* 6px */
-  --radius-md: 0.5rem;
-  /* 8px */
-  --radius-lg: 0.75rem;
-  /* 12px */
-  --radius-xl: 1rem;
-  /* 16px */
-
-  /* Fonts */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-}
-
-/* Base Reset */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  border-color: var(--border-subtle);
+  /* Font settings - Elegant Scaling */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 body {
@@ -80,11 +53,12 @@ body {
   height: 100vh;
   overflow: hidden;
   line-height: 1.6;
-  font-size: 18px;
+  font-size: 16px;
+  /* Reset to refined 16px base for elegance */
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  /* Subtle Vignette */
-  background-image: radial-gradient(circle at 50% 0%, rgba(124, 58, 237, 0.05), transparent 60%);
+  background-image:
+    radial-gradient(circle at 15% 50%, rgba(76, 29, 149, 0.08), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(56, 189, 248, 0.05), transparent 25%);
 }
 
 #root {
@@ -92,50 +66,95 @@ body {
   display: flex;
 }
 
-/* Typography Overrides */
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  letter-spacing: -0.025em;
-  /* Tight tracking for modern feel */
-  font-weight: 600;
-}
+/* --- GLASSMORPHISM & TEXTURE --- */
 
-/* Utilities */
-.flex {
-  display: flex;
-}
-
-.flex-col {
-  display: flex;
-  flex-direction: column;
-}
-
-.items-center {
-  align-items: center;
-}
-
-/* 
-  COMPONENT LIBRARY 
-  Focus: Tactile feedback, depth, and clarity.
-*/
-
-/* Glass Panel - The "Acrylic" Material */
+/* The "Premium" Surface */
 .glass-panel {
-  background: rgba(22, 25, 34, 0.75);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-card);
+  backdrop-filter: blur(40px) saturate(150%);
+  -webkit-backdrop-filter: blur(40px) saturate(150%);
+  border: 1px solid var(--border-subtle);
   box-shadow:
-    0 20px 40px -10px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  /* Inner Top Highlight */
+    0 0 0 1px rgba(0, 0, 0, 0.2),
+    0 20px 40px -10px rgba(0, 0, 0, 0.5);
 }
 
-/* Modern Scrollbar */
+/* Subtle grain overlay for texture */
+.noise-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  z-index: 50;
+}
+
+/* --- ULTRAMODERN COMPONENTS --- */
+
+/* Buttons - "Spotlight" feel */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-card-hover);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+}
+
+.btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--text-muted);
+  transform: translateY(-1px);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 4px 12px rgba(124, 58, 237, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.btn-primary:hover {
+  filter: brightness(1.1);
+  box-shadow:
+    0 6px 20px rgba(124, 58, 237, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+/* Inputs - Clean, borderless feel until focus */
+.input {
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  width: 100%;
+  transition: all 0.2s;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  background: #13151b;
+  box-shadow:
+    0 0 0 4px rgba(94, 106, 210, 0.15),
+    inset 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Scrollbars - Thin & elegant */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -146,155 +165,60 @@ h6 {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--bg-card-hover);
-  border-radius: 99px;
-  border: 2px solid var(--bg-app);
-  /* Creates padding effect */
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
-}
-
-/* Primary Button - "Glow & Lift" */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.875rem;
-  /* Compact but clickable */
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-card);
-  color: var(--text-primary);
-  font-size: 1.1rem;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  cursor: pointer;
-  transition: all 0.15s ease-out;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  user-select: none;
-}
-
-.btn:hover {
-  background: var(--bg-card-hover);
-  border-color: var(--text-muted);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
-
-.btn:active {
-  transform: translateY(0);
-  background: var(--bg-input);
-}
-
-.btn-primary {
-  background: linear-gradient(to bottom, #8B5CF6, #7C3AED);
-  border: 1px solid #6D28D9;
-  color: white;
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.1),
-    0 0 0 1px rgba(124, 58, 237, 0.2),
-    /* Outer ring */
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  /* Top inner gloss */
-}
-
-.btn-primary:hover {
-  background: linear-gradient(to bottom, #936BF8, #8B5CF6);
-  box-shadow:
-    0 4px 12px rgba(124, 58, 237, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25);
-}
-
-.btn-icon {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: transparent;
-  background: transparent;
-  color: var(--text-secondary);
-  box-shadow: none;
-}
-
-.btn-icon:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-primary);
-}
-
-/* Inputs - "Sunk-in" look */
-.input {
-  background: var(--bg-input);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-primary);
-  padding: 0.6rem 0.875rem;
-  border-radius: var(--radius-md);
-  outline: none;
-  font-size: 1.1rem;
-  width: 100%;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
-  /* Inner depth */
-}
-
-.input:focus {
-  border-color: #6D28D9;
-  background: #11131A;
-  box-shadow:
-    inset 0 1px 2px rgba(0, 0, 0, 0.2),
-    0 0 0 2px rgba(124, 58, 237, 0.25);
-}
-
-.input::placeholder {
-  color: rgba(155, 156, 166, 0.5);
-  /* Modern faded placeholder */
-}
-
-/* Animations & Micro-interactions */
-@keyframes dialogEnter {
-  from {
-    opacity: 0;
-    transform: scale(0.96) translateY(4px);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.animate-in {
-  animation: dialogEnter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-/* Selection */
-::selection {
-  background: rgba(124, 58, 237, 0.3);
-  color: white;
-}
-
-/* Custom Scrollbar Utility */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
   background: var(--border-subtle);
   border-radius: 99px;
   border: 2px solid transparent;
+  /* Padding trick */
   background-clip: content-box;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: var(--text-muted);
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-secondary);
 }
 
-.clip-path-content {
-  clip-path: inset(0 round 1rem);
+/* Typography Scale */
+h1 {
+  font-size: 2.5rem;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+  background: linear-gradient(to bottom right, #fff, #94a3b8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+h2 {
+  font-size: 1.75rem;
+  letter-spacing: -0.015em;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+p {
+  color: var(--text-secondary);
+}
+
+/* Clip Path */
+.clip-content {
+  /* Rounder curves for the modern feel */
+  border-radius: var(--radius-panel);
+}
+
+/* Animations */
+.animate-enter {
+  animation: enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
+}
+
+@keyframes enter {
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }

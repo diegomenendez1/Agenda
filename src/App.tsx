@@ -58,43 +58,44 @@ export default function App() {
         <Route path="/*" element={
           !user ? <Navigate to="/auth" /> : (
             <div className="flex h-screen w-screen overflow-hidden bg-[#000000] text-text-primary selection:bg-accent-primary/30">
-              {/* Background Ambient Effects */}
-              <div className="fixed inset-0 pointer-events-none z-0">
-                <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-violet-900/10 rounded-full blur-[120px]" />
-                <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-900/10 rounded-full blur-[120px]" />
+              {/* Background Ambient Effects - Now handled by CSS gradients + Noise */}
+              <div className="noise-overlay" />
+
+              <div className="h-full flex gap-4 p-4 relative z-10 w-full max-w-[1920px] mx-auto">
+                <ErrorBoundary>
+                  <Sidebar />
+                </ErrorBoundary>
+
+                <main className="flex-1 overflow-hidden relative flex flex-col rounded-[24px] bg-[#0A0B10] border border-white/5 shadow-2xl clip-path-content">
+                  {/* Inner subtle glow */}
+                  <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.02] to-transparent pointer-events-none" />
+
+                  <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03] pointer-events-none" />
+
+                  <CommandPalette />
+
+                  <div className="flex-1 overflow-auto custom-scrollbar relative">
+                    <ErrorBoundary>
+                      <Routes>
+                        <Route path="/" element={<Navigate to="/inbox" replace />} />
+                        <Route path="/inbox" element={<InboxView />} />
+                        <Route path="/tasks" element={<TaskListView />} />
+                        <Route path="/team" element={<TeamBoardView />} />
+                        <Route path="/calendar" element={<CalendarView />} />
+                        <Route path="/projects" element={<ProjectsView />} />
+                        <Route path="/projects/:projectId" element={<ProjectDetailView />} />
+                        <Route path="/notes" element={<NotesView />} />
+                        <Route path="/notes/:noteId" element={<NotesView />} />
+                        <Route path="/admin" element={<AdminView />} />
+                        <Route path="/settings" element={<SettingsView />} />
+                      </Routes>
+                    </ErrorBoundary>
+                  </div>
+                </main>
               </div>
-
-              <ErrorBoundary>
-                <Sidebar />
-              </ErrorBoundary>
-
-              <main className="flex-1 overflow-hidden relative flex flex-col m-4 ml-0 rounded-2xl bg-[#0E1016] border border-white/5 shadow-2xl z-10 clip-path-content">
-                <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03] pointer-events-none" />
-
-                <CommandPalette />
-
-                <div className="flex-1 overflow-auto custom-scrollbar relative">
-                  <ErrorBoundary>
-                    <Routes>
-                      <Route path="/" element={<Navigate to="/inbox" replace />} />
-                      <Route path="/inbox" element={<InboxView />} />
-                      <Route path="/tasks" element={<TaskListView />} />
-                      <Route path="/team" element={<TeamBoardView />} />
-                      <Route path="/calendar" element={<CalendarView />} />
-                      <Route path="/projects" element={<ProjectsView />} />
-                      <Route path="/projects/:projectId" element={<ProjectDetailView />} />
-                      <Route path="/notes" element={<NotesView />} />
-                      <Route path="/notes/:noteId" element={<NotesView />} />
-                      <Route path="/admin" element={<AdminView />} />
-                      <Route path="/settings" element={<SettingsView />} />
-                    </Routes>
-                  </ErrorBoundary>
-                </div>
-              </main>
-            </div>
-          )
+              )
         } />
-      </Routes>
+            </Routes>
     </Router>
   );
 }
