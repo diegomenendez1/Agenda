@@ -73,19 +73,42 @@ export const useStore = create<Store>((set, get) => ({
         ]);
 
         const inbox: Record<string, any> = {};
-        (inboxRes.data as any[])?.forEach((i: any) => inbox[i.id] = i);
+        (inboxRes.data as any[])?.forEach((i: any) => {
+            inbox[i.id] = {
+                ...i,
+                createdAt: i.created_at ? new Date(i.created_at).getTime() : Date.now()
+            };
+        });
 
         const tasks: Record<string, any> = {};
         (tasksRes.data as any[])?.forEach((t: any) => {
-            tasks[t.id] = { ...t, projectId: t.project_id, tagIds: t.tag_ids || [] };
+            tasks[t.id] = {
+                ...t,
+                projectId: t.project_id,
+                tagIds: t.tag_ids || [],
+                createdAt: t.created_at ? new Date(t.created_at).getTime() : Date.now(),
+                dueDate: t.due_date ? new Date(t.due_date).getTime() : undefined,
+                completedAt: t.completed_at ? new Date(t.completed_at).getTime() : undefined
+            };
         });
 
         const projects: Record<string, any> = {};
-        (projectsRes.data as any[])?.forEach((p: any) => projects[p.id] = p);
+        (projectsRes.data as any[])?.forEach((p: any) => {
+            projects[p.id] = {
+                ...p,
+                createdAt: p.created_at ? new Date(p.created_at).getTime() : Date.now(),
+                deadline: p.deadline ? new Date(p.deadline).getTime() : undefined
+            }
+        });
 
         const notes: Record<string, any> = {};
         (notesRes.data as any[])?.forEach((n: any) => {
-            notes[n.id] = { ...n, projectId: n.project_id };
+            notes[n.id] = {
+                ...n,
+                projectId: n.project_id,
+                createdAt: n.created_at ? new Date(n.created_at).getTime() : Date.now(),
+                updatedAt: n.updated_at ? new Date(n.updated_at).getTime() : Date.now()
+            };
         });
 
         const team: Record<string, any> = {};
