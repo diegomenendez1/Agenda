@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { useStore } from '../core/store';
-import { Shield, Crown, Search } from 'lucide-react';
+import { Shield, Crown, Search, UserPlus, X, Loader2 } from 'lucide-react';
 import { supabase } from '../core/supabase';
 import clsx from 'clsx';
 
@@ -9,7 +10,16 @@ export function AdminView() {
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [updating, setUpdating] = useState<string | null>(null); // ID of user being updated
+    const [updating, setUpdating] = useState<string | null>(null);
+
+    // Create User Modal State
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [newUserEmail, setNewUserEmail] = useState('');
+    const [newUserPass, setNewUserPass] = useState('');
+    const [newName, setNewName] = useState('');
+    const [creatingUser, setCreatingUser] = useState(false);
+    const [createError, setCreateError] = useState<string | null>(null);
+    const [createSuccess, setCreateSuccess] = useState<string | null>(null);
 
     useEffect(() => {
         fetchUsers();
@@ -29,6 +39,58 @@ export function AdminView() {
         // Optimistic update
         setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
         setUpdating(null);
+    };
+
+    const handleCreateUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setCreatingUser(true);
+        setCreateError(null);
+        setCreateSuccess(null);
+
+        try {
+            const tempClient = createClient(
+                import.meta.env.VITE_SUPABASE_URL,
+                import.meta.env.VITE_SUPABASE_ANON_KEY,
+                {
+                    auth: {
+                        persistSession: false,
+                        autoRefreshToken: false,
+                        detectSessionInUrl: false
+                    }
+                }
+            );
+
+            const { data, error } = await tempClient.auth.signUp({
+                email: newUserEmail,
+                password: newUserPass,
+                options: {
+                    data: {
+                        full_name: newName,
+                        avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(newName)}&background=random`,
+                    }
+                }
+            });
+
+            if (error) throw error;
+
+            if (data.user) {
+                setCreateSuccess(`User created! ID: ${data.user.id}`);
+                setNewUserEmail('');
+                setNewUserPass('');
+                setNewName('');
+                fetchUsers();
+
+                setTimeout(() => {
+                    setIsCreateModalOpen(false);
+                    setCreateSuccess(null);
+                }, 1500);
+            }
+
+        } catch (err: any) {
+            setCreateError(err.message);
+        } finally {
+            setCreatingUser(false);
+        }
     };
 
     if (user?.role !== 'owner') {
@@ -61,7 +123,6 @@ export function AdminView() {
             </header>
 
             <div className="glass-panel rounded-xl overflow-hidden flex-1 flex flex-col">
-                {/* Toolbar */}
                 <div className="p-4 border-b border-white/5 flex items-center justify-between gap-4">
                     <div className="relative flex-1 max-w-md">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-4 h-4" />
@@ -73,14 +134,22 @@ export function AdminView() {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-text-muted">
-                        <div className="px-2 py-1 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20">Owner</div>
-                        <div className="px-2 py-1 rounded bg-violet-500/10 text-violet-500 border border-violet-500/20">Admin</div>
-                        <div className="px-2 py-1 rounded bg-zinc-800 border border-white/10">User</div>
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => setIsCreateModalOpen(true)}
+                            className="btn btn-primary flex items-center gap-2 text-sm py-1.5 px-3"
+                        >
+                            <UserPlus size={16} />
+                            <span>Add User</span>
+                        </button>
+                        <div className="flex items-center gap-2 text-xs text-text-muted border-l border-white/10 pl-4">
+                            <div className="px-2 py-1 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20">Owner</div>
+                            <div className="px-2 py-1 rounded bg-violet-500/10 text-violet-500 border border-violet-500/20">Admin</div>
+                            <div className="px-2 py-1 rounded bg-zinc-800 border border-white/10">User</div>
+                        </div>
                     </div>
                 </div>
 
-                {/* Table */}
                 <div className="flex-1 overflow-auto">
                     <table className="w-full text-left text-sm">
                         <thead className="bg-white/5 text-text-muted font-medium sticky top-0 backdrop-blur-md">
@@ -137,6 +206,94 @@ export function AdminView() {
                     </table>
                 </div>
             </div>
+
+            {/* Create User Modal */}
+            {isCreateModalOpen && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="glass-panel w-full max-w-md rounded-xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-bold flex items-center gap-2">
+                                <UserPlus className="w-5 h-5 text-accent-primary" />
+                                Create New User
+                            </h3>
+                            <button
+                                onClick={() => setIsCreateModalOpen(false)}
+                                className="text-text-muted hover:text-white transition-colors"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleCreateUser} className="space-y-4">
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-text-muted uppercase">Full Name</label>
+                                <input
+                                    type="text"
+                                    required
+                                    className="input w-full"
+                                    placeholder="Jane Doe"
+                                    value={newName}
+                                    onChange={(e) => setNewName(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-text-muted uppercase">Email Address</label>
+                                <input
+                                    type="email"
+                                    required
+                                    className="input w-full"
+                                    placeholder="jane@example.com"
+                                    value={newUserEmail}
+                                    onChange={(e) => setNewUserEmail(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-xs font-semibold text-text-muted uppercase">Temporary Password</label>
+                                <input
+                                    type="text"
+                                    required
+                                    className="input w-full font-mono"
+                                    placeholder="Secret.123"
+                                    value={newUserPass}
+                                    onChange={(e) => setNewUserPass(e.target.value)}
+                                />
+                                <p className="text-xs text-text-muted">Must be at least 6 characters.</p>
+                            </div>
+
+                            {createError && (
+                                <div className="p-3 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                                    {createError}
+                                </div>
+                            )}
+
+                            {createSuccess && (
+                                <div className="p-3 rounded bg-green-500/10 border border-green-500/20 text-green-400 text-sm">
+                                    {createSuccess}
+                                </div>
+                            )}
+
+                            <div className="flex justify-end gap-3 pt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsCreateModalOpen(false)}
+                                    className="btn btn-secondary"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={creatingUser}
+                                    className="btn btn-primary min-w-[100px]"
+                                >
+                                    {creatingUser ? <Loader2 className="animate-spin w-4 h-4 mx-auto" /> : 'Create User'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
