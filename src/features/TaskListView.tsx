@@ -6,10 +6,12 @@ import { isSameDay, isFuture } from 'date-fns';
 import clsx from 'clsx';
 
 export function TaskListView() {
-    const { tasks } = useStore();
+    const { tasks, user } = useStore();
     const [filter, setFilter] = useState<'all' | 'today' | 'upcoming'>('all');
 
     const filteredTasks = useMemo(() => {
+        if (!user) return [];
+
         const priorityScore = { critical: 4, urgent: 3, high: 2, medium: 1, low: 0, auto: 1 };
         const allTasks = Object.values(tasks).sort((a, b) => {
             // Sort by status (pending first), then priority, then due date
@@ -29,6 +31,14 @@ export function TaskListView() {
         const today = new Date();
 
         return allTasks.filter(task => {
+            // SEGMENTATION LOGIC:
+            // 1. Private tasks owned by me
+            // 2. Team tasks assigned to me
+            const isMyPrivateTask = task.ownerId === user.id && task.visibility === 'private';
+            const isAssignedToMe = task.assigneeId === user.id;
+
+            if (!isMyPrivateTask && !isAssignedToMe) return false;
+
             if (filter === 'all') return true;
             if (!task.dueDate) return false;
 
@@ -39,7 +49,7 @@ export function TaskListView() {
             }
             return true;
         });
-    }, [tasks, filter]);
+    }, [tasks, filter, user]);
 
     return (
         <div className="flex flex-col h-full p-8 max-w-4xl mx-auto w-full">

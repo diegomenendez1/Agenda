@@ -56,6 +56,8 @@ export interface Task {
 
     // New fields
     assigneeId?: EntityId;
+    ownerId: EntityId; // The creator of the task
+    visibility: 'private' | 'team'; // Segmentation logic
     smartAnalysis?: SmartAnalysis;
     estimatedMinutes?: number;
 }

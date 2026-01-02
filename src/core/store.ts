@@ -88,7 +88,10 @@ export const useStore = create<Store>((set, get) => ({
                 tagIds: t.tag_ids || [],
                 createdAt: t.created_at ? new Date(t.created_at).getTime() : Date.now(),
                 dueDate: t.due_date ? new Date(t.due_date).getTime() : undefined,
-                completedAt: t.completed_at ? new Date(t.completed_at).getTime() : undefined
+                completedAt: t.completed_at ? new Date(t.completed_at).getTime() : undefined,
+                ownerId: t.owner_id,
+                assigneeId: t.assignee_id,
+                visibility: t.visibility || 'private'
             };
         });
 
@@ -221,6 +224,9 @@ export const useStore = create<Store>((set, get) => ({
             projectId: taskData.projectId,
             project_id: taskData.projectId, // for consistency in view if needed before reload
             dueDate: taskData.dueDate,
+            ownerId: get().user?.id || '',
+            assigneeId: taskData.assigneeId,
+            visibility: taskData.visibility || 'private',
             created_at: Date.now(),
             tagIds: []
         };
@@ -235,7 +241,10 @@ export const useStore = create<Store>((set, get) => ({
             priority: taskData.priority || 'medium',
             status: taskData.status || 'todo',
             due_date: taskData.dueDate,
-            description: taskData.description
+            description: taskData.description,
+            owner_id: get().user?.id,
+            assignee_id: taskData.assigneeId,
+            visibility: taskData.visibility || 'private'
         });
 
         if (error) console.error(error);
@@ -247,10 +256,16 @@ export const useStore = create<Store>((set, get) => ({
         set(state => {
             const task = state.tasks[id];
             if (!task) return state;
-            return { tasks: { ...state.tasks, [id]: { ...task, ...updates } } };
+
+            // If assigning to someone, it implies sharing with the team
+            const newVisibility = updates.assigneeId ? 'team' : (updates.visibility || task.visibility);
+            const finalUpdates = { ...updates, visibility: newVisibility };
+
+            return { tasks: { ...state.tasks, [id]: { ...task, ...finalUpdates } } };
         });
 
         const dbUpdates: any = { ...updates };
+        if (updates.assigneeId) dbUpdates.visibility = 'team';
         if (updates.projectId) {
             dbUpdates.project_id = updates.projectId;
             delete dbUpdates.projectId;

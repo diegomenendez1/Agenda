@@ -16,7 +16,7 @@ export function TeamBoardView() {
     const { tasks, team, updateTask } = useStore();
     const [draggingId, setDraggingId] = useState<EntityId | null>(null);
 
-    const taskList = Object.values(tasks);
+    const taskList = Object.values(tasks).filter(t => t.visibility === 'team');
 
     const getTasksByStatus = (status: TaskStatus) => {
         return taskList.filter(t => t.status === status);
