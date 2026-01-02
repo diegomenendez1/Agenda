@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Folder, Flag, Clock, Trash2 } from 'lucide-react';
+import { X, Folder, Flag, Clock, Trash2, User } from 'lucide-react';
 import { useStore } from '../core/store';
 import type { Task, Priority } from '../core/types';
 import clsx from 'clsx';
@@ -11,11 +11,12 @@ interface EditTaskModalProps {
 }
 
 export function EditTaskModal({ task, onClose }: EditTaskModalProps) {
-    const { updateTask, projects, deleteTask } = useStore();
+    const { updateTask, projects, deleteTask, team } = useStore();
 
     const [title, setTitle] = useState(task.title);
     const [projectId, setProjectId] = useState<string>(task.projectId || '');
     const [priority, setPriority] = useState<Priority>(task.priority);
+    const [assigneeId, setAssigneeId] = useState<string>(task.assigneeId || '');
 
     // Initial date/time state setup
     const initialDate = task.dueDate ? new Date(task.dueDate) : null;
@@ -52,7 +53,8 @@ export function EditTaskModal({ task, onClose }: EditTaskModalProps) {
             title,
             projectId: projectId || undefined,
             priority,
-            dueDate
+            dueDate,
+            assigneeId: assigneeId || undefined
         });
 
         onClose();
@@ -141,6 +143,26 @@ export function EditTaskModal({ task, onClose }: EditTaskModalProps) {
                                     disabled={!dueDateStr}
                                 />
                             </div>
+                        </div>
+
+                        {/* Assignee Selector - New Feature */}
+                        <div className="col-span-2">
+                            <label className="block text-xs uppercase text-muted font-bold mb-2 flex items-center gap-2">
+                                <User size={12} /> Assignee
+                            </label>
+                            <select
+                                value={assigneeId}
+                                onChange={e => setAssigneeId(e.target.value)}
+                                className="input w-full appearance-none"
+                            >
+                                <option value="">Unassigned</option>
+                                {Object.values(team).map(member => (
+                                    <option key={member.id} value={member.id}>{member.name} ({member.role})</option>
+                                ))}
+                            </select>
+                            <p className="text-[10px] text-text-muted mt-1.5 ml-1">
+                                {assigneeId ? "Task will be visible to the team." : "Task remains private unless shared."}
+                            </p>
                         </div>
 
                         {/* Priority */}
