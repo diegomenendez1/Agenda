@@ -1,19 +1,51 @@
 export type EntityId = string;
 
-export type Priority = 1 | 2 | 3 | 4; // 1 = Critical, 4 = Low
+export type Priority = 'critical' | 'high' | 'medium' | 'low' | 'auto';
+// Previously 1=Critical, but string is more descriptive for the UI.
 
-export type TaskStatus = 'pending' | 'in_progress' | 'done';
-export type ProjectStatus = 'active' | 'paused' | 'archived';
+export type TaskStatus = 'backlog' | 'todo' | 'in_progress' | 'review' | 'done';
+export type ProjectStatus = 'active' | 'planning' | 'paused' | 'archived';
+
+export interface UserProfile {
+    id: EntityId;
+    name: string;
+    role: string;
+    email: string;
+    avatar?: string;
+    preferences: {
+        autoPrioritize: boolean;
+        theme: 'light' | 'dark' | 'system';
+    };
+}
+
+export interface TeamMember {
+    id: EntityId;
+    name: string;
+    role: string; // e.g., "Developer", "Designer"
+    avatar?: string;
+    email: string;
+}
+
+export interface SmartAnalysis {
+    summary: string;
+    originalContext: string; // The email trigger or prompt
+    confidence: number;
+    suggestedPriority: Priority;
+    suggestedAssigneeId?: EntityId;
+}
 
 export interface InboxItem {
     id: EntityId;
     text: string;
+    source: 'manual' | 'email' | 'system';
+    processed: boolean;
     createdAt: number;
 }
 
 export interface Task {
     id: EntityId;
     title: string;
+    description?: string;
     status: TaskStatus;
     priority: Priority;
     projectId?: EntityId;
@@ -21,14 +53,22 @@ export interface Task {
     tagIds: EntityId[];
     createdAt: number;
     completedAt?: number;
+
+    // New fields
+    assigneeId?: EntityId;
+    smartAnalysis?: SmartAnalysis;
+    estimatedMinutes?: number;
 }
 
 export interface Project {
     id: EntityId;
     name: string;
     status: ProjectStatus;
+    color: string; // For UI identification
     goal?: string;
+    deadline?: number;
     createdAt: number;
+    teamId?: EntityId; // If it belongs to a team
 }
 
 export interface Note {
@@ -39,6 +79,7 @@ export interface Note {
     taskId?: EntityId;
     createdAt: number;
     updatedAt: number;
+    tags: string[];
 }
 
 export interface FocusBlock {
@@ -49,6 +90,8 @@ export interface FocusBlock {
 }
 
 export interface AppState {
+    user: UserProfile | null;
+    team: Record<EntityId, TeamMember>;
     inbox: Record<EntityId, InboxItem>;
     tasks: Record<EntityId, Task>;
     projects: Record<EntityId, Project>;

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../core/store';
-import { CheckCircle2, Circle, AlertCircle, Calendar, Folder, Edit2 } from 'lucide-react';
+import { CheckCircle2, Circle, AlertCircle, Calendar, Folder } from 'lucide-react';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 import type { Task } from '../core/types';
@@ -58,24 +58,27 @@ export function TaskItem({ task, showProject = true, compact = false }: TaskItem
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {/* Hover actions */}
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 mr-2">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 mr-2">
                         <button
                             onClick={() => setIsEditing(true)}
-                            className="p-1 text-muted hover:text-primary transition-colors"
-                            title="Edit"
+                            className="p-1 px-2 rounded-md bg-bg-app border border-border-subtle hover:border-violet-500 text-xs text-text-muted hover:text-violet-400 transition-all"
                         >
-                            <Edit2 size={14} />
+                            Edit
                         </button>
                     </div>
 
-                    {task.priority === 1 && <AlertCircle className="w-4 h-4 text-danger" />}
-                    <span className={clsx(
-                        "text-xs border px-1.5 py-0.5 rounded font-mono",
-                        task.priority === 1 ? "border-danger text-danger bg-danger/10" : "border-border-subtle text-muted"
-                    )}>
-                        P{task.priority}
-                    </span>
+                    {task.priority === 'critical' && <AlertCircle className="w-4 h-4 text-red-500" />}
+
+                    {task.priority !== 'medium' && task.priority !== 'low' && (
+                        <span className={clsx(
+                            "text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider font-bold",
+                            task.priority === 'critical' ? "bg-red-500/10 text-red-400 border border-red-500/20" :
+                                task.priority === 'high' ? "bg-orange-500/10 text-orange-400 border border-orange-500/20" :
+                                    "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                        )}>
+                            {task.priority === 'auto' ? 'AI' : task.priority}
+                        </span>
+                    )}
                 </div>
             </li>
 

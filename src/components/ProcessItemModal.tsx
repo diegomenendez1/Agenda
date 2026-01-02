@@ -15,7 +15,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
     const [title, setTitle] = useState(item.text);
     const [type, setType] = useState<'task' | 'note'>('task');
     const [projectId, setProjectId] = useState<string>('');
-    const [priority, setPriority] = useState<Priority>(4);
+    const [priority, setPriority] = useState<Priority>('medium');
     const [dueDateStr, setDueDateStr] = useState('');
     const [dueTimeStr, setDueTimeStr] = useState('');
     const [noteBody, setNoteBody] = useState('');
@@ -165,24 +165,26 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                             </div>
 
                             {/* Priority */}
-                            <div>
+                            <div className="col-span-2">
                                 <label className="block text-xs uppercase text-muted font-bold mb-2 flex items-center gap-2">
                                     <Flag size={12} /> Priority
                                 </label>
-                                <div className="flex gap-1">
-                                    {[1, 2, 3, 4].map((p) => (
+                                <div className="flex gap-2">
+                                    {(['critical', 'high', 'medium', 'low'] as Priority[]).map((p) => (
                                         <button
                                             key={p}
                                             type="button"
-                                            onClick={() => setPriority(p as Priority)}
+                                            onClick={() => setPriority(p)}
                                             className={clsx(
-                                                "flex-1 h-9 rounded bg-bg-input border text-sm font-medium transition-colors",
+                                                "flex-1 py-1.5 rounded-md border text-xs font-semibold uppercase tracking-wider transition-all",
                                                 priority === p
-                                                    ? "border-accent-primary text-accent-primary bg-accent-primary/10"
-                                                    : "border-transparent text-muted hover:border-border-subtle"
+                                                    ? (p === 'critical' || p === 'high') ? "bg-red-500/10 text-red-500 border-red-500/50" :
+                                                        p === 'medium' ? "bg-orange-500/10 text-orange-500 border-orange-500/50" :
+                                                            "bg-blue-500/10 text-blue-500 border-blue-500/50"
+                                                    : "bg-bg-input border-transparent text-muted hover:border-border-subtle"
                                             )}
                                         >
-                                            P{p}
+                                            {p}
                                         </button>
                                     ))}
                                 </div>

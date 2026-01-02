@@ -1,68 +1,95 @@
 import { useState } from 'react';
 import { useStore } from '../core/store';
-import { Inbox, ArrowRight } from 'lucide-react';
+import { Inbox, Mail, User, Sparkles, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ProcessItemModal } from '../components/ProcessItemModal';
+import { SmartInput } from '../components/SmartInput';
 import type { InboxItem } from '../core/types';
+import clsx from 'clsx';
 
 export function InboxView() {
     const { inbox, addInboxItem } = useStore();
-    const [inputValue, setInputValue] = useState('');
     const [processingItem, setProcessingItem] = useState<InboxItem | null>(null);
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!inputValue.trim()) return;
-        addInboxItem(inputValue);
-        setInputValue('');
+    const handleCapture = (text: string, source: 'manual' | 'email') => {
+        addInboxItem(text, source);
     };
 
     const inboxItems = Object.values(inbox).sort((a, b) => b.createdAt - a.createdAt);
 
     return (
-        <div className="flex flex-col h-full p-8 max-w-3xl mx-auto w-full">
-            <header className="mb-8">
-                <h1 className="text-2xl font-bold flex items-center gap-md">
-                    <Inbox className="w-8 h-8 text-accent-primary" />
-                    Inbox
-                </h1>
-                <p className="text-muted mt-2">Capture everything here. Process it later.</p>
-            </header>
+        <div className="flex flex-col h-full bg-bg-app relative">
+            {/* Header Section */}
+            <div className="px-8 pt-8 pb-4">
+                <header className="mb-6">
+                    <h1 className="text-3xl font-bold flex items-center gap-3 tracking-tight">
+                        <Inbox className="w-8 h-8 text-violet-500" />
+                        Capture & Process
+                    </h1>
+                    <p className="text-text-muted mt-1 text-lg">
+                        Dump anything—emails, thoughts, tasks. I'll sort it out.
+                    </p>
+                </header>
 
-            <form onSubmit={handleSubmit} className="mb-8">
-                <input
-                    type="text"
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    placeholder="What's on your mind? (Press Enter to capture)"
-                    className="w-full bg-input border border-border-subtle p-4 rounded-lg text-lg focus:border-accent-primary outline-none transition-colors text-primary"
-                    autoFocus
-                />
-            </form>
+                <div className="max-w-2xl">
+                    <SmartInput onCapture={handleCapture} />
+                </div>
+            </div>
 
-            <div className="flex-1 overflow-y-auto">
+            {/* List Section */}
+            <div className="flex-1 overflow-y-auto px-8 pb-8 mt-4">
+                <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-4 flex items-center gap-2">
+                    Pending Processing <span className="bg-bg-card border border-border-subtle px-1.5 rounded-full text-[10px]">{inboxItems.length}</span>
+                </h2>
+
                 {inboxItems.length === 0 ? (
-                    <div className="text-center text-muted py-12">
-                        Inbox is empty. You are all clear!
+                    <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-border-subtle rounded-xl bg-bg-card/30">
+                        <div className="bg-bg-card p-4 rounded-full mb-3 shadow-inner">
+                            <CheckCircle2 className="text-emerald-500 w-8 h-8" />
+                        </div>
+                        <p className="text-text-primary font-medium">All caught up!</p>
+                        <p className="text-text-muted text-sm mt-1">Your mind is clear.</p>
                     </div>
                 ) : (
-                    <ul className="flex flex-col gap-sm">
+                    <div className="grid gap-3">
                         {inboxItems.map(item => (
-                            <li key={item.id} className="group bg-card p-4 rounded-lg flex items-center justify-between border border-transparent hover:border-border-subtle transition-all">
-                                <span className="text-base">{item.text}</span>
-                                <div className="flex items-center gap-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <span className="text-xs text-muted">{format(item.createdAt, 'HH:mm')}</span>
+                            <div
+                                key={item.id}
+                                className="group relative bg-bg-card hover:bg-bg-card-hover border border-border-subtle hover:border-violet-500/30 rounded-xl p-4 transition-all duration-200 shadow-sm"
+                            >
+                                <div className="flex items-start gap-4">
+                                    <div className={clsx(
+                                        "p-2 rounded-lg shrink-0 mt-0.5",
+                                        item.source === 'email' ? "bg-blue-500/10 text-blue-400" : "bg-emerald-500/10 text-emerald-400"
+                                    )}>
+                                        {item.source === 'email' ? <Mail size={18} /> : <User size={18} />}
+                                    </div>
+
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-[11px] font-medium text-text-muted uppercase tracking-wider">
+                                                {item.source} capture
+                                            </span>
+                                            <span className="text-xs text-text-muted tabular-nums">
+                                                {format(item.createdAt, 'HH:mm')}
+                                            </span>
+                                        </div>
+                                        <p className="text-text-primary text-sm leading-relaxed line-clamp-3">
+                                            {item.text}
+                                        </p>
+                                    </div>
+
                                     <button
                                         onClick={() => setProcessingItem(item)}
-                                        className="btn btn-primary text-xs"
-                                        title="Convert to Task"
+                                        className="self-center opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 btn btn-primary py-2 px-3 shadow-lg shadow-violet-500/20"
                                     >
-                                        <ArrowRight size={14} /> Process
+                                        <Sparkles size={14} />
+                                        <span className="ml-1.5">Process</span>
                                     </button>
                                 </div>
-                            </li>
+                            </div>
                         ))}
-                    </ul>
+                    </div>
                 )}
             </div>
 

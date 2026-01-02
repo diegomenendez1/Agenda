@@ -19,12 +19,18 @@ export function ProjectDetailView() {
 
     const projectTasks = useMemo(() => {
         if (!projectId) return [];
+        const priorityScore = { critical: 4, urgent: 3, high: 2, medium: 1, low: 0, auto: 1 };
+
         return Object.values(tasks)
             .filter(t => t.projectId === projectId)
             .sort((a, b) => {
                 // Sort by status, priority, creation
                 if (a.status !== b.status) return a.status === 'done' ? 1 : -1;
-                if (a.priority !== b.priority) return a.priority - b.priority;
+
+                const pA = priorityScore[a.priority as keyof typeof priorityScore] || 0;
+                const pB = priorityScore[b.priority as keyof typeof priorityScore] || 0;
+
+                if (pA !== pB) return pB - pA;
                 return b.createdAt - a.createdAt;
             });
     }, [tasks, projectId]);
@@ -43,7 +49,8 @@ export function ProjectDetailView() {
         addTask({
             title: newTaskTitle,
             projectId: projectId,
-            priority: 4, // Default priority
+            priority: 'medium', // Default priority
+            status: 'todo'
         });
         setNewTaskTitle('');
     };
@@ -84,8 +91,9 @@ export function ProjectDetailView() {
     const progress = total === 0 ? 0 : Math.round((completed / total) * 100);
 
     const columns: { id: TaskStatus; label: string }[] = [
-        { id: 'pending', label: 'To Do' },
+        { id: 'todo', label: 'To Do' },
         { id: 'in_progress', label: 'In Progress' },
+        { id: 'review', label: 'Review' },
         { id: 'done', label: 'Done' },
     ];
 

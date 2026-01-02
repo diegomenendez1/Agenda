@@ -10,10 +10,19 @@ export function TaskListView() {
     const [filter, setFilter] = useState<'all' | 'today' | 'upcoming'>('all');
 
     const filteredTasks = useMemo(() => {
+        const priorityScore = { critical: 4, urgent: 3, high: 2, medium: 1, low: 0, auto: 1 };
         const allTasks = Object.values(tasks).sort((a, b) => {
             // Sort by status (pending first), then priority, then due date
-            if (a.status !== b.status) return a.status === 'done' ? 1 : -1;
-            if (a.priority !== b.priority) return a.priority - b.priority;
+            if (a.status !== b.status) {
+                if (a.status === 'done') return 1;
+                if (b.status === 'done') return -1;
+                return 0;
+            }
+
+            const pA = priorityScore[a.priority as keyof typeof priorityScore] || 0;
+            const pB = priorityScore[b.priority as keyof typeof priorityScore] || 0;
+
+            if (pA !== pB) return pB - pA; // Higher score first
             return (a.dueDate || 0) - (b.dueDate || 0);
         });
 

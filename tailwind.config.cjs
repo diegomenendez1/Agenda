@@ -7,6 +7,7 @@ module.exports = {
     theme: {
         extend: {
             colors: {
+                'bg-app': 'var(--bg-app)',
                 'bg-sidebar': 'var(--bg-sidebar)',
                 'bg-card': 'var(--bg-card)',
                 'bg-card-hover': 'var(--bg-card-hover)',
