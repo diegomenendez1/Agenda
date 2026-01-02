@@ -194,7 +194,7 @@ export const useStore = create<Store>((set, get) => ({
     addInboxItem: async (text, source = 'manual') => {
         const id = uuidv4();
         // Optimistic
-        const newItem = { id, text, source, processed: false, created_at: Date.now() };
+        const newItem = { id, text, source, processed: false, createdAt: Date.now() };
         set(state => ({ inbox: { ...state.inbox, [id]: newItem as any } }));
 
         const { error } = await supabase.from('inbox_items').insert({ id, text, source });
@@ -227,7 +227,7 @@ export const useStore = create<Store>((set, get) => ({
             ownerId: get().user?.id || '',
             assigneeId: taskData.assigneeId,
             visibility: taskData.assigneeId ? 'team' : (taskData.visibility || 'private'),
-            created_at: Date.now(),
+            createdAt: Date.now(),
             tagIds: []
         };
 
