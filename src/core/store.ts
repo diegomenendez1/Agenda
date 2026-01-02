@@ -122,20 +122,89 @@ export const useStore = create<Store>((set, get) => ({
                     });
                 }
             })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, (payload: any) => {
+                const p = payload.new;
+                if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                    set(state => ({ projects: { ...state.projects, [p.id]: p } }));
+                } else if (payload.eventType === 'DELETE') {
+                    set(state => {
+                        const { [payload.old.id]: _, ...rest } = state.projects;
+                        return { projects: rest };
+                    });
+                }
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'notes' }, (payload: any) => {
+                const n = payload.new;
+                if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                    set(state => ({ notes: { ...state.notes, [n.id]: { ...n, projectId: n.project_id } } }));
+                } else if (payload.eventType === 'DELETE') {
+                    set(state => {
+                        const { [payload.old.id]: _, ...rest } = state.notes;
+                        return { notes: rest };
+                    });
+                }
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'team_members' }, (payload: any) => {
+                // Although team_members is usually managed via auth/profiles, if we have a direct table:
+                const t = payload.new;
+                if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                    set(state => ({ team: { ...state.team, [t.id]: t } }));
+                }
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, (payload: any) => {
+                // Listen for profile changes (roles, avatars)
+                const p = payload.new;
+                if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                    // If it's the current user, update 'user' state too
+                    const currentUser = get().user;
+                    if (currentUser && currentUser.id === p.id) {
+                        set({ user: { ...currentUser, name: p.full_name, role: p.role, avatar: p.avatar_url } });
+                    }
+                }
+            })
             .subscribe();
     },
 
     addInboxItem: async (text, source = 'manual') => {
-        const { error } = await supabase.from('inbox_items').insert({ text, source });
-        if (error) console.error(error);
+        const id = uuidv4();
+        // Optimistic
+        const newItem = { id, text, source, processed: false, created_at: Date.now() };
+        set(state => ({ inbox: { ...state.inbox, [id]: newItem as any } }));
+
+        const { error } = await supabase.from('inbox_items').insert({ id, text, source });
+        if (error) {
+            console.error(error);
+            // Rollback could be implemented here
+        }
     },
 
     deleteInboxItem: async (id) => {
+        // Optimistic
+        set(state => {
+            const { [id]: _, ...rest } = state.inbox;
+            return { inbox: rest };
+        });
         await supabase.from('inbox_items').delete().eq('id', id);
     },
 
     addTask: async (taskData) => {
         const id = uuidv4();
+        const newTask: any = {
+            id,
+            title: taskData.title,
+            description: taskData.description,
+            status: taskData.status || 'todo',
+            priority: taskData.priority || 'medium',
+            projectId: taskData.projectId,
+            project_id: taskData.projectId, // for consistency in view if needed before reload
+            dueDate: taskData.dueDate,
+            created_at: Date.now(),
+            tagIds: []
+        };
+
+        // Optimistic Update
+        set(state => ({ tasks: { ...state.tasks, [id]: newTask } }));
+
         const { error } = await supabase.from('tasks').insert({
             id,
             title: taskData.title,
@@ -151,6 +220,13 @@ export const useStore = create<Store>((set, get) => ({
     },
 
     updateTask: async (id, updates) => {
+        // Optimistic
+        set(state => {
+            const task = state.tasks[id];
+            if (!task) return state;
+            return { tasks: { ...state.tasks, [id]: { ...task, ...updates } } };
+        });
+
         const dbUpdates: any = { ...updates };
         if (updates.projectId) {
             dbUpdates.project_id = updates.projectId;
@@ -163,26 +239,55 @@ export const useStore = create<Store>((set, get) => ({
         const state = get();
         const task = state.tasks[id];
         const newStatus = task.status === 'done' ? 'todo' : 'done';
+
+        // Optimistic
+        set(state => ({
+            tasks: {
+                ...state.tasks,
+                [id]: { ...task, status: newStatus as any, completedAt: newStatus === 'done' ? Date.now() : undefined }
+            }
+        }));
+
         await supabase.from('tasks').update({ status: newStatus, completed_at: newStatus === 'done' ? Date.now() : null }).eq('id', id);
     },
 
     deleteTask: async (id) => {
+        // Optimistic
+        set(state => {
+            const { [id]: _, ...rest } = state.tasks;
+            return { tasks: rest };
+        });
         await supabase.from('tasks').delete().eq('id', id);
     },
 
     addProject: async (name, goal, color = '#6366f1') => {
         const id = uuidv4();
+        // Optimistic
+        const newProject = { id, name, goal, color, status: 'active', created_at: Date.now() };
+        set(state => ({ projects: { ...state.projects, [id]: newProject as any } }));
+
         await supabase.from('projects').insert({ id, name, goal, color });
         return id;
     },
 
     addNote: async (title, body) => {
         const id = uuidv4();
+        // Optimistic
+        const newNote = { id, title, body, created_at: Date.now(), updated_at: Date.now(), tags: [] };
+        set(state => ({ notes: { ...state.notes, [id]: newNote as any } }));
+
         await supabase.from('notes').insert({ id, title, body });
         return id;
     },
 
     updateNote: async (id, updates) => {
+        // Optimistic
+        set(state => {
+            const note = state.notes[id];
+            if (!note) return state;
+            return { notes: { ...state.notes, [id]: { ...note, ...updates } } };
+        });
+
         const dbUpdates: any = { ...updates };
         if (updates.projectId) {
             dbUpdates.project_id = updates.projectId;
@@ -192,6 +297,11 @@ export const useStore = create<Store>((set, get) => ({
     },
 
     deleteNote: async (id) => {
+        // Optimistic
+        set(state => {
+            const { [id]: _, ...rest } = state.notes;
+            return { notes: rest };
+        });
         await supabase.from('notes').delete().eq('id', id);
     },
 
@@ -200,6 +310,7 @@ export const useStore = create<Store>((set, get) => ({
         const inboxItem = state.inbox[inboxItemId];
         if (!inboxItem) return;
 
+        // Uses optimistic methods internally
         await state.addTask({
             title: taskData.title || inboxItem.text,
             priority: taskData.priority || 'medium',
@@ -213,6 +324,7 @@ export const useStore = create<Store>((set, get) => ({
 
     convertInboxToNote: async (inboxItemId, title, body) => {
         const state = get();
+        // Uses optimistic methods internally
         await state.addNote(title, body || '');
         await state.deleteInboxItem(inboxItemId);
     },
