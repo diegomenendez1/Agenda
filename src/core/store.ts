@@ -8,12 +8,14 @@ interface Actions {
     initialize: () => Promise<void>;
 
     // Inbox
-    addInboxItem: (text: string, source?: 'manual' | 'email' | 'system') => Promise<void>;
+    addInboxItem: (text: string, source?: 'manual' | 'email' | 'system' | 'voice') => Promise<void>;
     deleteInboxItem: (id: EntityId) => Promise<void>;
 
     // Tasks
-    addTask: (task: Omit<Task, 'id' | 'createdAt' | 'tagIds'> & { status?: TaskStatus }) => Promise<EntityId>;
+    addTask: (task: Pick<Task, 'title'> & Partial<Omit<Task, 'id' | 'createdAt' | 'tagIds'>>) => Promise<EntityId>;
     updateTask: (id: EntityId, updates: Partial<Task>) => Promise<void>;
+    updateStatus: (id: EntityId, status: TaskStatus) => Promise<void>;
+    assignTask: (id: EntityId, assigneeId: EntityId) => Promise<void>;
     toggleTaskStatus: (id: EntityId) => Promise<void>;
     deleteTask: (id: EntityId) => Promise<void>;
 
@@ -271,6 +273,16 @@ export const useStore = create<Store>((set, get) => ({
             delete dbUpdates.projectId;
         }
         await supabase.from('tasks').update(dbUpdates).eq('id', id);
+    },
+
+    updateStatus: async (id, status) => {
+        const state = get();
+        await state.updateTask(id, { status, completedAt: status === 'done' ? Date.now() : undefined });
+    },
+
+    assignTask: async (id, assigneeId) => {
+        const state = get();
+        await state.updateTask(id, { assigneeId });
     },
 
     toggleTaskStatus: async (id) => {

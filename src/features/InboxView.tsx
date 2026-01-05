@@ -11,7 +11,7 @@ export function InboxView() {
     const { inbox, addInboxItem } = useStore();
     const [processingItem, setProcessingItem] = useState<InboxItem | null>(null);
 
-    const handleCapture = (text: string, source: 'manual' | 'email') => {
+    const handleCapture = (text: string, source: 'manual' | 'email' | 'voice' | 'system') => {
         addInboxItem(text, source);
     };
 

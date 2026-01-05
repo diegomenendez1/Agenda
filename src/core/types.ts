@@ -30,6 +30,7 @@ export interface SmartAnalysis {
     summary: string;
     originalContext: string; // The email trigger or prompt
     confidence: number;
+    reasoning?: string; // AI reasoning for the suggestions
     suggestedPriority: Priority;
     suggestedAssigneeId?: EntityId;
 }
@@ -37,7 +38,7 @@ export interface SmartAnalysis {
 export interface InboxItem {
     id: EntityId;
     text: string;
-    source: 'manual' | 'email' | 'system';
+    source: 'manual' | 'email' | 'system' | 'voice';
     processed: boolean;
     createdAt: number;
 }
@@ -59,6 +60,7 @@ export interface Task {
     ownerId: EntityId; // The creator of the task
     visibility: 'private' | 'team'; // Segmentation logic
     smartAnalysis?: SmartAnalysis;
+    source?: 'manual' | 'email' | 'voice' | 'system';
     estimatedMinutes?: number;
 }
 

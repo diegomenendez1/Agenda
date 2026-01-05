@@ -3,7 +3,7 @@ import { Sparkles, ArrowRight, Brain, Zap, Mail, MessageSquare } from 'lucide-re
 import clsx from 'clsx';
 
 interface SmartInputProps {
-    onCapture: (text: string, source: 'manual' | 'email') => void;
+    onCapture: (text: string, source: 'manual' | 'email' | 'voice' | 'system') => void;
     isProcessing?: boolean;
 }
 

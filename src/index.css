@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -36,6 +38,12 @@
   --accent-primary: #5E6AD2;
   /* Indigo/Blurple */
   --accent-glow: rgba(94, 106, 210, 0.5);
+
+  /* Priorities - Heatmap */
+  --priority-critical: #EF4444;
+  --priority-high: #F97316;
+  --priority-medium: #EAB308;
+  --priority-low: #3B82F6;
 
   /* Spacing */
   --radius-panel: 24px;
