@@ -12,7 +12,7 @@ interface Actions {
     deleteInboxItem: (id: EntityId) => Promise<void>;
 
     // Tasks
-    addTask: (task: Pick<Task, 'title'> & Partial<Omit<Task, 'id' | 'createdAt' | 'tagIds'>>) => Promise<EntityId>;
+    addTask: (task: Pick<Task, 'title'> & Partial<Omit<Task, 'id' | 'createdAt' | 'tags'>>) => Promise<EntityId>;
     updateTask: (id: EntityId, updates: Partial<Task>) => Promise<void>;
     updateStatus: (id: EntityId, status: TaskStatus) => Promise<void>;
     assignTask: (id: EntityId, assigneeId: EntityId) => Promise<void>;
@@ -71,7 +71,7 @@ export const useStore = create<Store>((set, get) => ({
             supabase.from('tasks').select('*'),
             supabase.from('projects').select('*'),
             supabase.from('notes').select('*'),
-            supabase.from('team_members').select('*')
+            supabase.from('profiles').select('*')
         ]);
 
         const inbox: Record<string, any> = {};
@@ -87,7 +87,7 @@ export const useStore = create<Store>((set, get) => ({
             tasks[t.id] = {
                 ...t,
                 projectId: t.project_id,
-                tagIds: t.tag_ids || [],
+                tags: t.tag_ids || [],
                 createdAt: t.created_at ? new Date(t.created_at).getTime() : Date.now(),
                 dueDate: t.due_date ? new Date(t.due_date).getTime() : undefined,
                 completedAt: t.completed_at ? new Date(t.completed_at).getTime() : undefined,
@@ -117,7 +117,15 @@ export const useStore = create<Store>((set, get) => ({
         });
 
         const team: Record<string, any> = {};
-        (teamRes.data as any[])?.forEach((t: any) => team[t.id] = t);
+        (teamRes.data as any[])?.forEach((t: any) => {
+            team[t.id] = {
+                id: t.id,
+                name: t.full_name,
+                email: t.email,
+                role: t.role,
+                avatar: t.avatar_url
+            };
+        });
 
 
         set({ inbox, tasks, projects, notes, team });
@@ -128,10 +136,10 @@ export const useStore = create<Store>((set, get) => ({
             .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload: any) => {
                 if (payload.eventType === 'INSERT') {
                     const t = payload.new;
-                    set(state => ({ tasks: { ...state.tasks, [t.id]: { ...t, projectId: t.project_id, tagIds: t.tag_ids || [] } } }));
+                    set(state => ({ tasks: { ...state.tasks, [t.id]: { ...t, projectId: t.project_id, tags: t.tag_ids || [] } } }));
                 } else if (payload.eventType === 'UPDATE') {
                     const t = payload.new;
-                    set(state => ({ tasks: { ...state.tasks, [t.id]: { ...t, projectId: t.project_id, tagIds: t.tag_ids || [] } } }));
+                    set(state => ({ tasks: { ...state.tasks, [t.id]: { ...t, projectId: t.project_id, tags: t.tag_ids || [] } } }));
                 } else if (payload.eventType === 'DELETE') {
                     set(state => {
                         const { [payload.old.id]: _, ...rest } = state.tasks;
@@ -172,17 +180,22 @@ export const useStore = create<Store>((set, get) => ({
                     });
                 }
             })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'team_members' }, (payload: any) => {
-                // Although team_members is usually managed via auth/profiles, if we have a direct table:
-                const t = payload.new;
-                if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-                    set(state => ({ team: { ...state.team, [t.id]: t } }));
-                }
-            })
             .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, (payload: any) => {
-                // Listen for profile changes (roles, avatars)
                 const p = payload.new;
                 if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                    // Update team state
+                    set(state => ({
+                        team: {
+                            ...state.team,
+                            [p.id]: {
+                                id: p.id,
+                                name: p.full_name,
+                                email: p.email,
+                                role: p.role,
+                                avatar: p.avatar_url
+                            }
+                        }
+                    }));
                     // If it's the current user, update 'user' state too
                     const currentUser = get().user;
                     if (currentUser && currentUser.id === p.id) {
@@ -230,7 +243,7 @@ export const useStore = create<Store>((set, get) => ({
             assigneeId: taskData.assigneeId,
             visibility: taskData.assigneeId ? 'team' : (taskData.visibility || 'private'),
             createdAt: Date.now(),
-            tagIds: []
+            tags: []
         };
 
         // Optimistic Update

@@ -51,7 +51,7 @@ export interface Task {
     priority: Priority;
     projectId?: EntityId;
     dueDate?: number; // timestamp
-    tagIds: EntityId[];
+    tags: string[];
     createdAt: number;
     completedAt?: number;
 
