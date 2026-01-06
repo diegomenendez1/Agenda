@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useStore } from '../core/store';
-import { Shield, Crown, Search, UserPlus, X, Loader2 } from 'lucide-react';
+import { Shield, Crown, Search, UserPlus, X, Loader2, Trash2, AlertTriangle } from 'lucide-react';
 import { supabase } from '../core/supabase';
 import clsx from 'clsx';
 
@@ -20,6 +20,10 @@ export function AdminView() {
     const [creatingUser, setCreatingUser] = useState(false);
     const [createError, setCreateError] = useState<string | null>(null);
     const [createSuccess, setCreateSuccess] = useState<string | null>(null);
+
+    // Delete User State
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
 
     useEffect(() => {
         fetchUsers();
@@ -93,7 +97,31 @@ export function AdminView() {
         }
     };
 
-    if (user?.role !== 'owner') {
+    const handleDeleteUser = async (targetId: string, targetName: string) => {
+        if (!confirm(`Are you sure you want to delete user "${targetName}"? This action cannot be undone.`)) {
+            return;
+        }
+
+        setDeletingId(targetId);
+        try {
+            const { error } = await supabase.rpc('delete_user_by_admin', {
+                target_user_id: targetId
+            });
+
+            if (error) throw error;
+
+            // Remove from local state
+            setUsers(users.filter(u => u.id !== targetId));
+
+        } catch (err: any) {
+            console.error('Error deleting user:', err);
+            alert('Failed to delete user: ' + err.message);
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
+    if (user?.role !== 'owner' && user?.role !== 'admin') {
         return (
             <div className="flex flex-col items-center justify-center h-full text-text-muted">
                 <Shield className="w-16 h-16 mb-4 opacity-20" />
@@ -157,7 +185,8 @@ export function AdminView() {
                                 <th className="p-4 pl-6">User</th>
                                 <th className="p-4">Email</th>
                                 <th className="p-4">Role</th>
-                                <th className="p-4 text-right pr-6">Joined</th>
+                                <th className="p-4">Joined</th>
+                                <th className="p-4 text-right pr-6">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
@@ -196,8 +225,18 @@ export function AdminView() {
                                                 <option value="owner" className="bg-bg-card text-amber-400">Owner</option>
                                             </select>
                                         </td>
-                                        <td className="p-4 text-right pr-6 text-text-muted text-base">
+                                        <td className="p-4 text-text-muted text-base">
                                             {new Date(u.updated_at).toLocaleDateString()}
+                                        </td>
+                                        <td className="p-4 text-right pr-6">
+                                            <button
+                                                className="p-2 text-text-muted hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                                                title="Delete User"
+                                                disabled={deletingId === u.id || u.id === user?.id}
+                                                onClick={() => handleDeleteUser(u.id, u.full_name)}
+                                            >
+                                                {deletingId === u.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                                            </button>
                                         </td>
                                     </tr>
                                 ))

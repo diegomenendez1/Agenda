@@ -3,6 +3,19 @@ import { supabase } from './supabase';
 import type { AppState, Task, EntityId, Note, UserProfile, TaskStatus } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
+const hydrateTask = (t: any): Task => ({
+    ...t,
+    projectId: t.project_id,
+    project_id: t.project_id, // keep both for safety
+    tags: t.tag_ids || [],
+    createdAt: t.created_at ? new Date(t.created_at).getTime() : Date.now(),
+    dueDate: t.due_date ? new Date(t.due_date).getTime() : undefined,
+    completedAt: t.completed_at ? new Date(t.completed_at).getTime() : undefined,
+    ownerId: t.user_id || t.owner_id, // Support both just in case
+    assigneeId: t.assignee_id,
+    visibility: t.visibility || 'private'
+});
+
 interface Actions {
     // Sync
     initialize: () => Promise<void>;
@@ -84,17 +97,7 @@ export const useStore = create<Store>((set, get) => ({
 
         const tasks: Record<string, any> = {};
         (tasksRes.data as any[])?.forEach((t: any) => {
-            tasks[t.id] = {
-                ...t,
-                projectId: t.project_id,
-                tags: t.tag_ids || [],
-                createdAt: t.created_at ? new Date(t.created_at).getTime() : Date.now(),
-                dueDate: t.due_date ? new Date(t.due_date).getTime() : undefined,
-                completedAt: t.completed_at ? new Date(t.completed_at).getTime() : undefined,
-                ownerId: t.owner_id,
-                assigneeId: t.assignee_id,
-                visibility: t.visibility || 'private'
-            };
+            tasks[t.id] = hydrateTask(t);
         });
 
         const projects: Record<string, any> = {};
@@ -134,12 +137,9 @@ export const useStore = create<Store>((set, get) => ({
         supabase
             .channel('public:everything')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload: any) => {
-                if (payload.eventType === 'INSERT') {
-                    const t = payload.new;
-                    set(state => ({ tasks: { ...state.tasks, [t.id]: { ...t, projectId: t.project_id, tags: t.tag_ids || [] } } }));
-                } else if (payload.eventType === 'UPDATE') {
-                    const t = payload.new;
-                    set(state => ({ tasks: { ...state.tasks, [t.id]: { ...t, projectId: t.project_id, tags: t.tag_ids || [] } } }));
+                if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                    const hydrated = hydrateTask(payload.new);
+                    set(state => ({ tasks: { ...state.tasks, [hydrated.id]: hydrated } }));
                 } else if (payload.eventType === 'DELETE') {
                     set(state => {
                         const { [payload.old.id]: _, ...rest } = state.tasks;
@@ -257,7 +257,7 @@ export const useStore = create<Store>((set, get) => ({
             status: taskData.status || 'todo',
             due_date: taskData.dueDate,
             description: taskData.description,
-            owner_id: get().user?.id,
+            user_id: get().user?.id, // Standard Supabase creator column
             assignee_id: taskData.assigneeId,
             visibility: taskData.assigneeId ? 'team' : (taskData.visibility || 'private')
         });
@@ -280,7 +280,12 @@ export const useStore = create<Store>((set, get) => ({
         });
 
         const dbUpdates: any = { ...updates };
-        if (updates.assigneeId) dbUpdates.visibility = 'team';
+        if (updates.assigneeId) {
+            dbUpdates.assignee_id = updates.assigneeId;
+            dbUpdates.visibility = 'team';
+            delete dbUpdates.assigneeId;
+        }
+        if (updates.visibility) dbUpdates.visibility = updates.visibility;
         if (updates.projectId) {
             dbUpdates.project_id = updates.projectId;
             delete dbUpdates.projectId;

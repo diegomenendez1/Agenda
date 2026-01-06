@@ -32,12 +32,13 @@ export function TaskListView() {
 
         return allTasks.filter(task => {
             // SEGMENTATION LOGIC:
-            // 1. Private tasks owned by me
-            // 2. Team tasks assigned to me
-            const isMyPrivateTask = task.ownerId === user.id && task.visibility === 'private';
-            const isAssignedToMe = task.assigneeId === user.id;
+            // I see tasks that are:
+            // 1. Created by me (regardless of visibility)
+            // 2. Assigned to me
+            const isOwner = task.ownerId === user.id;
+            const isAssignee = task.assigneeId === user.id;
 
-            if (!isMyPrivateTask && !isAssignedToMe) return false;
+            if (!isOwner && !isAssignee) return false;
 
             if (filter === 'all') return true;
             if (!task.dueDate) return false;
