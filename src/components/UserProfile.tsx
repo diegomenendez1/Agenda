@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '../core/store';
-import { User, Shield, Palette, Save } from 'lucide-react';
+import { User, Palette, Save } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export function UserProfile() {

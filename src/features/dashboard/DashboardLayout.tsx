@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { LayoutDashboard, Calendar, Zap, Settings, Menu, X, Plus } from 'lucide-react';
+import { useState } from 'react';
+import { LayoutDashboard, Calendar, Zap, Settings, Menu, X } from 'lucide-react';
 import { TaskBoard } from './TaskBoard';
 import { HabitManager } from '../habits/HabitManager';
 import clsx from 'clsx';

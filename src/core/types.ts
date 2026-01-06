@@ -93,6 +93,20 @@ export interface FocusBlock {
     durationMinutes: number;
 }
 
+export interface Habit {
+    id: EntityId;
+    name: string;
+    frequency: 'daily' | 'weekly' | 'custom';
+    durationMinutes: number;
+    priority: Priority;
+    flexibleWindow?: {
+        start: string; // "09:00"
+        end: string;   // "17:00"
+    };
+    color?: string;
+    createdAt: number;
+}
+
 export interface AppState {
     user: UserProfile | null;
     team: Record<EntityId, TeamMember>;
@@ -101,4 +115,5 @@ export interface AppState {
     projects: Record<EntityId, Project>;
     notes: Record<EntityId, Note>;
     focusBlocks: Record<EntityId, FocusBlock>;
+    habits: Record<EntityId, Habit>;
 }

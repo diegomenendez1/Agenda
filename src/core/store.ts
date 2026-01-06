@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from './supabase';
-import type { AppState, Task, EntityId, Note, UserProfile, TaskStatus } from './types';
+import type { AppState, Task, EntityId, Note, UserProfile, TaskStatus, Habit } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
 const hydrateTask = (t: any): Task => ({
@@ -40,6 +40,10 @@ interface Actions {
     updateNote: (id: EntityId, updates: Partial<Note>) => Promise<void>;
     deleteNote: (id: EntityId) => Promise<void>;
 
+    // Habits - NEW
+    addHabit: (habit: Omit<Habit, 'id' | 'createdAt'>) => Promise<EntityId>;
+    deleteHabit: (id: EntityId) => Promise<void>;
+
     // Processing
     convertInboxToTask: (inboxItemId: EntityId, taskData: Partial<Task>) => Promise<void>;
     convertInboxToNote: (inboxItemId: EntityId, title: string, body?: string) => Promise<void>;
@@ -58,6 +62,7 @@ export const useStore = create<Store>((set, get) => ({
     projects: {},
     notes: {},
     focusBlocks: {},
+    habits: {},
 
     initialize: async () => {
         const { data: { user } } = await supabase.auth.getUser();
@@ -371,6 +376,25 @@ export const useStore = create<Store>((set, get) => ({
             return { notes: rest };
         });
         await supabase.from('notes').delete().eq('id', id);
+    },
+
+    addHabit: async (habitData) => {
+        const id = uuidv4();
+        const newHabit: any = {
+            id,
+            ...habitData,
+            createdAt: Date.now()
+        };
+        // Optimistic only for now (until backend table is created)
+        set(state => ({ habits: { ...state.habits, [id]: newHabit } }));
+        return id;
+    },
+
+    deleteHabit: async (id) => {
+        set(state => {
+            const { [id]: _, ...rest } = state.habits;
+            return { habits: rest };
+        });
     },
 
     convertInboxToTask: async (inboxItemId, taskData) => {

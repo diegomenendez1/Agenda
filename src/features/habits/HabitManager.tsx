@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useStore } from '../../core/store';
 import { Trash2, Plus, Clock, Sun, Calendar } from 'lucide-react';
 import clsx from 'clsx';
-import type { Habit } from '../../core/types';
+
 
 export const HabitManager = () => {
     const { habits, addHabit, deleteHabit } = useStore();

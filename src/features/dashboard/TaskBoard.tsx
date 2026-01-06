@@ -1,7 +1,7 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useStore } from '../../core/store';
 import type { Task, TaskStatus } from '../../core/types';
-import { Check, Clock, Calendar, Flag } from 'lucide-react';
+import { Check, Calendar, Flag } from 'lucide-react';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 
@@ -91,14 +91,7 @@ export const TaskBoard = () => {
                         </div>
 
                         <div className="flex items-center gap-4 text-xs text-slate-400">
-                            {task.deadline && (
-                                <span className="flex items-center gap-1 text-red-500/80 bg-red-50 px-2 py-0.5 rounded">
-                                    <Clock className="w-3 h-3" />
-                                    {format(new Date(task.deadline), 'MMM d, HH:mm')}
-                                </span>
-                            )}
-
-                            {task.dueDate && !task.deadline && (
+                            {task.dueDate && (
                                 <span className={clsx("flex items-center gap-1", task.dueDate < Date.now() && "text-amber-600")}>
                                     <Calendar className="w-3 h-3" />
                                     {format(new Date(task.dueDate), 'MMM d')}
