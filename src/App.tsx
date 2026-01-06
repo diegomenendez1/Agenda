@@ -38,8 +38,37 @@ export default function App() {
       }
     });
 
+
     return () => subscription.unsubscribe();
   }, [initialize]);
+
+  useEffect(() => {
+    // Theme Switcher Logic
+    const theme = user?.preferences?.theme || 'system';
+    const root = window.document.documentElement;
+
+    const applyTheme = (t: string) => {
+      if (t === 'dark') {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
+    };
+
+    if (theme === 'system') {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      applyTheme(systemTheme);
+
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = (e: MediaQueryListEvent) => {
+        applyTheme(e.matches ? 'dark' : 'light');
+      };
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    } else {
+      applyTheme(theme);
+    }
+  }, [user?.preferences?.theme]);
 
 
   if (loading) {
@@ -57,20 +86,14 @@ export default function App() {
 
         <Route path="/*" element={
           !user ? <Navigate to="/auth" /> : (
-            <div className="flex h-screen w-screen overflow-hidden bg-[#000000] text-text-primary selection:bg-accent-primary/30">
-              {/* Background Ambient Effects - Now handled by CSS gradients + Noise */}
-              <div className="noise-overlay" />
+            <div className="flex h-screen w-screen overflow-hidden bg-bg-app text-text-primary">
 
-              <div className="h-full flex gap-4 p-4 relative z-10 w-full max-w-[1920px] mx-auto">
+              <div className="h-full flex gap-0 relative z-10 w-full max-w-[1920px] mx-auto">
                 <ErrorBoundary>
                   <Sidebar />
                 </ErrorBoundary>
 
-                <main className="flex-1 overflow-hidden relative flex flex-col rounded-[24px] bg-[#0A0B10] border border-white/5 shadow-2xl clip-path-content">
-                  {/* Inner subtle glow */}
-                  <div className="absolute inset-0 bg-gradient-to-tr from-white/[0.02] to-transparent pointer-events-none" />
-
-                  <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.03] pointer-events-none" />
+                <main className="flex-1 overflow-hidden relative flex flex-col bg-bg-app">
 
                   <CommandPalette />
 

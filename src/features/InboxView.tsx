@@ -24,10 +24,10 @@ export function InboxView() {
                 <header className="mb-6">
                     <h1 className="text-3xl font-bold flex items-center gap-3 tracking-tight">
                         <Inbox className="w-8 h-8 text-violet-500" />
-                        Capture & Process
+                        Inbox
                     </h1>
-                    <p className="text-text-muted mt-1 text-2xl">
-                        Dump anything—emails, thoughts, tasks. I'll sort it out.
+                    <p className="text-text-muted mt-1 text-lg">
+                        Capture thoughts, tasks, and notes in one place.
                     </p>
                 </header>
 
@@ -38,17 +38,13 @@ export function InboxView() {
 
             {/* List Section */}
             <div className="flex-1 overflow-y-auto px-8 pb-8 mt-4">
-                <h2 className="text-base font-semibold uppercase tracking-wider text-text-muted mb-4 flex items-center gap-2">
-                    Pending Processing <span className="bg-bg-card border border-border-subtle px-1.5 rounded-full text-sm">{inboxItems.length}</span>
-                </h2>
-
                 {inboxItems.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-border-subtle rounded-xl bg-bg-card/30">
                         <div className="bg-bg-card p-4 rounded-full mb-3 shadow-inner">
                             <CheckCircle2 className="text-emerald-500 w-8 h-8" />
                         </div>
-                        <p className="text-text-primary font-medium">All caught up!</p>
-                        <p className="text-text-muted text-lg mt-1">Your mind is clear.</p>
+                        <p className="text-text-primary font-medium">Inbox Zero</p>
+                        <p className="text-text-muted text-lg mt-1">You're all caught up.</p>
                     </div>
                 ) : (
                     <div className="grid gap-3">
@@ -68,7 +64,7 @@ export function InboxView() {
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between mb-1">
                                             <span className="text-sm font-medium text-text-muted uppercase tracking-wider">
-                                                {item.source} capture
+                                                {item.source}
                                             </span>
                                             <span className="text-base text-text-muted tabular-nums">
                                                 {format(item.createdAt, 'HH:mm')}
@@ -84,7 +80,7 @@ export function InboxView() {
                                         className="self-center opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 btn btn-primary py-2 px-3 shadow-lg shadow-violet-500/20"
                                     >
                                         <Sparkles size={14} />
-                                        <span className="ml-1.5">Process</span>
+                                        <span className="ml-1.5">Triage</span>
                                     </button>
                                 </div>
                             </div>

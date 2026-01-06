@@ -21,7 +21,6 @@ export function EditTaskModal({ task, onClose }: EditTaskModalProps) {
     // Initial date/time state setup
     const initialDate = task.dueDate ? new Date(task.dueDate) : null;
     const [dueDateStr, setDueDateStr] = useState(initialDate ? format(initialDate, 'yyyy-MM-dd') : '');
-    const [dueTimeStr, setDueTimeStr] = useState(initialDate ? format(initialDate, 'HH:mm') : '');
 
     // Handle escape key
     useEffect(() => {
@@ -40,12 +39,8 @@ export function EditTaskModal({ task, onClose }: EditTaskModalProps) {
             const [year, month, day] = dueDateStr.split('-').map(Number);
             const properDate = new Date(year, month - 1, day);
 
-            if (dueTimeStr) {
-                const [hours, minutes] = dueTimeStr.split(':').map(Number);
-                properDate.setHours(hours, minutes, 0, 0);
-            } else {
-                properDate.setHours(9, 0, 0, 0);
-            }
+            // Default to start of day if only date is selected (which is now always the case)
+            properDate.setHours(9, 0, 0, 0);
             dueDate = properDate.getTime();
         }
 
@@ -118,31 +113,17 @@ export function EditTaskModal({ task, onClose }: EditTaskModalProps) {
                             </select>
                         </div>
 
-                        {/* Due Date & Time */}
-                        <div className="col-span-2 grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs uppercase text-muted font-bold mb-2 flex items-center gap-2">
-                                    <Clock size={12} /> Due Date
-                                </label>
-                                <input
-                                    type="date"
-                                    value={dueDateStr}
-                                    onChange={e => setDueDateStr(e.target.value)}
-                                    className="input w-full"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs uppercase text-muted font-bold mb-2 flex items-center gap-2">
-                                    <Clock size={12} /> Time
-                                </label>
-                                <input
-                                    type="time"
-                                    value={dueTimeStr}
-                                    onChange={e => setDueTimeStr(e.target.value)}
-                                    className="input w-full"
-                                    disabled={!dueDateStr}
-                                />
-                            </div>
+                        {/* Due Date */}
+                        <div className="col-span-2">
+                            <label className="block text-xs uppercase text-muted font-bold mb-2 flex items-center gap-2">
+                                <Clock size={12} /> Due Date
+                            </label>
+                            <input
+                                type="date"
+                                value={dueDateStr}
+                                onChange={e => setDueDateStr(e.target.value)}
+                                className="input w-full"
+                            />
                         </div>
 
                         {/* Assignee Selector - New Feature */}

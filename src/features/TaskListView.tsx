@@ -56,9 +56,9 @@ export function TaskListView() {
         <div className="flex flex-col h-full p-8 max-w-4xl mx-auto w-full">
             <header className="mb-8 flex flex-col gap-6">
                 <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-bold flex items-center gap-md">
+                    <h1 className="text-3xl font-bold flex items-center gap-3 tracking-tight">
                         <CheckCircle2 className="w-8 h-8 text-success" />
-                        Tasks
+                        My Tasks
                     </h1>
                 </div>
 
@@ -80,7 +80,7 @@ export function TaskListView() {
                             filter === 'today' ? "bg-accent-primary text-white shadow-sm" : "text-muted hover:text-primary hover:bg-bg-input"
                         )}
                     >
-                        <CheckCircle2 size={16} /> Today
+                        <CheckCircle2 size={16} /> Active
                     </button>
                     <button
                         onClick={() => setFilter('upcoming')}
@@ -101,7 +101,7 @@ export function TaskListView() {
                         <p>No tasks found for this filter.</p>
                     </div>
                 ) : (
-                    <ul className="flex flex-col gap-2 pb-20">
+                    <ul className="flex flex-col gap-4 pb-20">
                         {filteredTasks.map(task => (
                             <TaskItem key={task.id} task={task} />
                         ))}

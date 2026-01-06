@@ -6,52 +6,95 @@
 
 :root {
   /* 
-    THEME: Obsidian Void (Ultra-Modern & Elegant)
-    Inspiration: Linear, Vercel, Raycast.
-    Values: Premium, Depth, Subtle Noise, High Contrast Text.
+    THEME: Horizon (Clean, Airy, Commercial SaaS)
+    Inspiration: Notion, Linear Light, Things 3.
+    Values: Friendly, Light, Minimalist, Focus.
   */
 
-  /* Base - Richer, deeper blacks */
-  --bg-app: #03040B;
-  /* Deepest void */
-  --bg-sidebar: #08090F;
-  /* Slightly brighter context */
-  --bg-card: rgba(20, 22, 28, 0.6);
-  /* Glassy default */
-  --bg-card-hover: rgba(255, 255, 255, 0.03);
-  /* Subtle light wash */
-  --bg-input: #0F1116;
+  /* Base - Pure and Clean */
+  --bg-app: #FFFFFF;
+  /* Clean White */
+  --bg-sidebar: #F9FAFB;
+  /* Very light cool gray (Gray 50) */
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F8FAFC;
+  /* Slate 50 */
+  --bg-input: #F3F4F6;
+  /* Gray 100 */
 
-  /* Text - Crisp & Elegant */
-  --text-primary: #F7F8F8;
-  /* Nearly white, high purity */
-  --text-secondary: #8A8F98;
-  /* Cool gray, legible */
-  --text-muted: #545864;
-  /* Deep gray for ignore-able details */
+  /* Text - High Legibility */
+  --text-primary: #111827;
+  /* Gray 900 */
+  --text-secondary: #4B5563;
+  /* Gray 600 */
+  --text-muted: #9CA3AF;
+  /* Gray 400 */
 
-  /* Borders - The "Shimmer" */
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-highlight: rgba(255, 255, 255, 0.12);
+  /* Borders - Soft definition */
+  --border-subtle: #E5E7EB;
+  /* Gray 200 */
+  --border-highlight: #D1D5DB;
+  /* Gray 300 */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-glow: 0 0 15px rgba(99, 102, 241, 0.15);
 
-  /* Accents - "Aurora" */
-  --accent-primary: #5E6AD2;
-  /* Indigo/Blurple */
-  --accent-glow: rgba(94, 106, 210, 0.5);
+  /* Accents - "Electric Indigo" */
+  --accent-primary: #4F46E5;
+  /* Indigo 600 */
+  --accent-secondary: #818CF8;
+  --accent-glow: rgba(79, 70, 229, 0.1);
 
-  /* Priorities - Heatmap */
-  --priority-critical: #EF4444;
-  --priority-high: #F97316;
-  --priority-medium: #EAB308;
-  --priority-low: #3B82F6;
+  /* Priorities - Pastel yet clear */
+  --priority-critical: #F87171;
+  /* Red 400 */
+  --priority-high: #FB923C;
+  /* Orange 400 */
+  --priority-medium: #FACC15;
+  /* Yellow 400 */
+  --priority-low: #60A5FA;
+  /* Blue 400 */
 
   /* Spacing */
   --radius-panel: 24px;
-  --radius-card: 16px;
+  --radius-card: 12px;
   --radius-sm: 8px;
 
-  /* Font settings - Elegant Scaling */
+  /* Font settings */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.dark {
+  /* Horizon Dark (Clean & Deep) */
+  --bg-app: #09090b;
+  /* Zinc 950 */
+  --bg-sidebar: #121215;
+  --bg-card: #18181b;
+  /* Zinc 900 */
+  --bg-card-hover: #27272a;
+  /* Zinc 800 */
+  --bg-input: #27272a;
+  /* Zinc 800 */
+
+  --text-primary: #f4f4f5;
+  /* Zinc 100 */
+  --text-secondary: #a1a1aa;
+  /* Zinc 400 */
+  --text-muted: #52525b;
+  /* Zinc 600 */
+
+  --border-subtle: #27272a;
+  /* Zinc 800 */
+  --border-highlight: #3f3f46;
+  /* Zinc 700 */
+
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+
+  /* Adjust accents for dark mode contrast */
+  --accent-primary: #6366f1;
+  /* Indigo 500 (Brighter) */
+  --accent-secondary: #818cf8;
 }
 
 body {
@@ -60,13 +103,11 @@ body {
   color: var(--text-primary);
   height: 100vh;
   overflow: hidden;
-  line-height: 1.6;
-  font-size: 16px;
-  /* Reset to refined 16px base for elegance */
+  line-height: 1.5;
+  font-size: 15px;
+  /* Comfortable reading size */
   -webkit-font-smoothing: antialiased;
-  background-image:
-    radial-gradient(circle at 15% 50%, rgba(76, 29, 149, 0.08), transparent 25%),
-    radial-gradient(circle at 85% 30%, rgba(56, 189, 248, 0.05), transparent 25%);
+  /* Removed the noise and dark radial gradients */
 }
 
 #root {
@@ -74,98 +115,23 @@ body {
   display: flex;
 }
 
-/* --- GLASSMORPHISM & TEXTURE --- */
-
-/* The "Premium" Surface */
+/* --- UTILITIES --- */
 .glass-panel {
+  /* Now a clean card style instead of glass */
   background: var(--bg-card);
-  backdrop-filter: blur(40px) saturate(150%);
-  -webkit-backdrop-filter: blur(40px) saturate(150%);
   border: 1px solid var(--border-subtle);
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.2),
-    0 20px 40px -10px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-md);
 }
 
-/* Subtle grain overlay for texture */
 .noise-overlay {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.03;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-  z-index: 50;
+  display: none;
+  /* Disable noise for the clean look */
 }
 
-/* --- ULTRAMODERN COMPONENTS --- */
-
-/* Buttons - "Spotlight" feel */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius-sm);
-  background: var(--bg-card-hover);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
-}
-
-.btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: var(--text-muted);
-  transform: translateY(-1px);
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: white;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  box-shadow:
-    0 4px 12px rgba(124, 58, 237, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-}
-
-.btn-primary:hover {
-  filter: brightness(1.1);
-  box-shadow:
-    0 6px 20px rgba(124, 58, 237, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  transform: translateY(-1px);
-}
-
-/* Inputs - Clean, borderless feel until focus */
-.input {
-  background: var(--bg-input);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-primary);
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius-sm);
-  font-size: 15px;
-  width: 100%;
-  transition: all 0.2s;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-.input:focus {
-  outline: none;
-  border-color: var(--accent-primary);
-  background: #13151b;
-  box-shadow:
-    0 0 0 4px rgba(94, 106, 210, 0.15),
-    inset 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-/* Scrollbars - Thin & elegant */
+/* Scrollbars - Minimalist Gray */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -173,36 +139,93 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-subtle);
-  border-radius: 99px;
-  border: 2px solid transparent;
-  /* Padding trick */
-  background-clip: content-box;
+  background: #E5E7EB;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: var(--text-secondary);
+  background: #D1D5DB;
 }
 
-/* Typography Scale */
+/* --- COMPONENTS --- */
+
+/* Buttons - "Modern Soft" */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  background: white;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-highlight);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.btn-primary {
+  background: var(--accent-primary);
+  border: 1px solid var(--accent-primary);
+  color: white;
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+
+.btn-primary:hover {
+  background: #4338ca;
+  /* Indigo 700 */
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px var(--accent-glow);
+}
+
+/* Inputs - Clean Field */
+.input {
+  background: var(--bg-input);
+  border: 1px solid transparent;
+  color: var(--text-primary);
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  width: 100%;
+  transition: all 0.2s;
+}
+
+
+.input:focus {
+  outline: none;
+  background: var(--bg-card);
+  /* Adapted for Dark Mode */
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* Typography */
 h1 {
-  font-size: 2.5rem;
+  font-size: 2rem;
   letter-spacing: -0.02em;
   font-weight: 700;
-  background: linear-gradient(to bottom right, #fff, #94a3b8);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--text-primary);
+  /* Removed gradient text for better readability */
 }
 
 h2 {
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   letter-spacing: -0.015em;
   font-weight: 600;
   color: var(--text-primary);
 }
 
 h3 {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -211,22 +234,16 @@ p {
   color: var(--text-secondary);
 }
 
-/* Clip Path */
-.clip-content {
-  /* Rounder curves for the modern feel */
-  border-radius: var(--radius-panel);
-}
-
 /* Animations */
 .animate-enter {
-  animation: enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: enter 0.3s ease-out forwards;
   opacity: 0;
-  transform: translateY(8px) scale(0.98);
+  transform: translateY(4px);
 }
 
 @keyframes enter {
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }

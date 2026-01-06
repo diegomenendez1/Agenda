@@ -22,7 +22,7 @@ export function TaskItem({ task, showProject = true, compact = false }: TaskItem
         <>
             <li className={clsx(
                 "group flex items-center gap-3 rounded-md bg-bg-card border border-transparent hover:border-border-subtle transition-all",
-                compact ? "p-2 text-lg" : "p-3",
+                compact ? "p-3 text-lg" : "p-4",
                 task.status === 'done' && "opacity-50"
             )}>
                 <button
@@ -36,7 +36,7 @@ export function TaskItem({ task, showProject = true, compact = false }: TaskItem
                     )}
                 </button>
 
-                <div className="flex-1 flex flex-col gap-0.5 cursor-pointer" onClick={() => setIsEditing(true)}>
+                <div className="flex-1 flex flex-col gap-1.5 cursor-pointer" onClick={() => setIsEditing(true)}>
                     <span className={clsx(
                         "text-lg font-medium",
                         task.status === 'done' && "line-through text-muted"

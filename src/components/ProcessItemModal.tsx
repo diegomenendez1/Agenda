@@ -18,7 +18,6 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
     const [priority, setPriority] = useState<Priority>('medium');
     const [assigneeId, setAssigneeId] = useState<string>('');
     const [dueDateStr, setDueDateStr] = useState('');
-    const [dueTimeStr, setDueTimeStr] = useState('');
     const [noteBody, setNoteBody] = useState('');
 
     // Handle escape key
@@ -39,12 +38,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                 const [year, month, day] = dueDateStr.split('-').map(Number);
                 const properDate = new Date(year, month - 1, day); // Month is 0-indexed
 
-                if (dueTimeStr) {
-                    const [hours, minutes] = dueTimeStr.split(':').map(Number);
-                    properDate.setHours(hours, minutes, 0, 0); // Set seconds and milliseconds to 0
-                } else {
-                    properDate.setHours(9, 0, 0, 0); // Default to 9 AM
-                }
+                properDate.setHours(9, 0, 0, 0); // Default to 9 AM
                 dueDate = properDate.getTime();
             }
 
@@ -156,31 +150,17 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                                 </select>
                             </div>
 
-                            {/* Due Date & Time */}
-                            <div className="col-span-2 grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs uppercase text-muted font-bold mb-2 flex items-center gap-2">
-                                        <Clock size={12} /> Due Date
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={dueDateStr}
-                                        onChange={e => setDueDateStr(e.target.value)}
-                                        className="input w-full"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs uppercase text-muted font-bold mb-2 flex items-center gap-2">
-                                        <Clock size={12} /> Time
-                                    </label>
-                                    <input
-                                        type="time"
-                                        value={dueTimeStr}
-                                        onChange={e => setDueTimeStr(e.target.value)}
-                                        className="input w-full"
-                                        disabled={!dueDateStr}
-                                    />
-                                </div>
+                            {/* Due Date */}
+                            <div className="col-span-2">
+                                <label className="block text-xs uppercase text-muted font-bold mb-2 flex items-center gap-2">
+                                    <Clock size={12} /> Due Date
+                                </label>
+                                <input
+                                    type="date"
+                                    value={dueDateStr}
+                                    onChange={e => setDueDateStr(e.target.value)}
+                                    className="input w-full"
+                                />
                             </div>
 
                             {/* Priority */}
