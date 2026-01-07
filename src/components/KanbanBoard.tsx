@@ -162,9 +162,21 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                                     <CheckCircle2 size={14} /> Accept Task
                                                 </button>
                                             ) : (
-                                                <div className="w-full mb-3 py-2 bg-slate-100 border border-slate-200 text-slate-400 text-xs font-bold uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 cursor-default">
-                                                    <Clock size={14} /> Waiting for Team
-                                                </div>
+                                                task.visibility === 'private' ? (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            updateStatus(task.id, 'todo');
+                                                        }}
+                                                        className="w-full mb-3 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2"
+                                                    >
+                                                        <CheckCircle2 size={14} /> Start Task
+                                                    </button>
+                                                ) : (
+                                                    <div className="w-full mb-3 py-2 bg-slate-100 border border-slate-200 text-slate-400 text-xs font-bold uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 cursor-default">
+                                                        <Clock size={14} /> Waiting for Team
+                                                    </div>
+                                                )
                                             )}
                                         </>
                                     )}
