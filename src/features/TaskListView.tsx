@@ -42,10 +42,16 @@ export function TaskListView() {
         const today = new Date();
 
         return allTasks.filter(task => {
-            const isOwner = task.ownerId === user.id;
             const isAssignee = task.assigneeIds?.includes(user.id);
+            const isShared = task.visibility === 'team';
 
-            if (!isOwner && !isAssignee) return false;
+            // If it's a shared task, ONLY show if I am assigned to it. 
+            // Even if I am the owner, if I delegated it (shared it) and didn't assign myself, I don't want to see it in "My Tasks".
+            if (isShared && !isAssignee) return false;
+
+            // If it's private, show if I am the owner (standard)
+            const isOwner = task.ownerId === user.id;
+            if (!isShared && !isOwner) return false; // Should not happen given RLS, but for robust client filtering
 
             if (filter === 'all') return true;
             if (!task.dueDate) return false;
@@ -155,12 +161,14 @@ export function TaskListView() {
                                 <Trash2 size={14} className="mr-1.5" /> Clear Completed
                             </button>
                         )}
-                        <button
-                            className="btn btn-primary shadow-lg shadow-accent-primary/20"
-                            onClick={() => window.dispatchEvent(new CustomEvent('open-task-modal'))}
-                        >
-                            <Plus size={18} /> New Task
-                        </button>
+                        {viewMode === 'list' && (
+                            <button
+                                className="btn btn-primary shadow-lg shadow-accent-primary/20"
+                                onClick={() => window.dispatchEvent(new CustomEvent('open-task-modal'))}
+                            >
+                                <Plus size={18} /> New Task
+                            </button>
+                        )}
                     </div>
                 </div>
             </header>

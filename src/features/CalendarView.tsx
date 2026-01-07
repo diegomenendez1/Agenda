@@ -1,24 +1,37 @@
-import { useMemo } from 'react';
-import { startOfWeek, addDays, format, isSameDay, getHours } from 'date-fns';
+import { useState, useMemo } from 'react';
+import { startOfWeek, addDays, format, isSameDay, getHours, addWeeks, subWeeks } from 'date-fns';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import clsx from 'clsx';
 import { useStore } from '../core/store';
 
 export function CalendarView() {
-    const today = new Date();
-    const weekStart = startOfWeek(today, { weekStartsOn: 1 }); // Monday start
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const weekStart = useMemo(() => startOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
     const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
     const hours = Array.from({ length: 16 }, (_, i) => i + 6); // 6 AM to 9 PM
 
-    const { tasks, updateTask } = useStore();
+    const { tasks, updateTask, user } = useStore();
+    const today = new Date();
+
+    const nextWeek = () => setCurrentDate(d => addWeeks(d, 1));
+    const prevWeek = () => setCurrentDate(d => subWeeks(d, 1));
+    const goToToday = () => setCurrentDate(new Date());
 
     // Mapping tasks to calendar grid
     const tasksOnCalendar = useMemo(() => {
+        if (!user) return [];
         return Object.values(tasks).filter(task => {
             if (!task.dueDate || task.status === 'done') return false;
+
+            // Visibility Check
+            const isOwner = task.ownerId === user.id;
+            const isAssignee = task.assigneeIds?.includes(user.id);
+            if (!isOwner && !isAssignee) return false;
+
             const hour = getHours(task.dueDate);
             return hour >= 6 && hour <= 21;
         });
-    }, [tasks]);
+    }, [tasks, user]);
 
     const handleDragStart = (e: React.DragEvent, taskId: string) => {
         e.dataTransfer.setData('taskId', taskId);
@@ -44,8 +57,28 @@ export function CalendarView() {
     return (
         <div className="flex flex-col h-full overflow-hidden bg-bg-app">
 
+            {/* Control Header */}
+            <div className="flex items-center justify-between px-6 py-4 bg-bg-card border-b border-border-subtle shrink-0">
+                <div className="flex items-center gap-4">
+                    <h2 className="text-2xl font-display font-bold text-text-primary capitalize min-w-[200px]">
+                        {format(currentDate, 'MMMM yyyy')}
+                    </h2>
+                    <div className="flex items-center gap-1 bg-bg-input rounded-lg p-1 border border-border-subtle">
+                        <button onClick={prevWeek} className="p-1 hover:bg-bg-card hover:text-accent-primary rounded-md transition-colors text-text-muted">
+                            <ChevronLeft size={20} />
+                        </button>
+                        <button onClick={goToToday} className="px-3 py-1 text-sm font-bold text-text-secondary hover:text-text-primary transition-colors">
+                            Today
+                        </button>
+                        <button onClick={nextWeek} className="p-1 hover:bg-bg-card hover:text-accent-primary rounded-md transition-colors text-text-muted">
+                            <ChevronRight size={20} />
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             {/* Header - Days */}
-            <div className="grid grid-cols-8 border-b border-border-subtle bg-bg-card shadow-sm z-10">
+            <div className="grid grid-cols-8 border-b border-border-subtle bg-bg-card shadow-sm z-10 shrink-0">
                 <div className="p-4 border-r border-border-subtle text-[10px] font-bold tracking-widest text-text-muted uppercase text-center pt-8 bg-bg-sidebar/50">
                     GMT-5
                 </div>

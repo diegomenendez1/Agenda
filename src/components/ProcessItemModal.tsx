@@ -105,7 +105,8 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
             priority,
             projectId: selectedProjectId || undefined,
             dueDate: dueDate ? new Date(dueDate).getTime() : undefined,
-            description: context // Using description for extra context
+            description: context, // Using description for extra context
+            assigneeIds // Pass assigneeIds so visibility is updated to 'team'
         });
         onClose();
     };

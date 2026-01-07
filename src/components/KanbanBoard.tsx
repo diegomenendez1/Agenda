@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useStore } from '../core/store';
 import type { TaskStatus, Task } from '../core/types';
 import { clsx } from 'clsx';
-import { MoreHorizontal, Plus, Calendar, AlertCircle, CheckCircle2, Lock, Flag } from 'lucide-react';
+import { MoreHorizontal, Plus, Calendar, AlertCircle, CheckCircle2, Lock, Flag, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { EditTaskModal } from './EditTaskModal';
 
@@ -20,10 +20,9 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
-    const { tasks: storeTasks, updateStatus, addTask } = useStore();
+    const { tasks: storeTasks, updateStatus, addTask, user, team } = useStore();
     const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
-    const [isProcessing, setIsProcessing] = useState(false);
 
     const tasksToUse = propTasks || Object.values(storeTasks);
 
@@ -113,12 +112,6 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                 </span>
                             </div>
                         </div>
-                        <button
-                            onClick={() => addTask({ title: 'New Task', status: col.id, priority: 'medium' })}
-                            className="w-8 h-8 flex items-center justify-center hover:bg-bg-input rounded-full text-text-muted hover:text-accent-primary transition-colors"
-                        >
-                            <Plus size={16} />
-                        </button>
                     </div>
 
                     {/* Drop Zone / List */}
@@ -148,32 +141,41 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                         <span className="text-[14px] font-medium text-text-primary line-clamp-3 leading-snug">
                                             {task.title}
                                         </span>
-                                        <button className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-text-primary p-1 -mt-1 -mr-1 transition-opacity">
-                                            <MoreHorizontal size={16} />
-                                        </button>
+                                        {task.ownerId === user?.id && (
+                                            <button className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-text-primary p-1 -mt-1 -mr-1 transition-opacity">
+                                                <MoreHorizontal size={16} />
+                                            </button>
+                                        )}
                                     </div>
 
                                     {/* Action for Backlog Items */}
                                     {task.status === 'backlog' && (
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setEditingTask(task);
-                                                setIsProcessing(true);
-                                            }}
-                                            className="w-full mb-3 py-2 bg-gradient-to-r from-accent-primary/10 to-accent-secondary/10 hover:from-accent-primary hover:to-accent-secondary border border-accent-primary/20 hover:border-transparent text-accent-primary hover:text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm"
-                                        >
-                                            <CheckCircle2 size={14} /> Accept & Process
-                                        </button>
+                                        <>
+                                            {task.ownerId !== user?.id ? (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        updateStatus(task.id, 'todo');
+                                                    }}
+                                                    className="w-full mb-3 py-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 hover:from-emerald-500 hover:to-teal-500 border border-emerald-500/20 hover:border-transparent text-emerald-600 hover:text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm"
+                                                >
+                                                    <CheckCircle2 size={14} /> Accept Task
+                                                </button>
+                                            ) : (
+                                                <div className="w-full mb-3 py-2 bg-slate-100 border border-slate-200 text-slate-400 text-xs font-bold uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 cursor-default">
+                                                    <Clock size={14} /> Waiting for Team
+                                                </div>
+                                            )}
+                                        </>
                                     )}
 
                                     {/* Meta info */}
-                                    <div className="flex items-center justify-between pt-2 border-t border-border-subtle/40">
+                                    <div className="flex items-center justify-between pt-3 border-t border-border-subtle/50 mt-1">
                                         <div className="flex items-center gap-2 text-text-muted">
                                             {task.dueDate && (
                                                 <div className={clsx(
-                                                    "flex items-center gap-1.5 text-[11px] font-medium",
-                                                    task.dueDate < Date.now() ? "text-red-500" : ""
+                                                    "flex items-center gap-1.5 text-[11px] font-medium transition-colors",
+                                                    task.dueDate < Date.now() ? "text-red-500" : "text-text-muted group-hover:text-text-secondary"
                                                 )}>
                                                     <Calendar size={12} />
                                                     {format(task.dueDate, 'MMM d')}
@@ -181,18 +183,53 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                             )}
                                         </div>
 
-                                        {/* Avatar Placeholder or Priority Badge */}
-                                        <div className="flex items-center gap-2">
-                                            {task.priority === 'critical' && <AlertCircle size={14} className="text-red-600" />}
-                                            {task.priority === 'high' && <Flag size={14} className="text-orange-500" />}
-                                            {task.priority === 'medium' && <Flag size={14} className="text-yellow-500" />}
-                                            {task.priority === 'low' && <Flag size={14} className="text-blue-500" />}
+                                        <div className="flex items-center gap-2 max-w-[60%] justify-end">
+                                            {/* Priority Badge */}
+                                            {task.priority === 'critical' && <AlertCircle size={14} className="text-red-600 flex-shrink-0" />}
+                                            {task.priority === 'high' && <Flag size={14} className="text-orange-500 flex-shrink-0" />}
+                                            {task.priority === 'medium' && <Flag size={14} className="text-yellow-500 flex-shrink-0" />}
+                                            {task.priority === 'low' && <Flag size={14} className="text-blue-500 flex-shrink-0" />}
 
+                                            {/* Enhanced Assignees */}
                                             {task.assigneeIds && task.assigneeIds.length > 0 && (
-                                                <div className="flex -space-x-1.5">
-                                                    {task.assigneeIds.map(id => (
-                                                        <div key={id} className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 border-2 border-bg-card shadow-sm" title="Assigned" />
-                                                    )).slice(0, 3)}
+                                                <div className="flex items-center gap-1.5 overflow-hidden pl-1">
+                                                    <div className="flex -space-x-2 shrink-0">
+                                                        {task.assigneeIds.map(id => team[id]).filter(Boolean).slice(0, 3).map((member, i) => {
+                                                            // Deterministic color based on name length/char
+                                                            const colors = ['bg-pink-500', 'bg-violet-500', 'bg-indigo-500', 'bg-cyan-500', 'bg-teal-500', 'bg-emerald-500', 'bg-orange-500'];
+                                                            const colorClass = colors[member.name.length % colors.length];
+
+                                                            return (
+                                                                <div
+                                                                    key={member.id}
+                                                                    className={clsx(
+                                                                        "w-5 h-5 rounded-full border border-bg-card flex items-center justify-center text-[8px] font-bold text-white shadow-sm",
+                                                                        !member.avatar && colorClass
+                                                                    )}
+                                                                    title={member.name}
+                                                                >
+                                                                    {member.avatar ? (
+                                                                        <img src={member.avatar} alt={member.name} className="w-full h-full rounded-full object-cover" />
+                                                                    ) : (
+                                                                        member.name.substring(0, 2).toUpperCase()
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                        {task.assigneeIds.length > 3 && (
+                                                            <div className="w-5 h-5 rounded-full bg-slate-200 border border-bg-card flex items-center justify-center text-[8px] font-bold text-slate-500 shadow-sm">
+                                                                +{task.assigneeIds.length - 3}
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Subtle Name List */}
+                                                    <span className="text-[10px] text-text-muted truncate hidden sm:block opacity-70 group-hover:opacity-100 transition-opacity">
+                                                        {task.assigneeIds
+                                                            .map(id => team[id]?.name?.split(' ')[0])
+                                                            .filter(Boolean)
+                                                            .join(', ')}
+                                                    </span>
                                                 </div>
                                             )}
                                         </div>
@@ -214,10 +251,8 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
             {editingTask && (
                 <EditTaskModal
                     task={editingTask}
-                    isProcessing={isProcessing}
                     onClose={() => {
                         setEditingTask(null);
-                        setIsProcessing(false);
                     }}
                 />
             )}

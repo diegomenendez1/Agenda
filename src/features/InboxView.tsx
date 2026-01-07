@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../core/store';
-import { Inbox, Mail, User, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Inbox, Mail, User, Sparkles, CheckCircle2, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ProcessItemModal } from '../components/ProcessItemModal';
 import { SmartInput } from '../components/SmartInput';
@@ -8,7 +8,7 @@ import type { InboxItem } from '../core/types';
 import clsx from 'clsx';
 
 export function InboxView() {
-    const { inbox, addInboxItem } = useStore();
+    const { inbox, addInboxItem, deleteInboxItem } = useStore();
     const [processingItem, setProcessingItem] = useState<InboxItem | null>(null);
 
     const handleCapture = (text: string, source: 'manual' | 'email' | 'voice' | 'system') => {
@@ -79,13 +79,26 @@ export function InboxView() {
                                         </p>
                                     </div>
 
-                                    <button
-                                        onClick={() => setProcessingItem(item)}
-                                        className="self-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-4 group-hover:translate-x-0 btn btn-primary py-2.5 px-4 shadow-lg shadow-violet-500/20 rounded-lg text-sm"
-                                    >
-                                        <Sparkles size={16} />
-                                        <span className="ml-2 font-semibold">Triage</span>
-                                    </button>
+                                    <div className="flex items-center gap-2 self-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-4 group-hover:translate-x-0">
+                                        <button
+                                            onClick={() => {
+                                                if (confirm('Are you sure you want to delete this specific item?')) {
+                                                    deleteInboxItem(item.id);
+                                                }
+                                            }}
+                                            className="p-2.5 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                                            title="Delete"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                        <button
+                                            onClick={() => setProcessingItem(item)}
+                                            className="btn btn-primary py-2.5 px-4 shadow-lg shadow-violet-500/20 rounded-lg text-sm flex items-center"
+                                        >
+                                            <Sparkles size={16} />
+                                            <span className="ml-2 font-semibold">Process</span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}

@@ -135,14 +135,16 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                         </h2>
                     </div>
                     <div className="flex items-center gap-2">
-                        <button
-                            type="button"
-                            onClick={handleDelete}
-                            className="text-text-muted hover:text-red-500 hover:bg-red-500/10 transition-colors p-2 rounded-lg"
-                            title="Delete Task"
-                        >
-                            <Trash2 size={18} />
-                        </button>
+                        {isOwner && (
+                            <button
+                                type="button"
+                                onClick={handleDelete}
+                                className="text-text-muted hover:text-red-500 hover:bg-red-500/10 transition-colors p-2 rounded-lg"
+                                title="Delete Task"
+                            >
+                                <Trash2 size={18} />
+                            </button>
+                        )}
                         <button type="button" onClick={onClose} className="text-text-muted hover:text-text-primary hover:bg-bg-input p-2 rounded-lg transition-colors">
                             <X size={20} />
                         </button>
@@ -196,11 +198,18 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                     {/* Form Content - Always show for normal edit, show after AI for processing */}
                     {(!isProcessing || showAIPreview) && (
                         <form onSubmit={handleSave} className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            {!isOwner && (
+                                <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-600 px-4 py-3 rounded-xl flex items-center gap-3 text-sm">
+                                    <Lock size={16} />
+                                    <span>view only mode • Only the task owner can edit details.</span>
+                                </div>
+                            )}
+
                             {/* Form fields here... */}
                             <div>
                                 <div className="flex items-center justify-between mb-2">
                                     <label className="block text-xs uppercase text-text-muted font-bold tracking-wider">Title</label>
-                                    {title !== originalTitle && (
+                                    {isOwner && title !== originalTitle && (
                                         <button
                                             type="button"
                                             onClick={() => setTitle(originalTitle)}
@@ -211,13 +220,15 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                     )}
                                 </div>
                                 <input
-                                    autoFocus
+                                    autoFocus={isOwner}
+                                    disabled={!isOwner}
                                     type="text"
                                     value={title}
                                     onChange={e => setTitle(e.target.value)}
                                     className={clsx(
                                         "input w-full text-lg font-medium transition-all",
-                                        showAIPreview && title !== originalTitle && "ring-2 ring-violet-500/20 border-violet-500/30"
+                                        showAIPreview && title !== originalTitle && "ring-2 ring-violet-500/20 border-violet-500/30",
+                                        !isOwner && "opacity-70 cursor-not-allowed bg-transparent border-transparent px-0"
                                     )}
                                 />
                             </div>
@@ -226,10 +237,14 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                             <div>
                                 <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2">Description / Context</label>
                                 <textarea
+                                    disabled={!isOwner}
                                     value={description}
                                     onChange={e => setDescription(e.target.value)}
-                                    className="input w-full min-h-[80px] text-sm resize-y leading-relaxed"
-                                    placeholder="Add details, context or instructions..."
+                                    className={clsx(
+                                        "input w-full min-h-[80px] text-sm resize-y leading-relaxed",
+                                        !isOwner && "opacity-70 cursor-not-allowed bg-transparent border-transparent px-0 resize-none"
+                                    )}
+                                    placeholder={isOwner ? "Add details, context or instructions..." : "No description provided."}
                                 />
                             </div>
 
@@ -241,9 +256,10 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                     </label>
                                     <div className="relative">
                                         <select
+                                            disabled={!isOwner}
                                             value={projectId}
                                             onChange={e => setProjectId(e.target.value)}
-                                            className="input w-full appearance-none bg-bg-input"
+                                            className={clsx("input w-full appearance-none bg-bg-input", !isOwner && "opacity-70 cursor-not-allowed")}
                                         >
                                             <option value="">No Project</option>
                                             {Object.values(projects).map(p => (
@@ -262,10 +278,11 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                         <Clock size={12} className="text-accent-secondary" /> Due Date
                                     </label>
                                     <input
+                                        disabled={!isOwner}
                                         type="date"
                                         value={dueDateStr}
                                         onChange={e => setDueDateStr(e.target.value)}
-                                        className="input w-full"
+                                        className={clsx("input w-full", !isOwner && "opacity-70 cursor-not-allowed")}
                                     />
                                 </div>
 
@@ -280,7 +297,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                             .filter(member => member.id !== user?.id)
                                             .map(member => {
                                                 const isSelected = assigneeIds.includes(member.id);
-                                                const isLocked = !isOwner && initialAssigneeList.includes(member.id);
+                                                const isLocked = !isOwner; // Strict lock for non-owners
 
                                                 return (
                                                     <button
@@ -300,7 +317,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                                             isSelected
                                                                 ? "bg-accent-primary/5 border-accent-primary/30 shadow-inner"
                                                                 : "bg-bg-input border-transparent text-text-muted hover:bg-bg-card-hover hover:border-border-subtle",
-                                                            isLocked && "opacity-60 cursor-not-allowed bg-slate-100/50"
+                                                            isLocked && "opacity-80 cursor-default" // Non-interactive feel
                                                         )}
                                                     >
                                                         {member.avatar ? (
@@ -334,6 +351,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                             <button
                                                 key={p}
                                                 type="button"
+                                                disabled={!isOwner}
                                                 onClick={() => setPriority(p)}
                                                 className={clsx(
                                                     "flex-1 py-2 rounded-lg border text-xs font-bold uppercase tracking-wider transition-all shadow-sm",
@@ -342,7 +360,9 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                                             p === 'high' ? "bg-orange-500 text-white border-orange-600 shadow-orange-500/20" :
                                                                 p === 'medium' ? "bg-yellow-500 text-white border-yellow-600 shadow-yellow-500/20" :
                                                                     "bg-blue-500 text-white border-blue-600 shadow-blue-500/20"
-                                                        : "bg-bg-input border-transparent text-text-muted hover:bg-bg-card-hover hover:text-text-primary"
+                                                        : "bg-bg-input border-transparent text-text-muted hover:bg-bg-card-hover hover:text-text-primary",
+                                                    !isOwner && priority !== p && "opacity-30",
+                                                    !isOwner && "cursor-default group-hover:bg-transparent"
                                                 )}
                                             >
                                                 {p}
@@ -352,12 +372,14 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                 </div>
                             </div>
 
-                            <div className="flex justify-end pt-5 border-t border-border-subtle mt-2">
-                                <button type="submit" className="bg-violet-600 hover:bg-violet-700 text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-violet-500/20 transition-all flex items-center gap-2">
-                                    <span>{isProcessing ? 'Confirm & To Do' : 'Save Changes'}</span>
-                                    <ArrowRight size={16} />
-                                </button>
-                            </div>
+                            {isOwner && (
+                                <div className="flex justify-end pt-5 border-t border-border-subtle mt-2">
+                                    <button type="submit" className="bg-violet-600 hover:bg-violet-700 text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-violet-500/20 transition-all flex items-center gap-2">
+                                        <span>{isProcessing ? 'Confirm & To Do' : 'Save Changes'}</span>
+                                        <ArrowRight size={16} />
+                                    </button>
+                                </div>
+                            )}
                         </form>
                     )}
                 </div>
