@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, ArrowRight, Calendar, CheckSquare, Inbox, Layers, Plus, StickyNote } from 'lucide-react';
 import clsx from 'clsx';
-
+import { useStore } from '../core/store';
 
 type CommandAction = {
     id: string;
@@ -12,8 +12,6 @@ type CommandAction = {
     perform: () => void;
     type: 'navigation' | 'action';
 };
-
-import { useStore } from '../core/store';
 
 export function CommandPalette() {
     const [isOpen, setIsOpen] = useState(false);
@@ -127,25 +125,28 @@ export function CommandPalette() {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start justify-center pt-[20vh]">
-            <div className="w-full max-w-xl bg-bg-card border border-border-subtle rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-start justify-center pt-[15vh] transition-opacity duration-200">
+            <div className="w-full max-w-[600px] bg-bg-card border border-border-subtle/50 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-top-4 duration-200 ring-1 ring-white/10">
 
-                <div className="flex items-center px-4 py-4 border-b border-border-subtle gap-3">
-                    <Search className="text-muted w-5 h-5" />
+                <div className="flex items-center px-5 py-4 border-b border-border-subtle gap-4">
+                    <Search className="text-accent-primary w-5 h-5" strokeWidth={2.5} />
                     <input
                         autoFocus
                         type="text"
                         placeholder="Type a command or search..."
-                        className="bg-transparent border-none outline-none flex-1 text-lg text-primary placeholder:text-muted"
+                        className="bg-transparent border-none outline-none flex-1 text-lg text-text-primary placeholder:text-text-muted font-medium"
                         value={query}
                         onChange={e => setQuery(e.target.value)}
                     />
-                    <div className="text-xs font-mono text-muted border border-border-subtle px-2 py-1 rounded">Esc</div>
+                    <div className="text-[10px] font-bold tracking-wider text-text-muted border border-border-subtle px-2 py-1 rounded bg-bg-input">ESC</div>
                 </div>
 
-                <div className="max-h-[300px] overflow-y-auto p-2">
+                <div className="max-h-[320px] overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-border-subtle scrollbar-track-transparent">
                     {filteredActions.length === 0 ? (
-                        <div className="p-4 text-center text-muted text-sm">No results found</div>
+                        <div className="p-8 text-center text-text-muted text-sm flex flex-col items-center">
+                            <Search className="w-8 h-8 opacity-20 mb-2" />
+                            No results found
+                        </div>
                     ) : (
                         filteredActions.map((action, index) => (
                             <button
@@ -155,26 +156,43 @@ export function CommandPalette() {
                                     setIsOpen(false);
                                 }}
                                 className={clsx(
-                                    "w-full flex items-center gap-3 px-3 py-3 rounded-lg text-sm transition-colors text-left",
-                                    index === selectedIndex ? "bg-accent-primary text-white" : "text-text-secondary hover:bg-bg-card-hover hover:text-primary"
+                                    "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[15px] transition-all text-left group",
+                                    index === selectedIndex
+                                        ? "bg-accent-primary text-white shadow-md shadow-accent-primary/20"
+                                        : "text-text-secondary hover:bg-bg-input hover:text-text-primary"
                                 )}
                                 onMouseEnter={() => setSelectedIndex(index)}
                             >
-                                <action.icon size={18} className={index === selectedIndex ? "text-white" : "text-muted"} />
-                                <span className="flex-1">{action.label}</span>
+                                <action.icon
+                                    size={20}
+                                    className={clsx(
+                                        "transition-colors",
+                                        index === selectedIndex ? "text-white" : "text-text-muted group-hover:text-text-secondary"
+                                    )}
+                                />
+                                <span className={clsx("flex-1 font-medium", index === selectedIndex ? "text-white" : "")}>
+                                    {action.label}
+                                </span>
                                 {action.shortcut && (
-                                    <span className="text-xs opacity-60 font-mono">{action.shortcut}</span>
+                                    <span className={
+                                        clsx(
+                                            "text-xs font-mono px-1.5 py-0.5 rounded border",
+                                            index === selectedIndex ? "border-white/30 text-white/80" : "border-border-subtle text-text-muted"
+                                        )}>
+                                        {action.shortcut}
+                                    </span>
                                 )}
-                                {index === selectedIndex && <ArrowRight size={14} className="opacity-60" />}
+                                {index === selectedIndex && <ArrowRight size={16} className="text-white animate-in slide-in-from-left-2 fade-in duration-200" />}
                             </button>
                         ))
                     )}
                 </div>
 
-                <div className="p-2 border-t border-border-subtle bg-bg-app/50 text-xs text-muted flex items-center justify-between px-4">
-                    <span>Protip: Navigate with <span className="font-mono">↑↓</span> and selects with <span className="font-mono">Enter</span></span>
+                <div className="px-4 py-2.5 border-t border-border-subtle bg-bg-input/30 text-[11px] text-text-muted flex items-center justify-between font-medium">
+                    <span><span className="text-text-primary">Tab</span> to navigate</span>
+                    <span><span className="text-text-primary">Enter</span> to select</span>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

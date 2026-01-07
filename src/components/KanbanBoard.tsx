@@ -6,12 +6,13 @@ import { MoreHorizontal, Plus, Calendar, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { EditTaskModal } from './EditTaskModal';
 
-const COLUMNS: { id: TaskStatus; label: string }[] = [
-    { id: 'backlog', label: 'Backlog' },
-    { id: 'todo', label: 'To Do' },
-    { id: 'in_progress', label: 'In Progress' },
-    { id: 'review', label: 'Review' },
-    { id: 'done', label: 'Done' }
+// Simplified columns - removed bgClass to reduce visual noise as requested
+const COLUMNS: { id: TaskStatus; label: string; colorClass: string }[] = [
+    { id: 'backlog', label: 'Backlog', colorClass: 'bg-slate-300' },
+    { id: 'todo', label: 'To Do', colorClass: 'bg-slate-300' },
+    { id: 'in_progress', label: 'In Progress', colorClass: 'bg-slate-300' },
+    { id: 'review', label: 'Review', colorClass: 'bg-slate-300' },
+    { id: 'done', label: 'Done', colorClass: 'bg-slate-300' }
 ];
 
 interface KanbanBoardProps {
@@ -45,7 +46,6 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
     const handleDragStart = (e: React.DragEvent, taskId: string) => {
         setDraggedTaskId(taskId);
         e.dataTransfer.effectAllowed = 'move';
-        // Transparent drag image or default
     };
 
     const handleDragOver = (e: React.DragEvent) => {
@@ -61,47 +61,57 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
         }
     };
 
-    const getPriorityClasses = (priority: string) => {
+    const getPriorityBorder = (priority: string) => {
         switch (priority) {
-            case 'critical': return 'border-l-4 border-l-red-500 bg-red-500/10 dark:bg-red-500/40';
-            case 'high': return 'border-l-4 border-l-orange-500 bg-orange-500/10 dark:bg-orange-500/40';
-            case 'medium': return 'border-l-4 border-l-yellow-500 bg-yellow-500/10 dark:bg-yellow-500/40';
-            case 'low': return 'border-l-4 border-l-blue-500 bg-blue-500/10 dark:bg-blue-500/40';
-            default: return 'border-l-4 border-l-transparent hover:bg-bg-card-hover';
+            case 'critical': return 'border-l-[3px] border-l-red-500';
+            case 'high': return 'border-l-[3px] border-l-orange-500';
+            case 'medium': return 'border-l-[3px] border-l-yellow-400';
+            default: return 'border-l-[3px] border-l-transparent';
         }
     };
 
     return (
-        <div className="flex h-full gap-4 overflow-x-auto pb-4">
+        <div className="flex h-full gap-6 overflow-x-auto pb-4 px-2">
             {COLUMNS.map(col => (
                 <div
                     key={col.id}
-                    className="flex-shrink-0 w-80 flex flex-col gap-3"
+                    className="flex-shrink-0 w-80 flex flex-col gap-3 group/column"
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, col.id)}
                 >
                     {/* Column Header */}
-                    <div className="flex items-center justify-between px-2 py-1">
-                        <h3 className="text-sm font-semibold uppercase tracking-wider text-text-muted flex items-center gap-2">
-                            {col.label}
-                            <span className="bg-bg-card-hover text-text-secondary px-2 py-0.5 rounded-full text-xs">
-                                {tasksByStatus[col.id].length}
-                            </span>
-                        </h3>
+                    <div className={clsx(
+                        "flex items-center justify-between px-4 py-3 rounded-xl border border-border-subtle shadow-sm transition-all group-hover/column:shadow-md",
+                        "bg-bg-card relative overflow-hidden"
+                    )}>
+                        <div className={clsx("absolute left-0 top-0 bottom-0 w-1.5", col.colorClass)} />
+
+                        <div className="flex items-center gap-3 pl-2">
+                            <div className="flex flex-col">
+                                <h3 className="text-sm font-bold text-text-primary uppercase tracking-wide">
+                                    {col.label}
+                                </h3>
+                                <span className="text-[10px] text-text-muted font-medium">
+                                    {tasksByStatus[col.id].length} tasks
+                                </span>
+                            </div>
+                        </div>
                         <button
                             onClick={() => addTask({ title: 'New Task', status: col.id, priority: 'medium' })}
-                            className="p-1 hover:bg-bg-card-hover rounded text-text-muted hover:text-text-primary transition-colors"
+                            className="w-8 h-8 flex items-center justify-center hover:bg-bg-input rounded-full text-text-muted hover:text-accent-primary transition-colors"
                         >
                             <Plus size={16} />
                         </button>
                     </div>
 
                     {/* Drop Zone / List */}
+                    {/* Removed bgClass and added border-dashed for "sutiles lineas" effect if empty, or just subtle border container */}
                     <div className={clsx(
-                        "flex-1 rounded-xl p-2 transition-colors overflow-y-auto min-h-[150px]",
-                        "bg-bg-input/50 border border-border-subtle/50"
+                        "flex-1 rounded-2xl p-2 transition-all min-h-[150px]",
+                        "border border-border-subtle/40 bg-bg-app/50", // Very subtle container border instead of full background
+                        "group-hover/column:border-border-subtle group-hover/column:bg-bg-input/10"
                     )}>
-                        <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-3 h-full">
                             {tasksByStatus[col.id].map(task => (
                                 <div
                                     key={task.id}
@@ -109,28 +119,29 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                     onDragStart={(e) => handleDragStart(e, task.id)}
                                     onClick={() => setEditingTask(task)}
                                     className={clsx(
-                                        "glass-panel p-4 rounded-lg cursor-grab active:cursor-grabbing hover:translate-y-[-2px] transition-all",
-                                        "shadow-sm hover:shadow-md border border-border-subtle hover:border-accent-primary/30 relative group",
-                                        getPriorityClasses(task.priority),
-                                        task.status === 'done' && "opacity-60 grayscale"
+                                        "glass-panel p-4 rounded-xl cursor-grab active:cursor-grabbing hover:-translate-y-1 transition-all duration-200",
+                                        "shadow-sm hover:shadow-lg hover:shadow-accent-primary/5 active:scale-[0.98]",
+                                        "border border-border-subtle hover:border-accent-primary/30 group relative bg-bg-card",
+                                        getPriorityBorder(task.priority),
+                                        task.status === 'done' && "opacity-60 grayscale-[0.5]"
                                     )}
                                 >
-                                    <div className="flex justify-between items-start mb-2">
-                                        <span className="text-sm font-medium text-text-primary line-clamp-2">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <span className="text-[14px] font-medium text-text-primary line-clamp-3 leading-snug">
                                             {task.title}
                                         </span>
-                                        <button className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-text-primary p-1">
-                                            <MoreHorizontal size={14} />
+                                        <button className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-text-primary p-1 -mt-1 -mr-1 transition-opacity">
+                                            <MoreHorizontal size={16} />
                                         </button>
                                     </div>
 
                                     {/* Meta info */}
-                                    <div className="flex items-center justify-between mt-3">
+                                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-border-subtle/40">
                                         <div className="flex items-center gap-2 text-text-muted">
                                             {task.dueDate && (
                                                 <div className={clsx(
-                                                    "flex items-center gap-1 text-xs",
-                                                    task.dueDate < Date.now() ? "text-red-400" : ""
+                                                    "flex items-center gap-1.5 text-[11px] font-medium",
+                                                    task.dueDate < Date.now() ? "text-red-500" : ""
                                                 )}>
                                                     <Calendar size={12} />
                                                     {format(task.dueDate, 'MMM d')}
@@ -139,23 +150,27 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                         </div>
 
                                         {/* Avatar Placeholder or Priority Badge */}
-                                        {task.assigneeIds && task.assigneeIds.length > 0 ? (
-                                            <div className="flex -space-x-1">
-                                                {task.assigneeIds.map(id => (
-                                                    <div key={id} className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 border border-white/10" title="Assigned" />
-                                                )).slice(0, 3)}
-                                                {task.assigneeIds.length > 3 && (
-                                                    <div className="w-5 h-5 rounded-full bg-bg-card flex items-center justify-center text-[8px] border border-border-subtle">
-                                                        +{task.assigneeIds.length - 3}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ) : task.priority === 'critical' || task.priority === 'high' ? (
-                                            <AlertCircle size={14} className={task.priority === 'critical' ? "text-red-500" : "text-orange-500"} />
-                                        ) : null}
+                                        <div className="flex items-center gap-2">
+                                            {task.priority === 'critical' && <AlertCircle size={14} className="text-red-500" />}
+
+                                            {task.assigneeIds && task.assigneeIds.length > 0 && (
+                                                <div className="flex -space-x-1.5">
+                                                    {task.assigneeIds.map(id => (
+                                                        <div key={id} className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 border-2 border-bg-card shadow-sm" title="Assigned" />
+                                                    )).slice(0, 3)}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             ))}
+
+                            {/* Empty State placeholder if needed, acts as "lineas" visual aid */}
+                            {tasksByStatus[col.id].length === 0 && (
+                                <div className="h-full border-2 border-dashed border-border-subtle/30 rounded-xl flex items-center justify-center opacity-50">
+                                    <div className="w-full h-full min-h-[100px]" />
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

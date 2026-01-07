@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,97 +7,114 @@
 
 :root {
   /* 
-    THEME: Horizon (Clean, Airy, Commercial SaaS)
-    Inspiration: Notion, Linear Light, Things 3.
-    Values: Friendly, Light, Minimalist, Focus.
+    THEME: Cortex Premium (Sophisticated, Depth, vibrant accents)
+    Values: Professional, Focus, Fluid.
   */
 
-  /* Base - Pure and Clean */
-  --bg-app: #FFFFFF;
-  /* Clean White */
-  --bg-sidebar: #F9FAFB;
-  /* Very light cool gray (Gray 50) */
+  /* Base - clean, layered depth */
+  --bg-app: #FDFDFD;
+  /* Slightly warmer white for less harshness */
+  --bg-sidebar: #F8F9FA;
+  /* Very subtle distinction */
+
   --bg-card: #FFFFFF;
   --bg-card-hover: #F8FAFC;
   /* Slate 50 */
   --bg-input: #F3F4F6;
   /* Gray 100 */
 
-  /* Text - High Legibility */
-  --text-primary: #111827;
-  /* Gray 900 */
-  --text-secondary: #4B5563;
-  /* Gray 600 */
-  --text-muted: #9CA3AF;
-  /* Gray 400 */
+  /* Text - High Contrast & Readability */
+  --text-primary: #0F172A;
+  /* Slate 900 - Deep & Sharp */
+  --text-secondary: #475569;
+  /* Slate 600 */
+  --text-muted: #94A3B8;
+  /* Slate 400 */
 
-  /* Borders - Soft definition */
-  --border-subtle: #E5E7EB;
-  /* Gray 200 */
-  --border-highlight: #D1D5DB;
-  /* Gray 300 */
+  /* Borders - Refined */
+  --border-subtle: #E2E8F0;
+  /* Slate 200 */
+  --border-highlight: #CBD5E1;
+  /* Slate 300 */
+
+  /* Shadows - Layered & Meaningful */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-glow: 0 0 15px rgba(99, 102, 241, 0.15);
+  /* Subtle lift */
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+  /* Card depth */
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+  /* Float */
+  --shadow-glow: 0 0 20px rgba(79, 70, 229, 0.15);
+  /* Accent glow */
 
-  /* Accents - "Electric Indigo" */
+  /* Accents - "Electric Violet" to "Royal Indigo" */
   --accent-primary: #4F46E5;
   /* Indigo 600 */
-  --accent-secondary: #818CF8;
-  --accent-glow: rgba(79, 70, 229, 0.1);
+  --accent-secondary: #6366F1;
+  /* Indigo 500 */
+  --accent-glow: rgba(79, 70, 229, 0.2);
 
-  /* Priorities - Pastel yet clear */
-  --priority-critical: #F87171;
-  /* Red 400 */
-  --priority-high: #FB923C;
-  /* Orange 400 */
-  --priority-medium: #FACC15;
-  /* Yellow 400 */
-  --priority-low: #60A5FA;
-  /* Blue 400 */
+  /* Status Colors - Refined Pastels */
+  --priority-critical: #F43F5E;
+  /* Rose 500 */
+  --priority-high: #F97316;
+  /* Orange 500 */
+  --priority-medium: #EAB308;
+  /* Yellow 500 */
+  --priority-low: #3B82F6;
+  /* Blue 500 */
+  --success: #10B981;
+  /* Emerald 500 */
 
-  /* Spacing */
+  /* Spacing & Radius */
   --radius-panel: 24px;
-  --radius-card: 12px;
-  --radius-sm: 8px;
+  --radius-card: 16px;
+  --radius-sm: 10px;
+  /* Slightly softer corners */
 
   /* Font settings */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', system-ui, -apple-system, sans-serif;
 }
 
 .dark {
-  /* Horizon Dark (Clean & Deep) -- Enhanced Contrast */
-  --bg-app: #09090b;
-  /* Zinc 950 */
-  --bg-sidebar: #121215;
+  /* Dark Mode - Deep Space / Obsidian */
+  --bg-app: #030712;
+  /* Gray 950 - Almost Black */
+  --bg-sidebar: #0B0F19;
+  /* Slightly lighter for hierarchy */
 
-  --bg-card: #202024;
-  /* Lighter Zinc/Gray for card surfaces to pop against BG */
-  --bg-card-hover: #27272a;
-  /* Zinc 800 */
+  --bg-card: #111827;
+  /* Gray 900 */
+  --bg-card-hover: #1F2937;
+  /* Gray 800 */
 
-  --bg-input: #121215;
-  /* Darker inputs for contrast against forms */
+  --bg-input: #0B0F19;
+  /* Deep input background to recede */
 
-  --text-primary: #ffffff;
-  /* Pure White */
-  --text-secondary: #e4e4e7;
-  /* Zinc 200 - Much brighter for readability */
-  --text-muted: #a1a1aa;
-  /* Zinc 400 - Readable but distinct */
+  --text-primary: #F8FAFC;
+  /* Slate 50 */
+  --text-secondary: #CBD5E1;
+  /* Slate 300 */
+  --text-muted: #64748B;
+  /* Slate 500 */
 
-  --border-subtle: #3f3f46;
-  /* Zinc 700 - Visible borders for structure */
-  --border-highlight: #52525b;
-  /* Zinc 600 */
+  --border-subtle: #1E293B;
+  /* Slate 800 */
+  --border-highlight: #334155;
+  /* Slate 700 */
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.3);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.3);
+  --shadow-glow: 0 0 25px rgba(99, 102, 241, 0.2);
 
-  /* Adjust accents for dark mode contrast */
-  --accent-primary: #818cf8;
-  /* Indigo 400 - Brighter accent against dark */
-  --accent-secondary: #a5b4fc;
+  /* Accents - Brighter for dark mode */
+  --accent-primary: #818CF8;
+  /* Indigo 400 */
+  --accent-secondary: #A5B4FC;
+  /* Indigo 300 */
+  --accent-glow: rgba(129, 140, 248, 0.25);
 }
 
 body {
@@ -105,96 +123,167 @@ body {
   color: var(--text-primary);
   height: 100vh;
   overflow: hidden;
-  line-height: 1.5;
-  font-size: 15px;
-  /* Comfortable reading size */
+  line-height: 1.6;
+  font-size: 14px;
+  /* Standardize base size */
   -webkit-font-smoothing: antialiased;
-  /* Removed the noise and dark radial gradients */
+  -moz-osx-font-smoothing: grayscale;
 }
 
-#root {
-  height: 100%;
-  display: flex;
+/* Typography Overrides */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
 }
 
 /* --- UTILITIES --- */
 @layer components {
+
+  /* Glass Panel - Premium Feel */
   .glass-panel {
-    /* Now a clean card style instead of glass */
     background: var(--bg-card);
     border: 1px solid var(--border-subtle);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(12px);
+    /* Only works if bg has opacity, but keeping consistent fallback */
   }
 
-  .noise-overlay {
-    display: none;
-    /* Disable noise for the clean look */
-  }
-
-  /* Buttons - "Modern Soft" */
+  /* Buttons - Tactile & Responsive */
   .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    padding: 0.5rem 1rem;
+    padding: 0.625rem 1.25rem;
     border-radius: var(--radius-sm);
-    background: white;
-    border: 1px solid var(--border-subtle);
+    background: transparent;
+    border: 1px solid transparent;
+    /* Reserve space for border */
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: 0.875rem;
+    /* 14px */
     font-weight: 500;
-    transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+    line-height: 1.25rem;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn:active {
+    transform: scale(0.98);
+  }
+
+  /* Default / Ghost Button */
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+  }
+
+  .btn-ghost:hover {
+    background: var(--bg-input);
+    /* Subtle hover */
+    color: var(--text-primary);
+  }
+
+  /* Secondary / Outline Button */
+  .btn-secondary {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-primary);
     box-shadow: var(--shadow-sm);
   }
 
-  .btn:hover {
+  .btn-secondary:hover {
     background: var(--bg-card-hover);
     border-color: var(--border-highlight);
-    color: var(--text-primary);
+    box-shadow: var(--shadow-md);
     transform: translateY(-1px);
   }
 
+  /* Primary Button - The "Hero" */
   .btn-primary {
     background: var(--accent-primary);
-    border: 1px solid var(--accent-primary);
-    color: white;
-    box-shadow: 0 4px 12px var(--accent-glow);
+    color: #ffffff;
+    /* Always white text on primary */
+    box-shadow: 0 4px 6px -1px var(--accent-glow), 0 2px 4px -1px var(--accent-glow);
+    border: 1px solid transparent;
   }
 
   .btn-primary:hover {
-    background: #4338ca;
-    /* Indigo 700 */
+    filter: brightness(110%);
+    box-shadow: 0 8px 12px -1px var(--accent-glow), 0 4px 6px -1px var(--accent-glow);
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px var(--accent-glow);
   }
 
-  /* Inputs - Clean Field */
+  /* Dark mode specific override if needed, but primary usually stands out on both */
+
+  /* Inputs - Clean, Focus-driven */
   .input {
     background: var(--bg-input);
     border: 1px solid transparent;
     color: var(--text-primary);
-    padding: 0.6rem 1rem;
+    padding: 0.75rem 1rem;
     border-radius: var(--radius-sm);
-    font-size: 14px;
+    font-size: 0.875rem;
     width: 100%;
-    transition: all 0.2s;
+    transition: all 0.2s ease;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03);
+  }
+
+  .input::placeholder {
+    color: var(--text-muted);
+  }
+
+  .input:hover {
+    background: var(--bg-input);
+    /* Keep same, maybe slight darken? */
+    border-color: var(--border-subtle);
   }
 
   .input:focus {
     outline: none;
     background: var(--bg-card);
-    /* Adapted for Dark Mode */
     border-color: var(--accent-primary);
     box-shadow: 0 0 0 3px var(--accent-glow);
   }
+
+  /* Cards */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-card);
+    padding: 1.5rem;
+  }
 }
 
+/* Animations & Utilities */
+.animate-enter {
+  animation: slideUpFade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
 
-/* Scrollbars - Minimalist Gray */
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Scrollbars - Refined */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
@@ -202,50 +291,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #E5E7EB;
-  border-radius: 4px;
+  background-color: var(--border-subtle);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 99px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #D1D5DB;
-}
-
-/* Typography */
-h1 {
-  font-size: 2rem;
-  letter-spacing: -0.02em;
-  font-weight: 700;
-  color: var(--text-primary);
-  /* Removed gradient text for better readability */
-}
-
-h2 {
-  font-size: 1.5rem;
-  letter-spacing: -0.015em;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-h3 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-p {
-  color: var(--text-secondary);
-}
-
-/* Animations */
-.animate-enter {
-  animation: enter 0.3s ease-out forwards;
-  opacity: 0;
-  transform: translateY(4px);
-}
-
-@keyframes enter {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  background-color: var(--text-muted);
 }

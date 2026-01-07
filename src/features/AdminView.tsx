@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useStore } from '../core/store';
-import { Shield, Crown, Search, UserPlus, X, Loader2, Trash2 } from 'lucide-react';
+import { Shield, Crown, Search, UserPlus, X, Loader2, Trash2, ShieldCheck, User } from 'lucide-react';
 import { supabase } from '../core/supabase';
 import clsx from 'clsx';
+import { format } from 'date-fns';
 
 export function AdminView() {
     const { user } = useStore();
@@ -123,10 +124,12 @@ export function AdminView() {
 
     if (user?.role !== 'owner' && user?.role !== 'admin') {
         return (
-            <div className="flex flex-col items-center justify-center h-full text-text-muted">
-                <Shield className="w-16 h-16 mb-4 opacity-20" />
-                <h2 className="text-xl font-semibold">Access Denied</h2>
-                <p>This panel is restricted to the workspace owner.</p>
+            <div className="flex flex-col items-center justify-center h-full text-text-muted bg-bg-app">
+                <div className="w-24 h-24 bg-bg-card rounded-2xl flex items-center justify-center shadow-lg border border-border-subtle mb-6">
+                    <Shield className="w-12 h-12 text-text-muted/50" />
+                </div>
+                <h2 className="text-2xl font-display font-bold text-text-primary mb-2">Access Denied</h2>
+                <p className="text-text-secondary">This panel is restricted to workspace administrators.</p>
             </div>
         );
     }
@@ -137,105 +140,126 @@ export function AdminView() {
     );
 
     return (
-        <div className="h-full flex flex-col p-8 max-w-5xl mx-auto w-full">
-            <header className="mb-8">
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="p-2 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg shadow-lg shadow-orange-500/20">
-                        <Crown className="text-white w-6 h-6" />
-                    </div>
-                    <div>
-                        <h1 className="text-3xl font-bold">Admin Console</h1>
-                        <p className="text-text-muted text-lg">Manage workspace members and permissions</p>
-                    </div>
+        <div className="h-full flex flex-col p-8 max-w-6xl mx-auto w-full bg-bg-app">
+            <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                    <h1 className="text-3xl font-display font-bold flex items-center gap-3 tracking-tight text-text-primary mb-2">
+                        <div className="w-10 h-10 rounded-xl bg-accent-primary/10 flex items-center justify-center shadow-inner">
+                            <Crown className="w-6 h-6 text-accent-primary" />
+                        </div>
+                        Admin Console
+                    </h1>
+                    <p className="text-text-muted text-lg font-light ml-1">
+                        Manage workspace members, roles, and security settings.
+                    </p>
                 </div>
             </header>
 
-            <div className="glass-panel rounded-xl overflow-hidden flex-1 flex flex-col">
-                <div className="p-4 border-b border-white/5 flex items-center justify-between gap-4">
-                    <div className="relative flex-1 max-w-md">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted w-4 h-4" />
+            <div className="glass-panel rounded-2xl overflow-hidden flex-1 flex flex-col border border-border-subtle shadow-xl shadow-accent-primary/5">
+                {/* Toolbar */}
+                <div className="p-5 border-b border-border-subtle flex flex-col sm:flex-row items-center justify-between gap-4 bg-bg-card/50">
+                    <div className="relative flex-1 w-full max-w-md group">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors w-4 h-4" />
                         <input
                             type="text"
                             placeholder="Search users..."
-                            className="input pl-9 bg-bg-app/50 border-transparent focus:bg-bg-input"
+                            className="input pl-10 w-full bg-bg-input border-transparent focus:bg-bg-card transition-all"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 w-full sm:w-auto justify-end">
                         <button
                             onClick={() => setIsCreateModalOpen(true)}
-                            className="btn btn-primary flex items-center gap-2 text-lg py-1.5 px-3"
+                            className="btn btn-primary shadow-lg shadow-accent-primary/20 flex items-center gap-2"
                         >
-                            <UserPlus size={20} />
+                            <UserPlus size={18} />
                             <span>Add User</span>
                         </button>
-                        <div className="flex items-center gap-2 text-base text-text-muted border-l border-white/10 pl-4">
-                            <div className="px-2 py-1 rounded bg-amber-500/10 text-amber-500 border border-amber-500/20 font-medium">Owner</div>
-                            <div className="px-2 py-1 rounded bg-violet-500/10 text-violet-500 border border-violet-500/20 font-medium">Admin</div>
-                            <div className="px-2 py-1 rounded bg-zinc-800 border border-white/10 font-medium">User</div>
-                        </div>
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-auto">
-                    <table className="w-full text-left text-lg">
-                        <thead className="bg-white/5 text-text-muted font-medium sticky top-0 backdrop-blur-md">
+                {/* User Table */}
+                <div className="flex-1 overflow-auto custom-scrollbar bg-bg-card">
+                    <table className="w-full text-left border-collapse">
+                        <thead className="bg-bg-input/50 text-xs font-bold text-text-muted uppercase tracking-wider sticky top-0 backdrop-blur-md z-10">
                             <tr>
-                                <th className="p-4 pl-6">User</th>
-                                <th className="p-4">Email</th>
-                                <th className="p-4">Role</th>
-                                <th className="p-4">Joined</th>
-                                <th className="p-4 text-right pr-6">Actions</th>
+                                <th className="p-5 pl-6 font-semibold">User</th>
+                                <th className="p-5 font-semibold">Email</th>
+                                <th className="p-5 font-semibold">Role</th>
+                                <th className="p-5 font-semibold">Joined</th>
+                                <th className="p-5 text-right pr-6 font-semibold">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-white/5">
+                        <tbody className="divide-y divide-border-subtle">
                             {loading ? (
-                                <tr><td colSpan={4} className="p-8 text-center text-text-muted">Loading users...</td></tr>
+                                <tr><td colSpan={5} className="p-12 text-center text-text-muted">
+                                    <div className="flex flex-col items-center gap-3">
+                                        <Loader2 className="animate-spin text-accent-primary" size={24} />
+                                        <span className="text-sm font-medium">Loading users...</span>
+                                    </div>
+                                </td></tr>
                             ) : filteredUsers.length === 0 ? (
-                                <tr><td colSpan={4} className="p-8 text-center text-text-muted">No users found</td></tr>
+                                <tr><td colSpan={5} className="p-12 text-center text-text-muted">No users found matching your search.</td></tr>
                             ) : (
                                 filteredUsers.map(u => (
-                                    <tr key={u.id} className="hover:bg-white/5 transition-colors group">
+                                    <tr key={u.id} className="hover:bg-accent-primary/5 transition-colors group">
                                         <td className="p-4 pl-6">
-                                            <div className="flex items-center gap-3">
-                                                <img
-                                                    src={u.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'U')}&background=random`}
-                                                    className="w-8 h-8 rounded-full bg-bg-card"
-                                                />
-                                                <span className="font-medium text-text-primary">{u.full_name || 'Unknown'}</span>
+                                            <div className="flex items-center gap-3.5">
+                                                <div className="relative">
+                                                    <img
+                                                        src={u.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name || 'U')}&background=random`}
+                                                        className="w-10 h-10 rounded-full bg-bg-input object-cover border border-border-subtle shadow-sm"
+                                                    />
+                                                    <div className={clsx(
+                                                        "absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-bg-card",
+                                                        u.role === 'owner' ? "bg-amber-400" :
+                                                            u.role === 'admin' ? "bg-accent-primary" :
+                                                                "bg-emerald-500"
+                                                    )} />
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span className="font-semibold text-text-primary text-sm">{u.full_name || 'Unknown'}</span>
+                                                    <span className="text-xs text-text-muted">ID: {u.id.slice(0, 8)}...</span>
+                                                </div>
                                             </div>
                                         </td>
-                                        <td className="p-4 text-text-secondary">{u.email}</td>
+                                        <td className="p-4 text-sm text-text-secondary font-medium">{u.email}</td>
                                         <td className="p-4">
-                                            <select
-                                                className={clsx(
-                                                    "bg-transparent border border-transparent rounded px-2 py-1 outline-none text-base font-semibold cursor-pointer transition-all",
-                                                    "hover:bg-black/20 hover:border-white/10 focus:bg-black/40 focus:border-accent-primary",
-                                                    u.role === 'owner' ? "text-amber-400" :
-                                                        u.role === 'admin' ? "text-violet-400" :
-                                                            "text-text-muted"
-                                                )}
-                                                value={u.role || 'user'}
-                                                onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                                                disabled={updating === u.id}
-                                            >
-                                                <option value="user" className="bg-bg-card text-text-muted">User</option>
-                                                <option value="admin" className="bg-bg-card text-violet-400">Admin</option>
-                                                <option value="owner" className="bg-bg-card text-amber-400">Owner</option>
-                                            </select>
+                                            <div className="relative inline-block">
+                                                <select
+                                                    className={clsx(
+                                                        "appearance-none pl-8 pr-8 py-1.5 rounded-lg text-xs font-bold border outline-none cursor-pointer transition-all uppercase tracking-wide",
+                                                        u.role === 'owner' ? "bg-amber-500/10 text-amber-600 border-amber-500/20 hover:bg-amber-500/20" :
+                                                            u.role === 'admin' ? "bg-accent-primary/10 text-accent-primary border-accent-primary/20 hover:bg-accent-primary/20" :
+                                                                "bg-bg-input text-text-secondary border-border-subtle hover:bg-bg-input/80"
+                                                    )}
+                                                    value={u.role || 'user'}
+                                                    onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                                                    disabled={updating === u.id}
+                                                >
+                                                    <option value="user">User</option>
+                                                    <option value="admin">Admin</option>
+                                                    <option value="owner">Owner</option>
+                                                </select>
+                                                <div className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                                                    {u.role === 'owner' ? <Crown size={12} className="text-amber-600" /> :
+                                                        u.role === 'admin' ? <ShieldCheck size={12} className="text-accent-primary" /> :
+                                                            <User size={12} className="text-text-muted" />}
+                                                </div>
+                                            </div>
                                         </td>
-                                        <td className="p-4 text-text-muted text-base">
-                                            {new Date(u.updated_at).toLocaleDateString()}
+                                        <td className="p-4 text-text-muted text-sm font-mono">
+                                            {format(new Date(u.updated_at), 'MMM d, yyyy')}
                                         </td>
                                         <td className="p-4 text-right pr-6">
                                             <button
-                                                className="p-2 text-text-muted hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                                                className="p-2 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
                                                 title="Delete User"
                                                 disabled={deletingId === u.id || u.id === user?.id}
                                                 onClick={() => handleDeleteUser(u.id, u.full_name)}
                                             >
-                                                {deletingId === u.id ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                                                {deletingId === u.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                                             </button>
                                         </td>
                                     </tr>
@@ -248,85 +272,94 @@ export function AdminView() {
 
             {/* Create User Modal */}
             {isCreateModalOpen && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="glass-panel w-full max-w-md rounded-xl p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-lg font-bold flex items-center gap-2">
-                                <UserPlus className="w-5 h-5 text-accent-primary" />
-                                Create New User
-                            </h3>
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="glass-panel w-full max-w-md rounded-2xl p-0 shadow-2xl border border-border-subtle overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-2 duration-300 bg-bg-card">
+                        <div className="p-6 border-b border-border-subtle bg-bg-input/30 flex justify-between items-center">
+                            <div>
+                                <h3 className="text-lg font-display font-bold text-text-primary flex items-center gap-2">
+                                    <div className="p-1.5 rounded-md bg-accent-primary/10 text-accent-primary">
+                                        <UserPlus size={18} />
+                                    </div>
+                                    Create New User
+                                </h3>
+                                <p className="text-xs text-text-muted mt-1">Add a new member to your workspace.</p>
+                            </div>
                             <button
                                 onClick={() => setIsCreateModalOpen(false)}
-                                className="text-text-muted hover:text-white transition-colors"
+                                className="text-text-muted hover:text-text-primary transition-colors p-1 hover:bg-bg-input rounded-md"
                             >
                                 <X size={20} />
                             </button>
                         </div>
 
-                        <form onSubmit={handleCreateUser} className="space-y-4">
-                            <div className="space-y-1">
-                                <label className="text-xs font-semibold text-text-muted uppercase">Full Name</label>
+                        <form onSubmit={handleCreateUser} className="p-6 space-y-5">
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider ml-1">Full Name</label>
                                 <input
                                     type="text"
                                     required
                                     className="input w-full"
-                                    placeholder="Jane Doe"
+                                    placeholder="e.g., Jane Doe"
                                     value={newName}
                                     onChange={(e) => setNewName(e.target.value)}
                                 />
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-xs font-semibold text-text-muted uppercase">Email Address</label>
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider ml-1">Email Address</label>
                                 <input
                                     type="email"
                                     required
                                     className="input w-full"
-                                    placeholder="jane@example.com"
+                                    placeholder="e.g., jane@example.com"
                                     value={newUserEmail}
                                     onChange={(e) => setNewUserEmail(e.target.value)}
                                 />
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-xs font-semibold text-text-muted uppercase">Temporary Password</label>
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider ml-1">Temporary Password</label>
                                 <input
                                     type="text"
                                     required
-                                    className="input w-full font-mono"
+                                    className="input w-full font-mono text-sm bg-bg-input/50"
                                     placeholder="Secret.123"
                                     value={newUserPass}
                                     onChange={(e) => setNewUserPass(e.target.value)}
                                 />
-                                <p className="text-xs text-text-muted">Must be at least 6 characters.</p>
+                                <p className="text-[11px] text-text-muted ml-1 flex items-center gap-1">
+                                    <ShieldCheck size={10} /> Must be at least 6 characters.
+                                </p>
                             </div>
 
                             {createError && (
-                                <div className="p-3 rounded bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-medium flex items-center gap-2">
+                                    <Shield size={14} />
                                     {createError}
                                 </div>
                             )}
 
                             {createSuccess && (
-                                <div className="p-3 rounded bg-green-500/10 border border-green-500/20 text-green-400 text-sm">
+                                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-sm font-medium flex items-center gap-2">
+                                    <ShieldCheck size={14} />
                                     {createSuccess}
                                 </div>
                             )}
 
-                            <div className="flex justify-end gap-3 pt-4">
+                            <div className="flex justify-end gap-3 pt-2">
                                 <button
                                     type="button"
                                     onClick={() => setIsCreateModalOpen(false)}
-                                    className="btn btn-secondary"
+                                    className="btn btn-ghost"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={creatingUser}
-                                    className="btn btn-primary min-w-[100px]"
+                                    className="btn btn-primary min-w-[120px] shadow-lg shadow-accent-primary/20"
                                 >
-                                    {creatingUser ? <Loader2 className="animate-spin w-4 h-4 mx-auto" /> : 'Create User'}
+                                    {creatingUser ? <Loader2 className="animate-spin w-4 h-4" /> : 'Create User'}
                                 </button>
                             </div>
                         </form>

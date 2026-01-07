@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../core/supabase';
 import { Sparkles, Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
+import clsx from 'clsx';
 
 export function AuthView() {
     const [isLogin, setIsLogin] = useState(true);
@@ -43,106 +44,125 @@ export function AuthView() {
     };
 
     return (
-        <div className="min-h-screen w-full flex items-center justify-center bg-bg-app relative overflow-hidden">
-            {/* Background Effects */}
-            <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-[0.05] pointer-events-none" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-accent-primary/20 rounded-full blur-[100px] pointer-events-none" />
+        <div className="min-h-screen w-full flex items-center justify-center bg-bg-app relative overflow-hidden selection:bg-accent-primary/20 selection:text-accent-primary">
+            {/* Extended Background Effects */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
 
-            <div className="w-full max-w-md p-8 glass-panel rounded-2xl relative z-10 animate-in fade-in zoom-in-95 duration-500">
-                <div className="flex flex-col items-center mb-8">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/20 mb-4">
-                        <Sparkles className="text-white w-6 h-6" />
+            <div className="absolute -top-32 -left-32 w-[600px] h-[600px] bg-accent-primary/10 rounded-full blur-[120px] pointer-events-none opacity-60 animate-pulse" />
+            <div className="absolute bottom-0 right-0 w-[800px] h-[800px] bg-indigo-500/5 rounded-full blur-[140px] pointer-events-none" />
+
+            <div className="w-full max-w-[420px] p-8 md:p-10 glass-panel rounded-3xl relative z-10 animate-in fade-in zoom-in-95 duration-700 slide-in-from-bottom-4 shadow-2xl ring-1 ring-white/40 dark:ring-white/5">
+                <div className="flex flex-col items-center mb-8 text-center">
+                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-xl shadow-indigo-500/25 mb-5 rotate-3 hover:rotate-6 transition-transform duration-500">
+                        <Sparkles className="text-white w-7 h-7" />
                     </div>
-                    <h1 className="text-2xl font-bold tracking-tight">Cortex AI</h1>
-                    <p className="text-text-muted text-sm mt-1">Intelligence for your daily workflow</p>
+                    <h1 className="text-3xl font-display font-bold tracking-tight text-text-primary mb-2">Welcome Back</h1>
+                    <p className="text-text-muted text-[15px] max-w-[280px]">Enter your credentials to access your Cortex workspace.</p>
                 </div>
 
-                <form onSubmit={handleAuth} className="flex flex-col gap-4">
+                <form onSubmit={handleAuth} className="flex flex-col gap-5">
                     {!isLogin && (
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold uppercase text-text-muted ml-1">Full Name</label>
-                            <div className="relative">
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-semibold uppercase tracking-wider text-text-muted ml-0.5">Full Name</label>
+                            <div className="relative group">
                                 <input
                                     type="text"
                                     value={fullName}
                                     onChange={(e) => setFullName(e.target.value)}
-                                    className="input pl-10"
-                                    placeholder="John Doe"
+                                    className="input pl-11 py-3"
+                                    placeholder="Jane Doe"
                                     required={!isLogin}
                                 />
-                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">
-                                    <Mail size={16} />
+                                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors">
+                                    <Mail size={18} />
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    <div className="space-y-1">
-                        <label className="text-xs font-semibold uppercase text-text-muted ml-1">Email</label>
-                        <div className="relative">
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-semibold uppercase tracking-wider text-text-muted ml-0.5">Email Address</label>
+                        <div className="relative group">
                             <input
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="input pl-10"
+                                className="input pl-11 py-3"
                                 placeholder="name@company.com"
                                 required
                             />
-                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">
-                                <Mail size={16} />
+                            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors">
+                                <Mail size={18} />
                             </div>
                         </div>
                     </div>
 
-                    <div className="space-y-1">
-                        <label className="text-xs font-semibold uppercase text-text-muted ml-1">Password</label>
-                        <div className="relative">
+                    <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                            <label className="text-xs font-semibold uppercase tracking-wider text-text-muted ml-0.5">Password</label>
+                            {isLogin && (
+                                <a href="#" className="text-xs text-accent-primary hover:text-accent-secondary font-medium hover:underline">Forgot password?</a>
+                            )}
+                        </div>
+                        <div className="relative group">
                             <input
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="input pl-10"
+                                className="input pl-11 py-3"
                                 placeholder="••••••••"
                                 required
                             />
-                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">
-                                <Lock size={16} />
+                            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors">
+                                <Lock size={18} />
                             </div>
                         </div>
                     </div>
 
                     {error && (
-                        <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
-                            {error}
+                        <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-sm font-medium flex items-start gap-2 animate-in fade-in slide-in-from-top-2">
+                            <div className="mt-0.5 text-xs font-bold uppercase shrink-0">Error</div>
+                            <div>{error}</div>
                         </div>
                     )}
 
                     <button
                         type="submit"
                         disabled={loading}
-                        className="btn btn-primary w-full py-3 mt-2 text-base relative overflow-hidden group"
+                        className="btn btn-primary w-full py-3.5 mt-2 text-[15px] font-semibold tracking-wide relative overflow-hidden group rounded-xl shadow-lg shadow-accent-primary/25 hover:shadow-accent-primary/40 transition-all"
                     >
                         {loading ? (
                             <Loader2 className="animate-spin" />
                         ) : (
                             <>
                                 <span className="relative z-10 flex items-center justify-center gap-2">
-                                    {isLogin ? 'Sign In' : 'Create Account'} <ArrowRight size={16} />
+                                    {isLogin ? 'Sign In' : 'Create Account'} <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                                 </span>
-                                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                             </>
                         )}
                     </button>
                 </form>
 
-                <div className="mt-6 text-center text-sm">
-                    <button
-                        onClick={() => { setIsLogin(!isLogin); setError(null); }}
-                        className="text-text-muted hover:text-accent-primary transition-colors"
-                    >
-                        {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
-                    </button>
+                <div className="mt-8 text-center">
+                    <div className="relative mb-6">
+                        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border-subtle/60"></div></div>
+                        <div className="relative flex justify-center text-xs uppercase"><span className="bg-bg-card px-3 text-text-muted font-medium">Or continue with</span></div>
+                    </div>
+
+                    <p className="text-sm text-text-secondary">
+                        {isLogin ? "Don't have an account?" : "Already have an account?"}
+                        <button
+                            onClick={() => { setIsLogin(!isLogin); setError(null); }}
+                            className="ml-2 font-semibold text-accent-primary hover:text-accent-secondary transition-colors hover:underline decoration-2 underline-offset-4"
+                        >
+                            {isLogin ? "Sign up for free" : "Log in"}
+                        </button>
+                    </p>
                 </div>
+            </div>
+
+            <div className="absolute bottom-6 text-center w-full text-xs text-text-muted font-medium opacity-60">
+                &copy; 2024 Cortex Systems Inc. All rights reserved.
             </div>
         </div>
     );

@@ -49,24 +49,24 @@ export function SmartInput({ onCapture, isProcessing = false }: SmartInputProps)
 
             {/* AI Glow Effect */}
             <div className={clsx(
-                "absolute -inset-0.5 bg-gradient-to-r from-violet-600 to-indigo-600 rounded-xl opacity-0 transition-opacity duration-300 blur",
-                (isExpanded || text.length > 0) && "opacity-40"
+                "absolute -inset-0.5 bg-gradient-to-r from-accent-primary to-accent-secondary rounded-xl opacity-0 transition-opacity duration-300 blur",
+                (isExpanded || text.length > 0) && "opacity-30"
             )} />
 
             <div className={clsx(
                 "relative bg-bg-card border border-border-subtle rounded-xl overflow-hidden transition-all shadow-xl",
-                (isExpanded || text.length > 0) ? "shadow-violet-900/20" : "shadow-none"
+                (isExpanded || text.length > 0) ? "shadow-accent-primary/10 border-accent-primary/30" : "shadow-none"
             )}>
 
                 {/* Header Indicators */}
                 {text.length > 0 && (
                     <div className="absolute top-2 right-2 flex items-center gap-2 pointer-events-none">
                         {isEmailMode ? (
-                            <span className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider text-violet-400 bg-violet-400/10 px-2 py-0.5 rounded-full">
+                            <span className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider text-accent-primary bg-accent-primary/10 px-2 py-0.5 rounded-full">
                                 <Mail size={10} /> Email Context
                             </span>
                         ) : (
-                            <span className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">
+                            <span className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full">
                                 <Zap size={10} /> Fast Task
                             </span>
                         )}
@@ -74,8 +74,8 @@ export function SmartInput({ onCapture, isProcessing = false }: SmartInputProps)
                 )}
 
                 <form onSubmit={handleSubmit} className="relative">
-                    <div className="flex items-start p-2">
-                        <div className="p-2 text-violet-500 mt-1">
+                    <div className="flex items-start p-2.5">
+                        <div className="p-2 text-accent-primary mt-0.5">
                             {isProcessing ? (
                                 <Brain className="animate-pulse" size={20} />
                             ) : (
@@ -91,7 +91,7 @@ export function SmartInput({ onCapture, isProcessing = false }: SmartInputProps)
                             onBlur={() => !text && setIsExpanded(false)}
                             onKeyDown={handleKeyDown}
                             placeholder="Ask me to do anything, or paste an email..."
-                            className="w-full bg-transparent border-none outline-none text-text-primary placeholder:text-text-muted resize-none py-2 min-h-[44px] max-h-[300px]"
+                            className="w-full bg-transparent border-none outline-none text-text-primary placeholder:text-text-muted resize-none py-2 px-1 min-h-[44px] max-h-[300px] text-[15px] font-medium leading-relaxed"
                             rows={1}
                         />
 
@@ -99,9 +99,9 @@ export function SmartInput({ onCapture, isProcessing = false }: SmartInputProps)
                             type="submit"
                             disabled={!text.trim() || isProcessing}
                             className={clsx(
-                                "p-2 rounded-lg transition-all duration-200 mt-1",
+                                "p-2 rounded-lg transition-all duration-200 mt-0.5",
                                 text.trim()
-                                    ? "bg-violet-600 text-white hover:bg-violet-500"
+                                    ? "bg-accent-primary text-white hover:brightness-110 shadow-md shadow-accent-primary/20"
                                     : "bg-transparent text-text-muted cursor-not-allowed"
                             )}
                         >
@@ -111,10 +111,10 @@ export function SmartInput({ onCapture, isProcessing = false }: SmartInputProps)
 
                     {/* Quick Actions / Footer */}
                     {isExpanded && (
-                        <div className="flex items-center gap-3 px-4 pb-3 pt-0 animate-in fade-in slide-in-from-top-1">
-                            <span className="text-xs text-text-muted">Type <kbd className="font-mono bg-bg-app border border-border-subtle rounded px-1 text-[10px]">Enter</kbd> to capture</span>
+                        <div className="flex items-center gap-3 px-4 pb-3 pt-1 animate-in fade-in slide-in-from-top-1">
+                            <span className="text-xs text-text-muted">Type <kbd className="font-mono bg-bg-app border border-border-subtle rounded px-1.5 py-0.5 text-[10px] font-medium text-text-secondary">Enter</kbd> to capture</span>
                             <div className="flex-1" />
-                            <button type="button" className="text-xs text-text-secondary hover:text-text-primary flex items-center gap-1 transition-colors">
+                            <button type="button" className="text-xs text-text-secondary hover:text-accent-primary flex items-center gap-1 transition-colors font-medium">
                                 <MessageSquare size={12} /> Add prompting context
                             </button>
                         </div>

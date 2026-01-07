@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../core/store';
-import { CheckCircle2, Circle, AlertCircle, Calendar, Folder, Lock, Users } from 'lucide-react';
+import { CheckCircle2, Circle, AlertCircle, Calendar, Folder, Lock, Users, Edit2 } from 'lucide-react';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 import type { Task } from '../core/types';
@@ -21,70 +21,92 @@ export function TaskItem({ task, showProject = true, compact = false }: TaskItem
     return (
         <>
             <li className={clsx(
-                "group flex items-center gap-3 rounded-xl bg-bg-card border border-border-subtle transition-all duration-200",
-                "hover:shadow-md hover:border-accent-primary/40 hover:bg-bg-card-hover mt-2",
-                compact ? "p-3 text-lg" : "p-4",
-                task.status === 'done' && "opacity-50 bg-bg-input"
+                "group flex items-center gap-4 rounded-xl border transition-all duration-300 relative overflow-hidden",
+                compact ? "p-3 py-2.5" : "p-4",
+                task.status === 'done'
+                    ? "bg-bg-input/50 border-bg-input opacity-70"
+                    : "bg-bg-card border-border-subtle hover:border-accent-primary/30 hover:shadow-md hover:shadow-accent-primary/5 hover:bg-bg-card-hover"
             )}>
+                {/* Priority Indicator Stripe */}
+                <div className={clsx(
+                    "absolute left-0 top-0 bottom-0 w-[4px] transition-colors",
+                    task.status === 'done' ? "bg-transparent" :
+                        task.priority === 'critical' ? "bg-red-500" :
+                            task.priority === 'high' ? "bg-orange-500" :
+                                "bg-transparent"
+                )} />
+
                 <button
                     onClick={() => toggleTaskStatus(task.id)}
-                    className="text-muted hover:text-accent-primary transition-colors shrink-0"
+                    className={clsx(
+                        "shrink-0 transition-all duration-300 rounded-full p-0.5",
+                        task.status === 'done'
+                            ? "text-success bg-success/10"
+                            : "text-border-highlight hover:text-accent-primary hover:bg-accent-primary/10"
+                    )}
                 >
                     {task.status === 'done' ? (
-                        <CheckCircle2 className="w-5 h-5 text-success" />
+                        <CheckCircle2 className="w-6 h-6" />
                     ) : (
-                        <Circle className="w-5 h-5" />
+                        <Circle className="w-6 h-6 stroke-2" />
                     )}
                 </button>
 
-                <div className="flex-1 flex flex-col gap-1.5 cursor-pointer" onClick={() => setIsEditing(true)}>
-                    <span className={clsx(
-                        "text-lg font-medium",
-                        task.status === 'done' && "line-through text-muted"
-                    )}>
-                        {task.title}
-                    </span>
-                    {task.visibility === 'private' ? (
-                        <span className="flex items-center gap-1 text-text-muted" title="Private">
-                            <Lock size={12} />
+                <div className="flex-1 flex flex-col gap-1 cursor-pointer min-w-0" onClick={() => setIsEditing(true)}>
+                    <div className="flex items-center gap-2">
+                        <span className={clsx(
+                            "font-medium truncate transition-all",
+                            compact ? "text-base" : "text-[15px]",
+                            task.status === 'done' ? "line-through text-text-muted" : "text-text-primary group-hover:text-accent-primary"
+                        )}>
+                            {task.title}
                         </span>
-                    ) : (
-                        <span className="flex items-center gap-1 text-text-muted" title="Shared">
-                            <Users size={12} />
-                        </span>
-                    )}
-                    {showProject && project && (
-                        <span className="flex items-center gap-1 text-accent-primary">
-                            <Folder size={14} /> {project.name}
-                        </span>
-                    )}
-                    {task.dueDate && (
-                        <span className={clsx("flex items-center gap-1", task.dueDate < Date.now() && task.status !== 'done' && "text-danger")}>
-                            <Calendar size={14} /> {format(task.dueDate, 'MMM d')}
-                        </span>
-                    )}
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2 mr-2">
-                        <button
-                            onClick={() => setIsEditing(true)}
-                            className="p-1 px-2 rounded-md bg-bg-app border border-border-subtle hover:border-violet-500 text-base text-text-muted hover:text-violet-400 transition-all font-medium"
-                        >
-                            Edit
-                        </button>
                     </div>
 
-                    {task.priority === 'critical' && <AlertCircle className="w-4 h-4 text-red-500" />}
+                    <div className="flex items-center gap-3 text-xs text-text-muted">
+                        {showProject && project && (
+                            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-bg-input group-hover:bg-white transition-colors border border-transparent group-hover:border-border-subtle">
+                                <Folder size={12} className="text-accent-secondary" />
+                                <span className="truncate max-w-[120px]">{project.name}</span>
+                            </span>
+                        )}
 
-                    {task.priority !== 'medium' && task.priority !== 'low' && (
-                        <span className={clsx(
-                            "text-sm px-1.5 py-0.5 rounded uppercase tracking-wider font-bold",
-                            task.priority === 'critical' ? "bg-red-500/10 text-red-400 border border-red-500/20" :
-                                task.priority === 'high' ? "bg-orange-500/10 text-orange-400 border border-orange-500/20" :
-                                    "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                        )}>
-                            {task.priority === 'auto' ? 'AI' : task.priority}
+                        {task.dueDate && (
+                            <span className={clsx(
+                                "flex items-center gap-1.5",
+                                task.dueDate < Date.now() && task.status !== 'done' ? "text-red-500 font-medium" : ""
+                            )}>
+                                <Calendar size={12} /> {format(task.dueDate, 'MMM d')}
+                            </span>
+                        )}
+
+                        {(task.visibility === 'private' || (task.assigneeIds && task.assigneeIds.length > 0)) && (
+                            <div className="flex items-center gap-2 border-l border-border-subtle pl-2">
+                                {task.visibility === 'private' && <Lock size={12} />}
+                                {task.assigneeIds && task.assigneeIds.length > 0 && (
+                                    <div className="flex items-center gap-1 text-text-secondary">
+                                        <Users size={12} /> <span className="font-medium">{task.assigneeIds.length}</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-2 group-hover:translate-x-0">
+                    <button
+                        onClick={() => setIsEditing(true)}
+                        className="p-2 rounded-lg text-text-muted hover:text-accent-primary hover:bg-accent-primary/5 transition-colors"
+                        title="Edit Task"
+                    >
+                        <Edit2 size={16} />
+                    </button>
+
+                    {task.priority === 'critical' && <AlertCircle className="w-5 h-5 text-red-500" />}
+
+                    {['high', 'urgent'].includes(task.priority) && task.status !== 'done' && (
+                        <span className="px-2 py-1 rounded-md bg-orange-500/10 text-orange-600 text-[10px] font-bold uppercase tracking-wider border border-orange-500/20">
+                            {task.priority}
                         </span>
                     )}
                 </div>
@@ -95,8 +117,7 @@ export function TaskItem({ task, showProject = true, compact = false }: TaskItem
                     task={task}
                     onClose={() => setIsEditing(false)}
                 />
-            )
-            }
+            )}
         </>
     );
 }

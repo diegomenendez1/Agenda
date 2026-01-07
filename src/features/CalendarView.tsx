@@ -11,12 +11,10 @@ export function CalendarView() {
 
     const { tasks, updateTask } = useStore();
 
-    // Map tasks to grid positions
-    // This is a naive implementation assuming task.dueDate maps to the start time block
+    // Mapping tasks to calendar grid
     const tasksOnCalendar = useMemo(() => {
         return Object.values(tasks).filter(task => {
             if (!task.dueDate || task.status === 'done') return false;
-            // Only show if it's within the displayed hour range (6-21)
             const hour = getHours(task.dueDate);
             return hour >= 6 && hour <= 21;
         });
@@ -37,7 +35,6 @@ export function CalendarView() {
         const taskId = e.dataTransfer.getData('taskId');
         if (!taskId) return;
 
-        // Create new date object with dropped day and hour
         const newDate = new Date(day);
         newDate.setHours(hour, 0, 0, 0);
 
@@ -45,21 +42,21 @@ export function CalendarView() {
     };
 
     return (
-        <div className="flex flex-col h-full overflow-hidden">
+        <div className="flex flex-col h-full overflow-hidden bg-bg-app">
 
             {/* Header - Days */}
-            <div className="grid grid-cols-8 border-b border-border-subtle bg-bg-sidebar">
-                <div className="p-4 border-r border-border-subtle text-xs text-muted font-medium uppercase text-center pt-8">
+            <div className="grid grid-cols-8 border-b border-border-subtle bg-bg-card shadow-sm z-10">
+                <div className="p-4 border-r border-border-subtle text-[10px] font-bold tracking-widest text-text-muted uppercase text-center pt-8 bg-bg-sidebar/50">
                     GMT-5
                 </div>
                 {weekDays.map(day => {
                     const isToday = isSameDay(day, today);
                     return (
-                        <div key={day.toString()} className={clsx("p-4 text-center border-r border-border-subtle last:border-r-0 min-w-[120px]", isToday && "bg-bg-card")}>
-                            <div className={clsx("text-xs font-medium uppercase mb-1", isToday ? "text-accent-primary" : "text-muted")}>
+                        <div key={day.toString()} className={clsx("p-3 text-center border-r border-border-subtle last:border-r-0 min-w-[120px]", isToday ? "bg-accent-primary/5" : "bg-bg-card")}>
+                            <div className={clsx("text-xs font-bold uppercase mb-1.5 tracking-wider", isToday ? "text-accent-primary" : "text-text-muted")}>
                                 {format(day, 'EEE')}
                             </div>
-                            <div className={clsx("text-xl font-bold rounded-full w-10 h-10 flex items-center justify-center mx-auto", isToday && "bg-accent-primary text-white")}>
+                            <div className={clsx("text-xl font-display font-bold rounded-full w-10 h-10 flex items-center justify-center mx-auto transition-all", isToday ? "bg-accent-primary text-white shadow-lg shadow-accent-primary/30" : "text-text-primary")}>
                                 {format(day, 'd')}
                             </div>
                         </div>
@@ -68,39 +65,38 @@ export function CalendarView() {
             </div>
 
             {/* Grid - Scrollable */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
                 <div className="grid grid-cols-8 relative min-h-[1000px]">
                     {/* Time labels */}
-                    <div className="border-r border-border-subtle bg-bg-sidebar">
+                    <div className="border-r border-border-subtle bg-bg-sidebar/30">
                         {hours.map(hour => (
-                            <div key={hour} className="h-20 border-b border-border-subtle text-xs text-muted text-right pr-3 -mt-2.5">
-                                {hour}:00
+                            <div key={hour} className="h-20 border-b border-border-subtle text-xs font-medium text-text-muted text-right pr-3 -mt-2 uppercase tracking-wider relative group">
+                                <span className="relative z-10">{hour}:00</span>
                             </div>
                         ))}
                     </div>
 
                     {/* Days Columns */}
                     {weekDays.map((day, dayIdx) => (
-                        <div key={day.toString()} className="border-r border-border-subtle hover:bg-bg-card-hover/20 transition-colors relative">
+                        <div key={day.toString()} className="border-r border-border-subtle bg-bg-app relative group">
+                            {/* Hour Cells */}
                             {hours.map(hour => (
                                 <div
                                     key={`${dayIdx}-${hour}`}
-                                    className="h-20 border-b border-border-subtle/50 border-dashed"
+                                    className="h-20 border-b border-border-subtle/40 hover:bg-accent-primary/5 transition-colors"
                                     onDragOver={handleDragOver}
                                     onDrop={(e) => handleDrop(e, day, hour)}
                                 >
-                                    {/* Empty slots for now */}
                                 </div>
                             ))}
 
-                            {/* Render Tasks for this Day */}
+                            {/* Tasks overlapping the grid */}
                             {tasksOnCalendar
                                 .filter(task => isSameDay(new Date(task.dueDate!), day))
                                 .map(task => {
                                     const date = new Date(task.dueDate!);
                                     const hour = date.getHours();
                                     const minutes = date.getMinutes();
-                                    // Calculate top position relative to 6 AM start, 80px per hour
                                     const topOffset = ((hour - 6) * 80) + ((minutes / 60) * 80);
 
                                     return (
@@ -108,27 +104,32 @@ export function CalendarView() {
                                             key={task.id}
                                             draggable
                                             onDragStart={(e) => handleDragStart(e, task.id)}
-                                            className="absolute left-1 right-1 rounded px-2 py-1 text-xs font-medium bg-accent-primary/20 border-l-2 border-accent-primary text-text-primary overflow-hidden hover:z-20 hover:shadow-md transition-all cursor-grab active:cursor-grabbing"
+                                            className={clsx(
+                                                "absolute left-1 right-1 rounded-lg px-2.5 py-1.5 text-xs font-medium overflow-hidden hover:z-20 hover:scale-[1.02] transition-all cursor-grab active:cursor-grabbing shadow-sm border-l-[3px]",
+                                                task.priority === 'critical' ? "bg-red-500/10 border-red-500 text-red-700 dark:text-red-300" :
+                                                    task.priority === 'high' ? "bg-orange-500/10 border-orange-500 text-orange-700 dark:text-orange-300" :
+                                                        "bg-accent-primary/10 border-accent-primary text-accent-primary"
+                                            )}
                                             style={{
                                                 top: `${topOffset}px`,
-                                                height: '75px' // Fixed height for now
+                                                height: '75px'
                                             }}
                                             title={task.title}
                                         >
-                                            <div className="font-semibold truncate">{task.title}</div>
-                                            <div className="text-secondary opacity-75">{format(date, 'h:mm a')}</div>
+                                            <div className="font-bold truncate text-[13px]">{task.title}</div>
+                                            <div className="opacity-80 mt-0.5 font-medium">{format(date, 'h:mm a')}</div>
                                         </div>
                                     );
                                 })
                             }
 
-                            {/* Current Time Indicator (if today) */}
+                            {/* Current Time Indicator */}
                             {isSameDay(day, today) && (
                                 <div
-                                    className="absolute z-10 w-full left-0 border-t-2 border-danger pointer-events-none"
+                                    className="absolute z-10 w-full left-0 border-t-2 border-red-500 pointer-events-none shadow-[0_0_10px_rgba(239,68,68,0.5)]"
                                     style={{ top: `${((today.getHours() - 6) * 80) + ((today.getMinutes() / 60) * 80)}px` }}
                                 >
-                                    <div className="absolute -left-1.5 -top-1.5 w-3 h-3 rounded-full bg-danger"></div>
+                                    <div className="absolute -left-1.5 -top-1.5 w-3 h-3 rounded-full bg-red-500 shadow-sm"></div>
                                 </div>
                             )}
                         </div>
