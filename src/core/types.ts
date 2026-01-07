@@ -15,6 +15,7 @@ export interface UserProfile {
     preferences: {
         autoPrioritize: boolean;
         theme: 'light' | 'dark' | 'system';
+        taskViewMode?: 'list' | 'board';
     };
 }
 

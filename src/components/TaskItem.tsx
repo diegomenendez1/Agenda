@@ -21,9 +21,10 @@ export function TaskItem({ task, showProject = true, compact = false }: TaskItem
     return (
         <>
             <li className={clsx(
-                "group flex items-center gap-3 rounded-md bg-bg-card border border-transparent hover:border-border-subtle transition-all",
+                "group flex items-center gap-3 rounded-xl bg-bg-card border border-border-subtle transition-all duration-200",
+                "hover:shadow-md hover:border-accent-primary/40 hover:bg-bg-card-hover mt-2",
                 compact ? "p-3 text-lg" : "p-4",
-                task.status === 'done' && "opacity-50"
+                task.status === 'done' && "opacity-50 bg-bg-input"
             )}>
                 <button
                     onClick={() => toggleTaskStatus(task.id)}

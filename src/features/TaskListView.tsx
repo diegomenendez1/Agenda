@@ -1,13 +1,28 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../core/store';
-import { CheckCircle2, Calendar, ClipboardList } from 'lucide-react';
+import { CheckCircle2, Calendar, ClipboardList, LayoutList, KanbanSquare } from 'lucide-react';
 import { TaskItem } from '../components/TaskItem';
+import { KanbanBoard } from '../components/KanbanBoard';
 import { isSameDay, isFuture } from 'date-fns';
 import clsx from 'clsx';
 
 export function TaskListView() {
-    const { tasks, user } = useStore();
+    const { tasks, user, updateUserProfile } = useStore();
     const [filter, setFilter] = useState<'all' | 'today' | 'upcoming'>('all');
+
+    // Persistent View Mode
+    const viewMode = user?.preferences?.taskViewMode || 'list';
+
+    const handleSetViewMode = (mode: 'list' | 'board') => {
+        if (!user) return;
+        updateUserProfile({
+            ...user,
+            preferences: {
+                ...user.preferences,
+                taskViewMode: mode
+            }
+        });
+    };
 
     const filteredTasks = useMemo(() => {
         if (!user) return [];
@@ -53,13 +68,38 @@ export function TaskListView() {
     }, [tasks, filter, user]);
 
     return (
-        <div className="flex flex-col h-full p-8 max-w-4xl mx-auto w-full">
+        <div className={clsx(
+            "flex flex-col h-full p-8 w-full mx-auto transition-all duration-300",
+            viewMode === 'list' ? "max-w-4xl" : "max-w-full"
+        )}>
             <header className="mb-8 flex flex-col gap-6">
                 <div className="flex items-center justify-between">
                     <h1 className="text-3xl font-bold flex items-center gap-3 tracking-tight">
                         <CheckCircle2 className="w-8 h-8 text-success" />
                         My Tasks
                     </h1>
+                    <div className="flex bg-bg-card border border-border-subtle rounded-lg p-1">
+                        <button
+                            onClick={() => handleSetViewMode('list')}
+                            className={clsx(
+                                "p-2 rounded-md transition-all",
+                                viewMode === 'list' ? "bg-accent-primary text-white shadow-sm" : "text-text-muted hover:text-text-primary hover:bg-bg-input"
+                            )}
+                            title="List View"
+                        >
+                            <LayoutList size={20} />
+                        </button>
+                        <button
+                            onClick={() => handleSetViewMode('board')}
+                            className={clsx(
+                                "p-2 rounded-md transition-all",
+                                viewMode === 'board' ? "bg-accent-primary text-white shadow-sm" : "text-text-muted hover:text-text-primary hover:bg-bg-input"
+                            )}
+                            title="Kanban Board"
+                        >
+                            <KanbanSquare size={20} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Filter Tabs */}
@@ -94,8 +134,12 @@ export function TaskListView() {
                 </div>
             </header>
 
-            <div className="flex-1 overflow-y-auto">
-                {filteredTasks.length === 0 ? (
+            <div className="flex-1 overflow-y-auto overflow-x-hidden">
+                {viewMode === 'board' ? (
+                    <div className="h-full overflow-x-auto pb-4">
+                        <KanbanBoard tasks={filteredTasks} />
+                    </div>
+                ) : filteredTasks.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-64 text-muted">
                         <CheckCircle2 className="w-12 h-12 mb-4 opacity-20" />
                         <p>No tasks found for this filter.</p>

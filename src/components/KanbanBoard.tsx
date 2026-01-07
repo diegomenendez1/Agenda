@@ -99,7 +99,7 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                     {/* Drop Zone / List */}
                     <div className={clsx(
                         "flex-1 rounded-xl p-2 transition-colors overflow-y-auto min-h-[150px]",
-                        "hover:bg-bg-card-hover/20"
+                        "bg-bg-input/50 border border-border-subtle/50"
                     )}>
                         <div className="flex flex-col gap-3">
                             {tasksByStatus[col.id].map(task => (
@@ -110,7 +110,7 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                     onClick={() => setEditingTask(task)}
                                     className={clsx(
                                         "glass-panel p-4 rounded-lg cursor-grab active:cursor-grabbing hover:translate-y-[-2px] transition-all",
-                                        "shadow-sm hover:shadow-lg relative group",
+                                        "shadow-sm hover:shadow-md border border-border-subtle hover:border-accent-primary/30 relative group",
                                         getPriorityColor(task.priority),
                                         task.status === 'done' && "opacity-60 grayscale"
                                     )}

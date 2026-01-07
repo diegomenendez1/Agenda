@@ -116,17 +116,78 @@ body {
 }
 
 /* --- UTILITIES --- */
-.glass-panel {
-  /* Now a clean card style instead of glass */
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-md);
+@layer components {
+  .glass-panel {
+    /* Now a clean card style instead of glass */
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-md);
+  }
+
+  .noise-overlay {
+    display: none;
+    /* Disable noise for the clean look */
+  }
+
+  /* Buttons - "Modern Soft" */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+    background: white;
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .btn:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--border-highlight);
+    color: var(--text-primary);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary {
+    background: var(--accent-primary);
+    border: 1px solid var(--accent-primary);
+    color: white;
+    box-shadow: 0 4px 12px var(--accent-glow);
+  }
+
+  .btn-primary:hover {
+    background: #4338ca;
+    /* Indigo 700 */
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px var(--accent-glow);
+  }
+
+  /* Inputs - Clean Field */
+  .input {
+    background: var(--bg-input);
+    border: 1px solid transparent;
+    color: var(--text-primary);
+    padding: 0.6rem 1rem;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    width: 100%;
+    transition: all 0.2s;
+  }
+
+  .input:focus {
+    outline: none;
+    background: var(--bg-card);
+    /* Adapted for Dark Mode */
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
 }
 
-.noise-overlay {
-  display: none;
-  /* Disable noise for the clean look */
-}
 
 /* Scrollbars - Minimalist Gray */
 ::-webkit-scrollbar {
@@ -145,67 +206,6 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #D1D5DB;
-}
-
-/* --- COMPONENTS --- */
-
-/* Buttons - "Modern Soft" */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius-sm);
-  background: white;
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
-  box-shadow: var(--shadow-sm);
-}
-
-.btn:hover {
-  background: var(--bg-card-hover);
-  border-color: var(--border-highlight);
-  color: var(--text-primary);
-  transform: translateY(-1px);
-}
-
-.btn-primary {
-  background: var(--accent-primary);
-  border: 1px solid var(--accent-primary);
-  color: white;
-  box-shadow: 0 4px 12px var(--accent-glow);
-}
-
-.btn-primary:hover {
-  background: #4338ca;
-  /* Indigo 700 */
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px var(--accent-glow);
-}
-
-/* Inputs - Clean Field */
-.input {
-  background: var(--bg-input);
-  border: 1px solid transparent;
-  color: var(--text-primary);
-  padding: 0.6rem 1rem;
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-  width: 100%;
-  transition: all 0.2s;
-}
-
-
-.input:focus {
-  outline: none;
-  background: var(--bg-card);
-  /* Adapted for Dark Mode */
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 3px var(--accent-glow);
 }
 
 /* Typography */

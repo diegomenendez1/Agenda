@@ -422,5 +422,16 @@ export const useStore = create<Store>((set, get) => ({
     updateUserProfile: async (profile) => {
         // Optimistic update
         set({ user: profile });
+
+        const { error } = await supabase.from('profiles').update({
+            full_name: profile.name,
+            role: profile.role,
+            preferences: profile.preferences
+        }).eq('id', profile.id);
+
+        if (error) {
+            console.error("Failed to update profile:", error);
+            // Optionally revert state here if needed
+        }
     },
 }));
