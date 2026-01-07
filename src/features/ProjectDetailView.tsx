@@ -19,19 +19,18 @@ export function ProjectDetailView() {
 
     const projectTasks = useMemo(() => {
         if (!projectId) return [];
-        const priorityScore = { critical: 4, urgent: 3, high: 2, medium: 1, low: 0, auto: 1 };
-
+        const priorityScore: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
         return Object.values(tasks)
             .filter(t => t.projectId === projectId)
             .sort((a, b) => {
                 // Sort by status, priority, creation
                 if (a.status !== b.status) return a.status === 'done' ? 1 : -1;
 
-                const pA = priorityScore[a.priority as keyof typeof priorityScore] || 0;
-                const pB = priorityScore[b.priority as keyof typeof priorityScore] || 0;
+                const pA = priorityScore[a.priority] || 0;
+                const pB = priorityScore[b.priority] || 0;
 
                 if (pA !== pB) return pB - pA;
-                return b.createdAt - a.createdAt;
+                return (b.createdAt || 0) - (a.createdAt || 0);
             });
     }, [tasks, projectId]);
 

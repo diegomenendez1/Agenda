@@ -10,6 +10,8 @@ interface SmartInputProps {
 export function SmartInput({ onCapture, isProcessing = false }: SmartInputProps) {
     const [text, setText] = useState('');
     const [isExpanded, setIsExpanded] = useState(false);
+    const [showPromptContext, setShowPromptContext] = useState(false);
+    const [promptContext, setPromptContext] = useState('');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     // Auto-resize
@@ -24,11 +26,21 @@ export function SmartInput({ onCapture, isProcessing = false }: SmartInputProps)
         e?.preventDefault();
         if (!text.trim()) return;
 
-        // Determine source heuristic: Length > 200 chars or newlines is likely email/dump
-        const source = text.length > 200 || text.split('\n').length > 3 ? 'email' : 'manual';
+        // Determine source heuristic: Length > 150 chars or common email keywords
+        const isEmailLikely = text.length > 250 ||
+            /from:|to:|subject:|sent:|cc:/i.test(text) ||
+            text.split('\n').length > 5;
+        const source = isEmailLikely ? 'email' : 'manual';
 
-        onCapture(text, source);
+        let finalText = text;
+        if (promptContext.trim()) {
+            finalText = `${text}\n\n[Context]\n${promptContext}`;
+        }
+
+        onCapture(finalText, source);
         setText('');
+        setPromptContext('');
+        setShowPromptContext(false);
         setIsExpanded(false);
     };
 
@@ -88,10 +100,10 @@ export function SmartInput({ onCapture, isProcessing = false }: SmartInputProps)
                             value={text}
                             onChange={(e) => setText(e.target.value)}
                             onFocus={() => setIsExpanded(true)}
-                            onBlur={() => !text && setIsExpanded(false)}
+                            onBlur={() => !text && !promptContext && setIsExpanded(false)}
                             onKeyDown={handleKeyDown}
-                            placeholder="Ask me to do anything, or paste an email..."
-                            className="w-full bg-transparent border-none outline-none text-text-primary placeholder:text-text-muted resize-none py-2 px-1 min-h-[44px] max-h-[300px] text-[15px] font-medium leading-relaxed"
+                            placeholder="Ask me anything, or paste an entire email chain..."
+                            className="w-full bg-transparent border-none outline-none text-text-primary placeholder:text-text-muted resize-none py-2 px-1 min-h-[44px] max-h-[500px] text-[15px] font-medium leading-relaxed"
                             rows={1}
                         />
 
@@ -109,13 +121,41 @@ export function SmartInput({ onCapture, isProcessing = false }: SmartInputProps)
                         </button>
                     </div>
 
+                    {/* Context Input Area */}
+                    {showPromptContext && (
+                        <div className="px-4 pb-3 animate-in fade-in slide-in-from-top-2">
+                            <div className="bg-bg-subtle/50 rounded-lg p-3 border border-border-subtle/50">
+                                <label className="block text-xs font-semibold text-text-muted mb-2 uppercase tracking-wider">
+                                    Additional Context / Instructions
+                                </label>
+                                <textarea
+                                    value={promptContext}
+                                    onChange={(e) => setPromptContext(e.target.value)}
+                                    placeholder="Add specific instructions, context, or constraints for this task..."
+                                    className="w-full bg-transparent border-none outline-none text-sm text-text-secondary placeholder:text-text-muted/50 resize-y min-h-[60px]"
+                                    autoFocus
+                                />
+                            </div>
+                        </div>
+                    )}
+
                     {/* Quick Actions / Footer */}
-                    {isExpanded && (
-                        <div className="flex items-center gap-3 px-4 pb-3 pt-1 animate-in fade-in slide-in-from-top-1">
+                    {(isExpanded || showPromptContext) && (
+                        <div className="flex items-center gap-3 px-4 pb-3 pt-1 animate-in fade-in slide-in-from-top-1 border-t border-border-subtle/30 mt-1">
                             <span className="text-xs text-text-muted">Type <kbd className="font-mono bg-bg-app border border-border-subtle rounded px-1.5 py-0.5 text-[10px] font-medium text-text-secondary">Enter</kbd> to capture</span>
                             <div className="flex-1" />
-                            <button type="button" className="text-xs text-text-secondary hover:text-accent-primary flex items-center gap-1 transition-colors font-medium">
-                                <MessageSquare size={12} /> Add prompting context
+                            <button
+                                type="button"
+                                onClick={() => setShowPromptContext(!showPromptContext)}
+                                className={clsx(
+                                    "text-xs flex items-center gap-1 transition-colors font-medium px-2 py-1 rounded-md",
+                                    showPromptContext
+                                        ? "text-accent-primary bg-accent-primary/10"
+                                        : "text-text-secondary hover:text-accent-primary hover:bg-bg-subtle"
+                                )}
+                            >
+                                <MessageSquare size={12} />
+                                {showPromptContext ? "Hide Context" : "Add prompting context"}
                             </button>
                         </div>
                     )}

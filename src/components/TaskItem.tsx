@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../core/store';
-import { CheckCircle2, Circle, AlertCircle, Calendar, Folder, Lock, Users, Edit2 } from 'lucide-react';
+import { CheckCircle2, Circle, AlertCircle, Calendar, Folder, Lock, Users, Edit2, Mail } from 'lucide-react';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 import type { Task } from '../core/types';
@@ -86,6 +86,11 @@ export function TaskItem({ task, showProject = true, compact = false }: TaskItem
                                 {task.assigneeIds && task.assigneeIds.length > 0 && (
                                     <div className="flex items-center gap-1 text-text-secondary">
                                         <Users size={12} /> <span className="font-medium">{task.assigneeIds.length}</span>
+                                    </div>
+                                )}
+                                {task.source === 'email' && (
+                                    <div className="flex items-center gap-1 text-accent-primary animate-pulse-subtle bg-accent-primary/5 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                                        <Mail size={10} /> EMAIL
                                     </div>
                                 )}
                             </div>

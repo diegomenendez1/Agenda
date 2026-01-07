@@ -240,7 +240,7 @@ export const useStore = create<Store>((set, get) => ({
             id,
             title: taskData.title,
             description: taskData.description,
-            status: taskData.status || 'todo',
+            status: taskData.status || 'backlog',
             priority: taskData.priority || 'medium',
             projectId: taskData.projectId,
             project_id: taskData.projectId, // for consistency in view if needed before reload
@@ -260,7 +260,7 @@ export const useStore = create<Store>((set, get) => ({
             title: taskData.title,
             project_id: taskData.projectId,
             priority: taskData.priority || 'medium',
-            status: taskData.status || 'todo',
+            status: taskData.status || 'backlog',
             due_date: taskData.dueDate,
             description: taskData.description,
             user_id: get().user?.id, // Standard Supabase creator column
@@ -428,7 +428,7 @@ export const useStore = create<Store>((set, get) => ({
         await state.addTask({
             ...taskData, // Pass all fields including assigneeId
             title: taskData.title || inboxItem.text,
-            status: 'todo'
+            status: 'backlog'
         });
 
         await state.deleteInboxItem(inboxItemId);

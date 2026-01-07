@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../core/store';
-import { Inbox, Mail, User, Sparkles, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Inbox, Mail, User, Sparkles, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ProcessItemModal } from '../components/ProcessItemModal';
 import { SmartInput } from '../components/SmartInput';
