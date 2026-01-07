@@ -67,7 +67,7 @@ export function InboxView() {
                                                 {item.source}
                                             </span>
                                             <span className="text-base text-text-muted tabular-nums">
-                                                {format(item.createdAt, 'HH:mm')}
+                                                {format(item.createdAt, 'MMM d • HH:mm')}
                                             </span>
                                         </div>
                                         <p className="text-text-primary text-lg leading-relaxed line-clamp-3">

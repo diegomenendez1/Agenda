@@ -65,36 +65,38 @@
 }
 
 .dark {
-  /* Horizon Dark (Clean & Deep) */
+  /* Horizon Dark (Clean & Deep) -- Enhanced Contrast */
   --bg-app: #09090b;
   /* Zinc 950 */
   --bg-sidebar: #121215;
-  --bg-card: #18181b;
-  /* Zinc 900 */
+
+  --bg-card: #202024;
+  /* Lighter Zinc/Gray for card surfaces to pop against BG */
   --bg-card-hover: #27272a;
   /* Zinc 800 */
-  --bg-input: #27272a;
-  /* Zinc 800 */
 
-  --text-primary: #f4f4f5;
-  /* Zinc 100 */
-  --text-secondary: #a1a1aa;
-  /* Zinc 400 */
-  --text-muted: #52525b;
+  --bg-input: #121215;
+  /* Darker inputs for contrast against forms */
+
+  --text-primary: #ffffff;
+  /* Pure White */
+  --text-secondary: #e4e4e7;
+  /* Zinc 200 - Much brighter for readability */
+  --text-muted: #a1a1aa;
+  /* Zinc 400 - Readable but distinct */
+
+  --border-subtle: #3f3f46;
+  /* Zinc 700 - Visible borders for structure */
+  --border-highlight: #52525b;
   /* Zinc 600 */
-
-  --border-subtle: #27272a;
-  /* Zinc 800 */
-  --border-highlight: #3f3f46;
-  /* Zinc 700 */
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.3);
 
   /* Adjust accents for dark mode contrast */
-  --accent-primary: #6366f1;
-  /* Indigo 500 (Brighter) */
-  --accent-secondary: #818cf8;
+  --accent-primary: #818cf8;
+  /* Indigo 400 - Brighter accent against dark */
+  --accent-secondary: #a5b4fc;
 }
 
 body {

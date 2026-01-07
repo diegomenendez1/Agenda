@@ -61,13 +61,13 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
         }
     };
 
-    const getPriorityColor = (priority: string) => {
+    const getPriorityClasses = (priority: string) => {
         switch (priority) {
-            case 'critical': return 'border-l-4 border-l-[var(--priority-critical)]';
-            case 'high': return 'border-l-4 border-l-[var(--priority-high)]';
-            case 'medium': return 'border-l-4 border-l-[var(--priority-medium)]';
-            case 'low': return 'border-l-4 border-l-[var(--priority-low)]';
-            default: return 'border-l-4 border-l-transparent';
+            case 'critical': return 'border-l-4 border-l-red-500 bg-red-500/10 dark:bg-red-500/40';
+            case 'high': return 'border-l-4 border-l-orange-500 bg-orange-500/10 dark:bg-orange-500/40';
+            case 'medium': return 'border-l-4 border-l-yellow-500 bg-yellow-500/10 dark:bg-yellow-500/40';
+            case 'low': return 'border-l-4 border-l-blue-500 bg-blue-500/10 dark:bg-blue-500/40';
+            default: return 'border-l-4 border-l-transparent hover:bg-bg-card-hover';
         }
     };
 
@@ -111,7 +111,7 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                     className={clsx(
                                         "glass-panel p-4 rounded-lg cursor-grab active:cursor-grabbing hover:translate-y-[-2px] transition-all",
                                         "shadow-sm hover:shadow-md border border-border-subtle hover:border-accent-primary/30 relative group",
-                                        getPriorityColor(task.priority),
+                                        getPriorityClasses(task.priority),
                                         task.status === 'done' && "opacity-60 grayscale"
                                     )}
                                 >
@@ -139,10 +139,19 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                         </div>
 
                                         {/* Avatar Placeholder or Priority Badge */}
-                                        {task.assigneeId ? (
-                                            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 border border-white/10" />
-                                        ) : task.priority === 'critical' ? (
-                                            <AlertCircle size={14} className="text-[var(--priority-critical)]" />
+                                        {task.assigneeIds && task.assigneeIds.length > 0 ? (
+                                            <div className="flex -space-x-1">
+                                                {task.assigneeIds.map(id => (
+                                                    <div key={id} className="w-5 h-5 rounded-full bg-gradient-to-br from-violet-500 to-indigo-500 border border-white/10" title="Assigned" />
+                                                )).slice(0, 3)}
+                                                {task.assigneeIds.length > 3 && (
+                                                    <div className="w-5 h-5 rounded-full bg-bg-card flex items-center justify-center text-[8px] border border-border-subtle">
+                                                        +{task.assigneeIds.length - 3}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : task.priority === 'critical' || task.priority === 'high' ? (
+                                            <AlertCircle size={14} className={task.priority === 'critical' ? "text-red-500" : "text-orange-500"} />
                                         ) : null}
                                     </div>
                                 </div>

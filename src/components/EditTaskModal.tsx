@@ -11,12 +11,12 @@ interface EditTaskModalProps {
 }
 
 export function EditTaskModal({ task, onClose }: EditTaskModalProps) {
-    const { updateTask, projects, deleteTask, team } = useStore();
+    const { updateTask, projects, deleteTask, team, user } = useStore();
 
     const [title, setTitle] = useState(task.title);
     const [projectId, setProjectId] = useState<string>(task.projectId || '');
     const [priority, setPriority] = useState<Priority>(task.priority);
-    const [assigneeId, setAssigneeId] = useState<string>(task.assigneeId || '');
+    const [assigneeIds, setAssigneeIds] = useState<string[]>(task.assigneeIds || []);
 
     // Initial date/time state setup
     const initialDate = task.dueDate ? new Date(task.dueDate) : null;
@@ -38,8 +38,6 @@ export function EditTaskModal({ task, onClose }: EditTaskModalProps) {
         if (dueDateStr) {
             const [year, month, day] = dueDateStr.split('-').map(Number);
             const properDate = new Date(year, month - 1, day);
-
-            // Default to start of day if only date is selected (which is now always the case)
             properDate.setHours(9, 0, 0, 0);
             dueDate = properDate.getTime();
         }
@@ -49,7 +47,7 @@ export function EditTaskModal({ task, onClose }: EditTaskModalProps) {
             projectId: projectId || undefined,
             priority,
             dueDate,
-            assigneeId: assigneeId || undefined
+            assigneeIds
         });
 
         onClose();
@@ -126,24 +124,57 @@ export function EditTaskModal({ task, onClose }: EditTaskModalProps) {
                             />
                         </div>
 
-                        {/* Assignee Selector - New Feature */}
+                        {/* Share with / Assignee Selector */}
                         <div className="col-span-2">
                             <label className="block text-xs uppercase text-muted font-bold mb-2 flex items-center gap-2">
-                                <User size={12} /> Assignee
+                                <User size={12} /> Share with
                             </label>
-                            <select
-                                value={assigneeId}
-                                onChange={e => setAssigneeId(e.target.value)}
-                                className="input w-full appearance-none"
-                            >
-                                <option value="">Unassigned</option>
-                                {Object.values(team).map(member => (
-                                    <option key={member.id} value={member.id}>{member.name} ({member.role})</option>
-                                ))}
-                            </select>
-                            <p className="text-[10px] text-text-muted mt-1.5 ml-1">
-                                {assigneeId ? "Task will be visible to the team." : "Task remains private unless shared."}
-                            </p>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {Object.values(team)
+                                    .filter(member => member.id !== user?.id)
+                                    .map(member => {
+                                        const isSelected = assigneeIds.includes(member.id);
+                                        return (
+                                            <button
+                                                key={member.id}
+                                                type="button"
+                                                onClick={() => {
+                                                    setAssigneeIds(prev =>
+                                                        isSelected
+                                                            ? prev.filter(id => id !== member.id)
+                                                            : [...prev, member.id]
+                                                    );
+                                                }}
+                                                className={clsx(
+                                                    "flex items-center gap-3 p-2 rounded-lg border transition-all text-left",
+                                                    isSelected
+                                                        ? "bg-accent-primary/10 border-accent-primary text-accent-primary"
+                                                        : "bg-bg-input border-transparent text-muted hover:bg-bg-card-hover"
+                                                )}
+                                            >
+                                                {member.avatar ? (
+                                                    <img src={member.avatar} alt={member.name} className="w-6 h-6 rounded-full" />
+                                                ) : (
+                                                    <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold uppercase">
+                                                        {member.name.charAt(0)}
+                                                    </div>
+                                                )}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="text-sm font-medium truncate">{member.name}</div>
+                                                    <div className="text-[10px] opacity-70 truncate">{member.role}</div>
+                                                </div>
+                                                {isSelected && <div className="w-2 h-2 rounded-full bg-accent-primary" />}
+                                            </button>
+                                        );
+                                    })}
+                            </div>
+
+                            {assigneeIds.length === 0 && (
+                                <p className="text-[10px] text-text-muted mt-2 ml-1 italic">
+                                    Private task. Select team members to share visibility.
+                                </p>
+                            )}
                         </div>
 
                         {/* Priority */}
@@ -152,7 +183,7 @@ export function EditTaskModal({ task, onClose }: EditTaskModalProps) {
                                 <Flag size={12} /> Priority
                             </label>
                             <div className="flex gap-2">
-                                {(['critical', 'high', 'medium', 'low'] as Priority[]).map((p) => (
+                                {(['high', 'medium', 'low'] as Priority[]).map((p) => (
                                     <button
                                         key={p}
                                         type="button"
@@ -160,7 +191,7 @@ export function EditTaskModal({ task, onClose }: EditTaskModalProps) {
                                         className={clsx(
                                             "flex-1 py-1.5 rounded-md border text-xs font-semibold uppercase tracking-wider transition-all",
                                             priority === p
-                                                ? (p === 'critical' || p === 'high') ? "bg-red-500/10 text-red-500 border-red-500/50" :
+                                                ? p === 'high' ? "bg-red-500/10 text-red-500 border-red-500/50" :
                                                     p === 'medium' ? "bg-orange-500/10 text-orange-500 border-orange-500/50" :
                                                         "bg-blue-500/10 text-blue-500 border-blue-500/50"
                                                 : "bg-bg-input border-transparent text-muted hover:border-border-subtle"

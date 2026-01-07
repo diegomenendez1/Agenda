@@ -12,7 +12,7 @@ const hydrateTask = (t: any): Task => ({
     dueDate: t.due_date ? new Date(t.due_date).getTime() : undefined,
     completedAt: t.completed_at ? new Date(t.completed_at).getTime() : undefined,
     ownerId: t.user_id || t.owner_id, // Support both just in case
-    assigneeId: t.assignee_id,
+    assigneeIds: t.assignee_ids || (t.assignee_id ? [t.assignee_id] : []),
     visibility: t.visibility || 'private'
 });
 
@@ -28,9 +28,10 @@ interface Actions {
     addTask: (task: Pick<Task, 'title'> & Partial<Omit<Task, 'id' | 'createdAt' | 'tags'>>) => Promise<EntityId>;
     updateTask: (id: EntityId, updates: Partial<Task>) => Promise<void>;
     updateStatus: (id: EntityId, status: TaskStatus) => Promise<void>;
-    assignTask: (id: EntityId, assigneeId: EntityId) => Promise<void>;
+    assignTask: (id: EntityId, assigneeIds: EntityId[]) => Promise<void>;
     toggleTaskStatus: (id: EntityId) => Promise<void>;
     deleteTask: (id: EntityId) => Promise<void>;
+    clearCompletedTasks: () => Promise<void>;
 
     // Projects
     addProject: (name: string, goal?: string, color?: string) => Promise<EntityId>;
@@ -245,8 +246,8 @@ export const useStore = create<Store>((set, get) => ({
             project_id: taskData.projectId, // for consistency in view if needed before reload
             dueDate: taskData.dueDate,
             ownerId: get().user?.id || '',
-            assigneeId: taskData.assigneeId,
-            visibility: taskData.assigneeId ? 'team' : (taskData.visibility || 'private'),
+            assigneeIds: taskData.assigneeIds || [],
+            visibility: (taskData.assigneeIds && taskData.assigneeIds.length > 0) ? 'team' : (taskData.visibility || 'private'),
             createdAt: Date.now(),
             tags: []
         };
@@ -263,8 +264,8 @@ export const useStore = create<Store>((set, get) => ({
             due_date: taskData.dueDate,
             description: taskData.description,
             user_id: get().user?.id, // Standard Supabase creator column
-            assignee_id: taskData.assigneeId,
-            visibility: taskData.assigneeId ? 'team' : (taskData.visibility || 'private')
+            assignee_ids: taskData.assigneeIds || [],
+            visibility: (taskData.assigneeIds && taskData.assigneeIds.length > 0) ? 'team' : (taskData.visibility || 'private')
         });
 
         if (error) console.error(error);
@@ -277,18 +278,18 @@ export const useStore = create<Store>((set, get) => ({
             const task = state.tasks[id];
             if (!task) return state;
 
-            // If assigning to someone, it implies sharing with the team
-            const newVisibility = updates.assigneeId ? 'team' : (updates.visibility || task.visibility);
+            // If assigning to someone, it implies sharing with the team (if list is not empty)
+            const newVisibility = (updates.assigneeIds && updates.assigneeIds.length > 0) ? 'team' : (updates.visibility || task.visibility);
             const finalUpdates = { ...updates, visibility: newVisibility };
 
             return { tasks: { ...state.tasks, [id]: { ...task, ...finalUpdates } } };
         });
 
         const dbUpdates: any = { ...updates };
-        if (updates.assigneeId) {
-            dbUpdates.assignee_id = updates.assigneeId;
-            dbUpdates.visibility = 'team';
-            delete dbUpdates.assigneeId;
+        if (updates.assigneeIds) {
+            dbUpdates.assignee_ids = updates.assigneeIds;
+            dbUpdates.visibility = (updates.assigneeIds.length > 0) ? 'team' : dbUpdates.visibility;
+            delete dbUpdates.assigneeIds;
         }
         if (updates.visibility) dbUpdates.visibility = updates.visibility;
         if (updates.projectId) {
@@ -303,9 +304,9 @@ export const useStore = create<Store>((set, get) => ({
         await state.updateTask(id, { status, completedAt: status === 'done' ? Date.now() : undefined });
     },
 
-    assignTask: async (id, assigneeId) => {
+    assignTask: async (id, assigneeIds) => {
         const state = get();
-        await state.updateTask(id, { assigneeId });
+        await state.updateTask(id, { assigneeIds });
     },
 
     toggleTaskStatus: async (id) => {
@@ -331,6 +332,27 @@ export const useStore = create<Store>((set, get) => ({
             return { tasks: rest };
         });
         await supabase.from('tasks').delete().eq('id', id);
+    },
+
+    clearCompletedTasks: async () => {
+        const state = get();
+        const completedTaskIds = Object.values(state.tasks)
+            .filter(t => t.status === 'done' && (t.ownerId === state.user?.id)) // Only delete own completed tasks or generally all completed? 
+            // Better safety: only delete tasks visible to the user that are done.
+            // Even safer: Only delete tasks owned by the user. 
+            // Logic: Filter tasks that are completed.
+            .map(t => t.id);
+
+        if (completedTaskIds.length === 0) return;
+
+        // Optimistic
+        set(state => {
+            const newTasks = { ...state.tasks };
+            completedTaskIds.forEach(id => delete newTasks[id]);
+            return { tasks: newTasks };
+        });
+
+        await supabase.from('tasks').delete().in('id', completedTaskIds);
     },
 
     addProject: async (name, goal, color = '#6366f1') => {

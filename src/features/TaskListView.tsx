@@ -1,13 +1,13 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../core/store';
-import { CheckCircle2, Calendar, ClipboardList, LayoutList, KanbanSquare } from 'lucide-react';
+import { CheckCircle2, Calendar, ClipboardList, LayoutList, KanbanSquare, Trash2 } from 'lucide-react';
 import { TaskItem } from '../components/TaskItem';
 import { KanbanBoard } from '../components/KanbanBoard';
 import { isSameDay, isFuture } from 'date-fns';
 import clsx from 'clsx';
 
 export function TaskListView() {
-    const { tasks, user, updateUserProfile } = useStore();
+    const { tasks, user, updateUserProfile, clearCompletedTasks } = useStore();
     const [filter, setFilter] = useState<'all' | 'today' | 'upcoming'>('all');
 
     // Persistent View Mode
@@ -51,7 +51,7 @@ export function TaskListView() {
             // 1. Created by me (regardless of visibility)
             // 2. Assigned to me
             const isOwner = task.ownerId === user.id;
-            const isAssignee = task.assigneeId === user.id;
+            const isAssignee = task.assigneeIds?.includes(user.id);
 
             if (!isOwner && !isAssignee) return false;
 
@@ -131,6 +131,21 @@ export function TaskListView() {
                     >
                         <Calendar size={16} /> Upcoming
                     </button>
+                </div>
+
+                <div className="flex justify-end">
+                    {filteredTasks.some(t => t.status === 'done') && (
+                        <button
+                            onClick={() => {
+                                if (confirm('Are you sure you want to delete all completed tasks? This cannot be undone.')) {
+                                    clearCompletedTasks();
+                                }
+                            }}
+                            className="flex items-center gap-2 text-xs text-text-muted hover:text-danger hover:bg-red-500/10 px-3 py-1.5 rounded-md transition-colors"
+                        >
+                            <Trash2 size={14} /> Clear Completed
+                        </button>
+                    )}
                 </div>
             </header>
 
