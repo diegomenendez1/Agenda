@@ -530,9 +530,9 @@ export const useStore = create<Store>((set, get) => ({
 
         // Uses optimistic methods internally
         await state.addTask({
-            ...taskData, // Pass all fields including assigneeId
+            ...taskData, // Pass all fields including assigneeId and status
             title: taskData.title || inboxItem.text,
-            status: 'backlog'
+            // status is now handled by taskData or defaults to 'backlog' in addTask
         });
 
         await state.deleteInboxItem(inboxItemId);

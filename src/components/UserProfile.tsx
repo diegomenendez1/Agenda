@@ -7,13 +7,13 @@ export function UserProfile() {
     const { user, updateUserProfile } = useStore();
     const [name, setName] = useState('');
     const [role, setRole] = useState('');
-    const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('dark');
+    const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
 
     useEffect(() => {
         if (user) {
             setName(user.name);
             setRole(user.role);
-            setTheme(user.preferences?.theme || 'dark');
+            setTheme(user.preferences?.theme || 'system');
         }
     }, [user]);
 

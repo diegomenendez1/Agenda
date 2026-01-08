@@ -4,8 +4,25 @@ import { KanbanBoard } from '../components/KanbanBoard';
 
 
 export function TeamBoardView() {
-    const { tasks, team } = useStore();
-    const taskList = Object.values(tasks).filter(t => t.visibility === 'team');
+    const { tasks, team, user } = useStore();
+
+    // Strict Filtering for "Selective Visibility"
+    // The Team Board is NOT a public board. It only shows tasks that:
+    // 1. Are marked as 'team' visibility
+    // 2. HAVE assignees (shared with someone)
+    // 3. The current user is involved in (either as the owner who shared it, or as an assignee)
+    const taskList = Object.values(tasks).filter(t => {
+        if (t.visibility !== 'team') return false;
+
+        const hasAssignees = t.assigneeIds && t.assigneeIds.length > 0;
+        if (!hasAssignees) return false; // "The only way it shows... is that it has been assigned"
+
+        const isOwner = t.ownerId === user?.id;
+        const isAssigned = t.assigneeIds?.includes(user?.id || '');
+
+        // Show if I am involved
+        return isOwner || isAssigned;
+    });
 
     return (
         <div className="flex flex-col h-full bg-bg-app overflow-hidden p-6 md:p-8">
@@ -16,7 +33,7 @@ export function TeamBoardView() {
                         Team Board
                     </h1>
                     <p className="text-text-muted text-sm mt-1 ml-11">
-                        Track project velocity and collaborate with your team.
+                        Tasks shared with me or delegated by me.
                     </p>
                 </div>
 
