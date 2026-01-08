@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../core/store';
-import { Inbox, Mail, User, Sparkles, CheckCircle2, Trash2 } from 'lucide-react';
+import { Inbox, Mail, User, Sparkles, CheckCircle2, Trash2, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { ProcessItemModal } from '../components/ProcessItemModal';
 import { SmartInput } from '../components/SmartInput';
@@ -8,11 +8,31 @@ import type { InboxItem } from '../core/types';
 import clsx from 'clsx';
 
 export function InboxView() {
-    const { inbox, addInboxItem, deleteInboxItem } = useStore();
+    const { inbox, addInboxItem, deleteInboxItem, updateInboxItem } = useStore();
     const [processingItem, setProcessingItem] = useState<InboxItem | null>(null);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editText, setEditText] = useState('');
 
     const handleCapture = (text: string, source: 'manual' | 'email' | 'voice' | 'system') => {
         addInboxItem(text, source);
+    };
+
+    const startEditing = (item: InboxItem) => {
+        setEditingId(item.id);
+        setEditText(item.text);
+    };
+
+    const saveEdit = async () => {
+        if (editingId && editText.trim()) {
+            await updateInboxItem(editingId, editText.trim());
+            setEditingId(null);
+            setEditText('');
+        }
+    };
+
+    const cancelEdit = () => {
+        setEditingId(null);
+        setEditText('');
     };
 
     const inboxItems = Object.values(inbox).sort((a, b) => b.createdAt - a.createdAt);
@@ -66,38 +86,85 @@ export function InboxView() {
                                     </div>
 
                                     <div className="flex-1 min-w-0 pt-1">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="text-xs font-bold text-text-muted uppercase tracking-wider">
-                                                {item.source}
-                                            </span>
-                                            <span className="text-sm font-medium text-text-muted/80 tabular-nums">
-                                                {format(item.createdAt, 'MMM d • HH:mm')}
-                                            </span>
-                                        </div>
-                                        <p className="text-text-primary text-base font-medium leading-relaxed line-clamp-3">
-                                            {item.text}
-                                        </p>
+                                        {editingId === item.id ? (
+                                            <div className="animate-in fade-in zoom-in-95 duration-200">
+                                                <textarea
+                                                    value={editText}
+                                                    onChange={(e) => setEditText(e.target.value)}
+                                                    className="w-full bg-transparent border border-violet-500/30 rounded-lg p-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-none text-base"
+                                                    rows={3}
+                                                    autoFocus
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                                            e.preventDefault();
+                                                            saveEdit();
+                                                        } else if (e.key === 'Escape') {
+                                                            cancelEdit();
+                                                        }
+                                                    }}
+                                                />
+                                                <div className="flex justify-end gap-2 mt-2">
+                                                    <button
+                                                        onClick={cancelEdit}
+                                                        className="text-xs font-medium text-text-muted hover:text-text-primary px-3 py-1.5 rounded-md hover:bg-neutral-500/10 transition-colors"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                    <button
+                                                        onClick={saveEdit}
+                                                        className="text-xs font-medium bg-violet-600 text-white px-3 py-1.5 rounded-md hover:bg-violet-700 transition-colors shadow-sm shadow-violet-500/20"
+                                                    >
+                                                        Save
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-xs font-bold text-text-muted uppercase tracking-wider">
+                                                        {item.source}
+                                                    </span>
+                                                    <span className="text-sm font-medium text-text-muted/80 tabular-nums">
+                                                        {format(item.createdAt, 'MMM d • HH:mm')}
+                                                    </span>
+                                                </div>
+                                                <p className="text-text-primary text-base font-medium leading-relaxed line-clamp-3">
+                                                    {item.text}
+                                                </p>
+                                            </>
+                                        )}
                                     </div>
 
                                     <div className="flex items-center gap-2 self-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-4 group-hover:translate-x-0">
-                                        <button
-                                            onClick={() => {
-                                                if (confirm('Are you sure you want to delete this specific item?')) {
-                                                    deleteInboxItem(item.id);
-                                                }
-                                            }}
-                                            className="p-2.5 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                                            title="Delete"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
-                                        <button
-                                            onClick={() => setProcessingItem(item)}
-                                            className="btn btn-primary py-2.5 px-4 shadow-lg shadow-violet-500/20 rounded-lg text-sm flex items-center"
-                                        >
-                                            <Sparkles size={16} />
-                                            <span className="ml-2 font-semibold">Process</span>
-                                        </button>
+                                        {!editingId && (
+                                            <>
+                                                <button
+                                                    onClick={() => startEditing(item)}
+                                                    className="p-2.5 text-text-muted hover:text-violet-500 hover:bg-violet-500/10 rounded-lg transition-colors"
+                                                    title="Edit"
+                                                >
+                                                    <Pencil size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        if (confirm('Are you sure you want to delete this specific item?')) {
+                                                            deleteInboxItem(item.id);
+                                                        }
+                                                    }}
+                                                    className="p-2.5 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => setProcessingItem(item)}
+                                                    className="btn btn-primary py-2.5 px-4 shadow-lg shadow-violet-500/20 rounded-lg text-sm flex items-center"
+                                                >
+                                                    <Sparkles size={16} />
+                                                    <span className="ml-2 font-semibold">Process</span>
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </div>

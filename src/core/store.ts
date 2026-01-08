@@ -30,6 +30,7 @@ interface Actions {
 
     // Inbox
     addInboxItem: (text: string, source?: 'manual' | 'email' | 'system' | 'voice') => Promise<void>;
+    updateInboxItem: (id: EntityId, text: string) => Promise<void>;
     deleteInboxItem: (id: EntityId) => Promise<void>;
 
     // Tasks
@@ -280,6 +281,15 @@ export const useStore = create<Store>((set, get) => ({
             return { inbox: rest };
         });
         await supabase.from('inbox_items').delete().eq('id', id);
+    },
+
+    updateInboxItem: async (id, text) => {
+        set(state => {
+            const item = state.inbox[id];
+            if (!item) return state;
+            return { inbox: { ...state.inbox, [id]: { ...item, text } } };
+        });
+        await supabase.from('inbox_items').update({ text }).eq('id', id);
     },
 
     addTask: async (taskData) => {
