@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../core/store';
-import { User, Palette, Save } from 'lucide-react';
+import { User, Palette, Save, Users, Check, X, ShieldCheck } from 'lucide-react';
+import { supabase } from '../core/supabase';
 import { clsx } from 'clsx';
 
 export function UserProfile() {
@@ -56,6 +57,9 @@ export function UserProfile() {
                 </div>
 
                 <div className="p-8 space-y-8">
+                    {/* Team Invitations Section */}
+                    <TeamInvitations />
+
                     {/* Identity Section */}
                     <div className="space-y-4">
                         <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
@@ -141,6 +145,99 @@ export function UserProfile() {
                         </button>
                     </div>
                 </div>
+            </div>
+        </div>
+    );
+}
+
+function TeamInvitations() {
+    const { user } = useStore();
+    const [invites, setInvites] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (user) fetchInvites();
+    }, [user]);
+
+    const fetchInvites = async () => {
+        const { data, error } = await supabase
+            .from('team_memberships')
+            .select(`
+                id,
+                status,
+                manager:manager_id (full_name, avatar_url, email)
+            `)
+            .eq('member_id', user?.id)
+            .eq('status', 'pending');
+
+        if (data) setInvites(data);
+        setLoading(false);
+    };
+
+    const handleRespond = async (id: string, accept: boolean) => {
+        try {
+            const { error } = await supabase.rpc('respond_to_team_invite', {
+                membership_id: id,
+                accept
+            });
+            if (error) throw error;
+
+            // Remove from list
+            setInvites(invites.filter(i => i.id !== id));
+
+            // If accepted, maybe reload window or team store? 
+            // Ideally we initiate a store refresh for 'team'
+            if (accept) {
+                // simple reload for now
+                window.location.reload();
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error processing response');
+        }
+    };
+
+    if (loading || invites.length === 0) return null;
+
+    return (
+        <div className="bg-accent-primary/5 border border-accent-primary/20 rounded-xl p-4 animate-in fade-in slide-in-from-top-2">
+            <h3 className="text-sm font-bold text-accent-primary flex items-center gap-2 mb-3">
+                <Users size={16} />
+                Team Invitations
+            </h3>
+            <div className="space-y-3">
+                {invites.map((invite) => (
+                    <div key={invite.id} className="flex items-center justify-between bg-bg-card p-3 rounded-lg border border-border-subtle shadow-sm">
+                        <div className="flex items-center gap-3">
+                            <img
+                                src={invite.manager.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(invite.manager.full_name)}&background=random`}
+                                className="w-8 h-8 rounded-full bg-bg-input"
+                            />
+                            <div>
+                                <p className="text-sm font-medium text-text-primary">
+                                    <span className="font-bold">{invite.manager.full_name}</span> invites you to join their team.
+                                </p>
+                                <p className="text-xs text-text-muted">Manager • {invite.manager.email}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => handleRespond(invite.id, false)}
+                                className="p-2 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                                title="Decline"
+                            >
+                                <X size={16} />
+                            </button>
+                            <button
+                                onClick={() => handleRespond(invite.id, true)}
+                                className="px-3 py-1.5 bg-accent-primary text-white text-xs font-bold rounded-lg shadow-md shadow-accent-primary/20 hover:bg-accent-primary-hover transition-all flex items-center gap-1.5"
+                            >
+                                <Check size={14} />
+                                Accept
+                            </button>
+                        </div>
+                    </div>
+                ))}
             </div>
         </div>
     );

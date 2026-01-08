@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useStore } from '../core/store';
-import { Shield, Crown, Search, UserPlus, X, Loader2, Trash2, ShieldCheck, User, Bot, Settings, Key, Lock, Mail } from 'lucide-react';
+import { Shield, Crown, Search, UserPlus, X, Loader2, Trash2, ShieldCheck, User, Bot, Settings, Key, Lock, Mail, Users } from 'lucide-react';
 import { supabase } from '../core/supabase';
 import clsx from 'clsx';
 import { format } from 'date-fns';
@@ -90,6 +90,22 @@ export function AdminView() {
             setSecurityMessage({ type: 'error', text: 'Failed to reset: ' + err.message });
         } finally {
             setResettingPassword(false);
+        }
+    };
+
+    const handleInviteToTeam = async (targetId: string, targetName: string) => {
+        if (!confirm(`Invite ${targetName} to join your team?`)) return;
+
+        try {
+            const { error } = await supabase.rpc('invite_user_to_team', {
+                target_user_id: targetId
+            });
+
+            if (error) throw error;
+            alert(`Invitation sent to ${targetName}`);
+        } catch (err: any) {
+            console.error(err);
+            alert('Failed to invite: ' + err.message);
         }
     };
 
@@ -361,6 +377,14 @@ export function AdminView() {
                                                     onClick={() => handleOpenContextModal(u)}
                                                 >
                                                     <Bot className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    className="p-2 text-text-muted hover:text-blue-500 hover:bg-blue-500/10 rounded-lg transition-all"
+                                                    title="Invite to Team"
+                                                    disabled={u.id === user?.id}
+                                                    onClick={() => handleInviteToTeam(u.id, u.full_name)}
+                                                >
+                                                    <Users className="w-4 h-4" />
                                                 </button>
                                                 <button
                                                     className="p-2 text-text-muted hover:text-amber-500 hover:bg-amber-500/10 rounded-lg transition-all"
