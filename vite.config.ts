@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_N8N_WEBHOOK_URL,
           changeOrigin: true,
           secure: false,
-          rewrite: () => '', // Send request to target directly, ignoring /api/auto-process path
+          rewrite: (path) => path.replace(/^\/api\/auto-process/, ''),
         }
       }
     }

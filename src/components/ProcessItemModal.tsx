@@ -38,7 +38,8 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
     const [selectedCandidates, setSelectedCandidates] = useState<number[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [showAIPreview, setShowAIPreview] = useState(false);
-    const [isEditingDetails, setIsEditingDetails] = useState(false);
+    const [isEditingDetails, setIsEditingDetails] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [loadingText, setLoadingText] = useState("Analyzing...");
 
     useEffect(() => {
@@ -60,6 +61,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
 
     const handleAutoProcess = async () => {
         setIsProcessing(true);
+        setError(null);
         setCandidates([]);
         try {
             // Determine URL based on environment
@@ -86,14 +88,13 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
 
             if (!response.ok) {
                 await response.text().catch(() => 'No error details');
-                throw new Error(`Server returned ${response.status} ${response.statusText}`);
+                throw new Error(`Server connection failed (${response.status})`);
             }
 
             const responseText = await response.text();
 
             if (!responseText || responseText.trim() === '') {
-                console.error(`AI Error: Received empty response from n8n (Status: ${response.status})`);
-                throw new Error('AI returned an empty response.');
+                throw new Error('AI returned empty response. Check n8n workflow.');
             }
 
             let data: AIResponse | AIResponse[];
@@ -146,7 +147,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
             setIsEditingDetails(true);
         } catch (error: any) {
             console.error('AI Processing Error:', error);
-            alert(`Failed to process item: ${error.message}`);
+            setError(error.message);
         } finally {
             setIsProcessing(false);
         }
@@ -266,38 +267,39 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                     </div>
 
                     {/* AI Process Button - Large centered version */}
-                    {!showAIPreview && (
-                        <div className="flex justify-center py-8">
+                    {/* AI Process Button & Manual Option */}
+                    {/* AI Process Trigger (Optional) */}
+                    {/* AI Process Trigger (Optional) */}
+                    {candidates.length <= 1 && (
+                        <div className="flex flex-col items-end gap-2">
                             <button
                                 type="button"
                                 onClick={handleAutoProcess}
                                 disabled={isProcessing}
                                 className={clsx(
-                                    "group relative inline-flex items-center justify-center gap-3 px-8 py-4 w-full sm:w-auto min-w-[200px]",
-                                    "bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-2xl",
-                                    "shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/40 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0",
-                                    "disabled:opacity-70 disabled:cursor-not-allowed"
+                                    "text-xs font-bold uppercase tracking-wider flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all",
+                                    isProcessing
+                                        ? "bg-bg-subtle text-text-muted cursor-wait"
+                                        : "bg-violet-500/10 text-violet-600 hover:bg-violet-500/20 hover:text-violet-700"
                                 )}
                             >
                                 {isProcessing ? (
                                     <>
-                                        <Loader2 className="w-5 h-5 animate-spin text-white/80" />
-                                        <span className="tracking-wide font-display">{loadingText}</span>
+                                        <Loader2 size={12} className="animate-spin" />
+                                        {loadingText}
                                     </>
                                 ) : (
                                     <>
-                                        <Sparkles className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                                        <span className="tracking-wide font-display">Auto-Process with AI</span>
+                                        <Sparkles size={14} />
+                                        Auto-Fill with AI
                                     </>
                                 )}
                             </button>
-                        </div>
-                    )}
-
-                    {/* AI SUMMARY CARD (Preview Mode) */}
-                    {showAIPreview && !isEditingDetails && (
-                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            {/* Executive Summary Card Implementation Omitted for brevity since we usually skip to Edit Mode */}
+                            {error && (
+                                <div className="text-[10px] text-red-500 font-medium animate-in fade-in slide-in-from-right-2 max-w-[200px] text-right">
+                                    {error}
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -360,7 +362,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                     )}
 
                     {/* Form View */}
-                    {(isEditingDetails && candidates.length <= 1) && (
+                    {candidates.length <= 1 && (
                         <div className={clsx(
                             "flex flex-col gap-6 duration-500",
                             isEditingDetails ? "animate-in slide-in-from-right-4" : "animate-in fade-in slide-in-from-bottom-4"

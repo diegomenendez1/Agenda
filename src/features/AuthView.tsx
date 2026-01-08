@@ -148,13 +148,7 @@ export function AuthView() {
                 </form>
 
                 <div className="mt-8 text-center">
-                    <div className="relative mb-6">
-                        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border-subtle/60"></div></div>
-                        <div className="relative flex justify-center text-xs uppercase"><span className="bg-bg-card px-3 text-text-muted font-medium">Or continue with</span></div>
-                    </div>
-
-                        {/* Public sign-up disabled to enforce Admin-only user creation */}
-                    </p>
+                    {/* Public sign-up disabled to enforce Admin-only user creation */}
                 </div>
             </div>
 
