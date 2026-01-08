@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useStore } from '../core/store';
-import { Shield, Crown, Search, UserPlus, X, Loader2, Trash2, ShieldCheck, User, Bot, Settings } from 'lucide-react';
+import { Shield, Crown, Search, UserPlus, X, Loader2, Trash2, ShieldCheck, User, Bot, Settings, Key, Lock, Mail } from 'lucide-react';
 import { supabase } from '../core/supabase';
 import clsx from 'clsx';
 import { format } from 'date-fns';
@@ -31,10 +31,67 @@ export function AdminView() {
     const [contextValue, setContextValue] = useState('');
     const [savingContext, setSavingContext] = useState(false);
 
+    // Security Modal State
+    const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
+    const [securityUser, setSecurityUser] = useState<any>(null);
+    const [manualPassword, setManualPassword] = useState('');
+    const [resettingPassword, setResettingPassword] = useState(false);
+    const [sendingResetEmail, setSendingResetEmail] = useState(false);
+    const [securityMessage, setSecurityMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
     useEffect(() => {
         fetchUsers();
     }, []);
+
+    const handleOpenSecurityModal = (u: any) => {
+        setSecurityUser(u);
+        setManualPassword('');
+        setSecurityMessage(null);
+        setIsSecurityModalOpen(true);
+    };
+
+    const handleSendResetEmail = async () => {
+        if (!securityUser?.email) return;
+        setSendingResetEmail(true);
+        setSecurityMessage(null);
+        try {
+            const { error } = await supabase.auth.resetPasswordForEmail(securityUser.email, {
+                redirectTo: window.location.origin + '/reset-password', // Ensure you have this route or handled
+            });
+            if (error) throw error;
+            setSecurityMessage({ type: 'success', text: `Reset email sent to ${securityUser.email}` });
+        } catch (err: any) {
+            setSecurityMessage({ type: 'error', text: err.message });
+        } finally {
+            setSendingResetEmail(false);
+        }
+    };
+
+    const handleManualReset = async () => {
+        if (!manualPassword || manualPassword.length < 6) {
+            setSecurityMessage({ type: 'error', text: 'Password must be at least 6 characters.' });
+            return;
+        }
+        if (!confirm(`Are you sure you want to forcefully overwrite the password for ${securityUser.full_name}?`)) return;
+
+        setResettingPassword(true);
+        setSecurityMessage(null);
+        try {
+            const { error } = await supabase.rpc('admin_reset_password_by_owner', {
+                target_user_id: securityUser.id,
+                new_password: manualPassword
+            });
+
+            if (error) throw error;
+            setSecurityMessage({ type: 'success', text: 'Password successfully changed.' });
+            setManualPassword('');
+        } catch (err: any) {
+            console.error(err);
+            setSecurityMessage({ type: 'error', text: 'Failed to reset: ' + err.message });
+        } finally {
+            setResettingPassword(false);
+        }
+    };
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -306,6 +363,13 @@ export function AdminView() {
                                                     <Bot className="w-4 h-4" />
                                                 </button>
                                                 <button
+                                                    className="p-2 text-text-muted hover:text-amber-500 hover:bg-amber-500/10 rounded-lg transition-all"
+                                                    title="Security Settings"
+                                                    onClick={() => handleOpenSecurityModal(u)}
+                                                >
+                                                    <Lock className="w-4 h-4" />
+                                                </button>
+                                                <button
                                                     className="p-2 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
                                                     title="Delete User"
                                                     disabled={deletingId === u.id || u.id === user?.id}
@@ -478,6 +542,107 @@ export function AdminView() {
                     </div>
                 </div>
             )}
+            {/* Security Modal */}
+            {isSecurityModalOpen && securityUser && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="glass-panel w-full max-w-lg rounded-2xl p-0 shadow-2xl border border-border-subtle overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-2 duration-300 bg-bg-card">
+                        <div className="p-6 border-b border-border-subtle bg-bg-input/30 flex justify-between items-center">
+                            <div>
+                                <h3 className="text-lg font-display font-bold text-text-primary flex items-center gap-2">
+                                    <div className="p-1.5 rounded-md bg-amber-500/10 text-amber-500">
+                                        <Lock size={18} />
+                                    </div>
+                                    Security Settings
+                                </h3>
+                                <p className="text-xs text-text-muted mt-1">
+                                    Manage access and credentials for <span className="font-bold text-text-primary">{securityUser.full_name}</span>.
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setIsSecurityModalOpen(false)}
+                                className="text-text-muted hover:text-text-primary transition-colors p-1 hover:bg-bg-input rounded-md"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-8">
+                            {securityMessage && (
+                                <div className={clsx(
+                                    "p-3 rounded-lg text-sm font-medium flex items-center gap-2",
+                                    securityMessage.type === 'success' ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" : "bg-red-500/10 text-red-500 border border-red-500/20"
+                                )}>
+                                    {securityMessage.type === 'success' ? <ShieldCheck size={14} /> : <Shield size={14} />}
+                                    {securityMessage.text}
+                                </div>
+                            )}
+
+                            {/* Option 1: Email Reset */}
+                            <div className="space-y-3">
+                                <div className="flex items-start gap-4">
+                                    <div className="p-2 rounded-lg bg-bg-input text-text-muted">
+                                        <Mail size={20} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="text-sm font-bold text-text-primary">Send Password Reset Email</h4>
+                                        <p className="text-xs text-text-secondary mt-1">
+                                            Sends a secure link to <strong>{securityUser.email}</strong> allowing them to choose a new password. This is the recommended method.
+                                        </p>
+                                        <button
+                                            onClick={handleSendResetEmail}
+                                            disabled={sendingResetEmail}
+                                            className="mt-3 btn btn-outline btn-sm"
+                                        >
+                                            {sendingResetEmail ? <Loader2 className="animate-spin w-3.5 h-3.5 mr-2" /> : null}
+                                            Send Reset Link
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="h-px bg-border-subtle" />
+
+                            {/* Option 2: Manual Reset (Owner Only) */}
+                            {(user?.role === 'owner' || user?.role === 'admin') && (
+                                <div className="space-y-3">
+                                    <div className="flex items-start gap-4">
+                                        <div className="p-2 rounded-lg bg-red-500/10 text-red-500">
+                                            <Key size={20} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h4 className="text-sm font-bold text-text-primary flex items-center gap-2">
+                                                Manual Password Override
+                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-500/20 text-red-500 uppercase">Danger Zone</span>
+                                            </h4>
+                                            <p className="text-xs text-text-secondary mt-1">
+                                                Forcefully set a new password. Use this if you need to take control of the account or if the user cannot access their email.
+                                            </p>
+
+                                            <div className="mt-3 flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Enter new password..."
+                                                    className="input flex-1 text-sm h-9"
+                                                    value={manualPassword}
+                                                    onChange={(e) => setManualPassword(e.target.value)}
+                                                />
+                                                <button
+                                                    onClick={handleManualReset}
+                                                    disabled={resettingPassword || !manualPassword}
+                                                    className="btn btn-warning btn-sm whitespace-nowrap"
+                                                >
+                                                    {resettingPassword ? <Loader2 className="animate-spin w-3.5 h-3.5" /> : 'Set Password'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+

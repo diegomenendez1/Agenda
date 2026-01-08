@@ -99,7 +99,7 @@ export function UserProfile() {
                                 value={aiContext}
                                 onChange={(e) => setAiContext(e.target.value)}
                                 className="input w-full min-h-[120px] resize-y text-sm leading-relaxed"
-                                placeholder="Example: I am the Logistics Manager. Prioritize shipments, customs issues, and team coordination. Ignore generic newsletters or HR announcements. My key projects are 'Q4 Expansion' and 'Supplier Audit'."
+                                placeholder="Example: I am a Project Manager. Focus on high-priority tasks and team blockers. Filter out generic newsletters. My key goals are 'Q1 Launch' and 'Process Optimization'."
                             />
                         </div>
                     )}
