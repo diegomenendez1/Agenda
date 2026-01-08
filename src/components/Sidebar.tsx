@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { Inbox, CheckSquare, Calendar, Layers, StickyNote, Users, Sparkles, LogOut, Shield, ChevronRight } from 'lucide-react';
 import { useStore } from '../core/store';
 import { supabase } from '../core/supabase';
+import { NotificationCenter } from './NotificationCenter';
 import clsx from 'clsx';
 import { useState } from 'react';
 
@@ -131,6 +132,11 @@ export function Sidebar() {
                     )}
 
                     <div className={clsx("flex items-center gap-2", collapsed ? "justify-center flex-col gap-4" : "")}>
+                        {/* Notification Center */}
+                        <div className={clsx("transition-all", collapsed && "mx-auto")}>
+                            <NotificationCenter />
+                        </div>
+
                         <NavLink to="/settings" className={clsx("flex items-center gap-3 min-w-0 hover:bg-bg-card-hover rounded-lg transition-colors group p-2 flex-1 border border-transparent hover:border-border-subtle", !collapsed && "")}>
                             <div className="w-9 h-9 rounded-full bg-accent-secondary/20 p-[1px] shrink-0 relative overflow-hidden ring-2 ring-transparent group-hover:ring-border-subtle transition-all">
                                 <img src={user?.avatar || "https://ui-avatars.com/api/?name=User&background=random"} alt="User" className="rounded-full w-full h-full object-cover" />

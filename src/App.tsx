@@ -13,6 +13,7 @@ import { AdminView } from './features/AdminView';
 import { SettingsView } from './features/SettingsView';
 import { CommandPalette } from './components/CommandPalette';
 import { Sidebar } from './components/Sidebar';
+import { DailyDigestModal } from './components/DailyDigestModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useStore } from './core/store';
 import { supabase } from './core/supabase';
@@ -95,7 +96,9 @@ export default function App() {
 
                 <main className="flex-1 overflow-hidden relative flex flex-col bg-bg-app">
 
+
                   <CommandPalette />
+                  <DailyDigestModal />
 
                   <div className="flex-1 overflow-auto custom-scrollbar relative">
                     <ErrorBoundary>

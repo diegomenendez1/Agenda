@@ -99,6 +99,13 @@ export function TaskItem({ task, showProject = true, compact = false }: TaskItem
                 </div>
 
                 <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-2 group-hover:translate-x-0">
+                    {/* Stale Task Indicator */}
+                    {task.status === 'in_progress' && task.updatedAt && (Date.now() - task.updatedAt > 259200000) && ( // 3 days
+                        <span className="flex items-center gap-1 px-2 py-1 rounded-md bg-stone-100 text-stone-500 text-[10px] font-bold uppercase tracking-wider border border-stone-200" title="No activity for >3 days">
+                            🕸️ Stale
+                        </span>
+                    )}
+
                     <button
                         onClick={() => setIsEditing(true)}
                         className="p-2 rounded-lg text-text-muted hover:text-accent-primary hover:bg-accent-primary/5 transition-colors"

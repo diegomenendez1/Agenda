@@ -54,6 +54,7 @@ export interface Task {
     dueDate?: number; // timestamp
     tags: string[];
     createdAt: number;
+    updatedAt: number; // For stale task detection
     completedAt?: number;
 
     // New fields
@@ -109,6 +110,22 @@ export interface Habit {
     createdAt: number;
 }
 
+metadata ?: Record<string, any>; // Store diffs here: { old: 'todo', new: 'done' }
+createdAt: number;
+}
+
+export interface Notification {
+    id: EntityId;
+    userId: EntityId; // Recipient
+    type: 'mention' | 'assignment' | 'status_change' | 'system';
+    title: string;
+    message: string;
+    link?: string; // /tasks/:id
+    read: boolean;
+    createdAt: number;
+    metadata?: any;
+}
+
 export interface AppState {
     user: UserProfile | null;
     team: Record<EntityId, TeamMember>;
@@ -118,4 +135,24 @@ export interface AppState {
     notes: Record<EntityId, Note>;
     focusBlocks: Record<EntityId, FocusBlock>;
     habits: Record<EntityId, Habit>;
+    activities: Record<EntityId, ActivityLog>;
+    notifications: Record<EntityId, Notification>;
+}
+
+export type ActivityType =
+    | 'message'   // User comment
+    | 'status_change'
+    | 'assignment'
+    | 'creation'
+    | 'update'
+    | 'upload';
+
+export interface ActivityLog {
+    id: EntityId;
+    taskId: EntityId;
+    userId: EntityId;
+    type: ActivityType;
+    content: string; // "Changed status to Done" or "Hey, check this"
+    metadata?: Record<string, any>; // Store diffs here: { old: 'todo', new: 'done' }
+    createdAt: number;
 }

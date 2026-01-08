@@ -4,17 +4,24 @@ import type { AppState, Task, EntityId, Note, UserProfile, TaskStatus, Habit } f
 import { v4 as uuidv4 } from 'uuid';
 
 const hydrateTask = (t: any): Task => ({
-    ...t,
+    id: t.id,
+    title: t.title,
+    description: t.description,
+    status: t.status,
+    priority: t.priority,
     projectId: t.project_id,
-    project_id: t.project_id, // keep both for safety
-    tags: t.tag_ids || [],
-    createdAt: t.created_at ? new Date(t.created_at).getTime() : Date.now(),
     dueDate: t.due_date ? new Date(t.due_date).getTime() : undefined,
+    tags: t.tags || [],
+    createdAt: t.created_at ? new Date(t.created_at).getTime() : Date.now(),
+    updatedAt: t.updated_at ? new Date(t.updated_at).getTime() : (t.created_at ? new Date(t.created_at).getTime() : Date.now()),
     completedAt: t.completed_at ? new Date(t.completed_at).getTime() : undefined,
-    ownerId: t.user_id || t.owner_id, // Support both just in case
-    assigneeIds: t.assignee_ids || (t.assignee_id ? [t.assignee_id] : []),
-    visibility: t.visibility || 'private',
-    acceptedAt: t.accepted_at ? new Date(t.accepted_at).getTime() : undefined
+    ownerId: t.owner_id,
+    visibility: t.visibility,
+    assigneeIds: t.assignee_ids || [],
+    smartAnalysis: t.smart_analysis,
+    source: t.source,
+    estimatedMinutes: t.estimated_minutes,
+    acceptedAt: t.accepted_at ? new Date(t.accepted_at).getTime() : undefined,
 });
 
 interface Actions {
@@ -52,6 +59,15 @@ interface Actions {
 
     // User
     updateUserProfile: (profile: UserProfile) => Promise<void>;
+
+    // Activities
+    logActivity: (taskId: EntityId, type: string, content: string, metadata?: any) => Promise<void>;
+    fetchActivities: (taskId: EntityId) => Promise<void>;
+
+    // Notifications
+    markNotificationRead: (id: EntityId) => Promise<void>;
+    markAllNotificationsRead: () => Promise<void>;
+    sendNotification: (userId: EntityId, type: 'mention' | 'assignment' | 'status_change' | 'system', title: string, message: string, link?: string) => Promise<void>;
 }
 
 type Store = AppState & Actions;
@@ -65,6 +81,9 @@ export const useStore = create<Store>((set, get) => ({
     notes: {},
     focusBlocks: {},
     habits: {},
+    activities: {}, // Activity Logs
+    notifications: {}, // Notifications
+
 
     initialize: async () => {
         const { data: { user } } = await supabase.auth.getUser();
@@ -86,12 +105,13 @@ export const useStore = create<Store>((set, get) => ({
         }
 
         // Fetch All Data (Realtime initial load)
-        const [inboxRes, tasksRes, projectsRes, notesRes, teamRes] = await Promise.all([
+        const [inboxRes, tasksRes, projectsRes, notesRes, teamRes, notificationsRes] = await Promise.all([
             supabase.from('inbox_items').select('*'),
             supabase.from('tasks').select('*'),
             supabase.from('projects').select('*'),
             supabase.from('notes').select('*'),
-            supabase.from('profiles').select('*')
+            supabase.from('profiles').select('*'),
+            supabase.from('notifications').select('*').eq('user_id', user.id) // Only own notifications
         ]);
 
         const inbox: Record<string, any> = {};
@@ -137,8 +157,17 @@ export const useStore = create<Store>((set, get) => ({
             };
         });
 
+        const notifications: Record<string, any> = {};
+        (notificationsRes.data as any[])?.forEach((n: any) => {
+            notifications[n.id] = {
+                ...n,
+                userId: n.user_id,
+                createdAt: n.created_at ? new Date(n.created_at).getTime() : Date.now()
+            };
+        });
 
-        set({ inbox, tasks, projects, notes, team });
+
+        set({ inbox, tasks, projects, notes, team, notifications });
 
         // Enable Realtime Subscriptions
         supabase
@@ -210,6 +239,19 @@ export const useStore = create<Store>((set, get) => ({
                     }
                 }
             })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, (payload: any) => {
+                const n = payload.new;
+                const currentUserId = get().user?.id;
+                // Only process if it's for me
+                if (n.user_id !== currentUserId) return;
+
+                const notification = {
+                    ...n,
+                    userId: n.user_id,
+                    createdAt: new Date(n.created_at).getTime()
+                };
+                set(state => ({ notifications: { ...state.notifications, [n.id]: notification } }));
+            })
             .subscribe();
     },
 
@@ -237,39 +279,62 @@ export const useStore = create<Store>((set, get) => ({
 
     addTask: async (taskData) => {
         const id = uuidv4();
-        const newTask: any = {
+        const task: any = {
             id,
             title: taskData.title,
             description: taskData.description,
             status: taskData.status || 'backlog',
             priority: taskData.priority || 'medium',
             projectId: taskData.projectId,
-            project_id: taskData.projectId, // for consistency in view if needed before reload
             dueDate: taskData.dueDate,
-            ownerId: get().user?.id || '',
+            tags: taskData.tags || [],
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            ownerId: get().user?.id || 'unknown',
             assigneeIds: taskData.assigneeIds || [],
             visibility: (taskData.assigneeIds && taskData.assigneeIds.length > 0) ? 'team' : (taskData.visibility || 'private'),
-            createdAt: Date.now(),
-            tags: []
+            smartAnalysis: taskData.smartAnalysis,
+            source: taskData.source,
+            estimatedMinutes: taskData.estimatedMinutes
         };
 
-        // Optimistic Update
-        set(state => ({ tasks: { ...state.tasks, [id]: newTask } }));
+        // Optimistic update
+        set(state => ({ tasks: { ...state.tasks, [id]: task } }));
+
+        // Log Activity (Automatic)
+        get().logActivity(id, 'creation', `Created task "${task.title}"`);
+
+        // Notify assignees (if any)
+        if (taskData.assigneeIds && taskData.assigneeIds.length > 0) {
+            const currentUserId = get().user?.id;
+            taskData.assigneeIds.forEach(uid => {
+                if (uid !== currentUserId) {
+                    get().sendNotification(uid, 'assignment', 'New Task Assigned', `You were assigned to "${taskData.title}"`, `/tasks/${id}`);
+                }
+            });
+        }
 
         const { error } = await supabase.from('tasks').insert({
-            id,
-            title: taskData.title,
-            project_id: taskData.projectId,
-            priority: taskData.priority || 'medium',
-            status: taskData.status || 'backlog',
-            due_date: taskData.dueDate,
-            description: taskData.description,
-            user_id: get().user?.id, // Standard Supabase creator column
-            assignee_ids: taskData.assigneeIds || [],
-            visibility: (taskData.assigneeIds && taskData.assigneeIds.length > 0) ? 'team' : (taskData.visibility || 'private')
+            id: newTask.id,
+            title: newTask.title,
+            description: newTask.description,
+            status: newTask.status,
+            priority: newTask.priority,
+            project_id: newTask.projectId,
+            due_date: newTask.dueDate ? new Date(newTask.dueDate).toISOString() : null,
+            tags: newTask.tags,
+            created_at: new Date(newTask.createdAt).toISOString(),
+            updated_at: new Date(newTask.updatedAt).toISOString(),
+            owner_id: newTask.ownerId,
+            assignee_ids: newTask.assigneeIds,
+            visibility: newTask.visibility,
+            smart_analysis: newTask.smartAnalysis,
+            source: newTask.source,
+            estimated_minutes: newTask.estimatedMinutes
         });
 
         if (error) console.error(error);
+
         return id;
     },
 
@@ -302,16 +367,35 @@ export const useStore = create<Store>((set, get) => ({
             delete dbUpdates.acceptedAt;
         }
         await supabase.from('tasks').update(dbUpdates).eq('id', id);
+
+        // Notify new assignees logic could go here similar to addTask
+        // Simplified: The caller of updateTask/assignTask usually handles specific notifications or we can hook it here. 
+        // For now, let's keep it simple and let distinct actions handle it or triggers.
     },
 
     updateStatus: async (id, status) => {
         const state = get();
+        const oldStatus = state.tasks[id]?.status;
         await state.updateTask(id, { status, completedAt: status === 'done' ? Date.now() : undefined });
+
+        if (oldStatus !== status) {
+            await state.logActivity(id, 'status_change', `Changed status to ${status.replace('_', ' ')}`, { old: oldStatus, new: status });
+        }
     },
 
     assignTask: async (id, assigneeIds) => {
         const state = get();
         await state.updateTask(id, { assigneeIds });
+        await state.logActivity(id, 'assignment', `Updated assignees`, { recipientIds: assigneeIds });
+
+        // Phase 2: Notify
+        const task = state.tasks[id];
+        const currentUserId = state.user?.id;
+        assigneeIds.forEach(uid => {
+            if (uid !== currentUserId) {
+                state.sendNotification(uid, 'assignment', 'Task Assigned', `You were assigned to "${task?.title}"`, `/tasks/${id}`);
+            }
+        });
     },
 
     toggleTaskStatus: async (id) => {
@@ -323,11 +407,11 @@ export const useStore = create<Store>((set, get) => ({
         set(state => ({
             tasks: {
                 ...state.tasks,
-                [id]: { ...task, status: newStatus as any, completedAt: newStatus === 'done' ? Date.now() : undefined }
+                [id]: { ...task, status: newStatus as any, completedAt: newStatus === 'done' ? Date.now() : undefined, updatedAt: Date.now() }
             }
         }));
 
-        await supabase.from('tasks').update({ status: newStatus, completed_at: newStatus === 'done' ? Date.now() : null }).eq('id', id);
+        await supabase.from('tasks').update({ status: newStatus, completed_at: newStatus === 'done' ? Date.now() : null, updated_at: new Date().toISOString() }).eq('id', id);
     },
 
     deleteTask: async (id) => {
@@ -461,4 +545,127 @@ export const useStore = create<Store>((set, get) => ({
             // Optionally revert state here if needed
         }
     },
+
+    logActivity: async (taskId, type, content, metadata = {}) => {
+        const id = uuidv4();
+        const userId = get().user?.id;
+        const newActivity: any = {
+            id,
+            taskId,
+            userId,
+            type,
+            content,
+            metadata,
+            createdAt: Date.now()
+        };
+
+        // Optimistic
+        set(state => ({ activities: { ...state.activities, [id]: newActivity } }));
+
+        // Check for mentions
+        if (type === 'message') {
+            const mentionRegex = /@(\w+)/g;
+            const matches = content.match(mentionRegex);
+            if (matches) {
+                const state = get();
+                const teamValues = Object.values(state.team);
+                matches.forEach(match => {
+                    const name = match.substring(1).toLowerCase();
+                    const mentionedUser = teamValues.find(u => u.name.toLowerCase().includes(name));
+                    if (mentionedUser && mentionedUser.id !== userId) {
+                        state.sendNotification(
+                            mentionedUser.id,
+                            'mention',
+                            'You were mentioned',
+                            `${state.user?.name} mentioned you in a comment`,
+                            `/tasks/${taskId}`
+                        );
+                    }
+                });
+            }
+        }
+
+        await supabase.from('activity_logs').insert({
+            id,
+            task_id: taskId,
+            user_id: userId,
+            type,
+            content,
+            metadata
+        });
+    },
+
+    fetchActivities: async (taskId) => {
+        const { data, error } = await supabase
+            .from('activity_logs')
+            .select('*')
+            .eq('task_id', taskId)
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error('Error fetching activities:', error);
+            return;
+        }
+
+        const activities: Record<string, any> = {};
+        data?.forEach((a: any) => {
+            activities[a.id] = {
+                ...a,
+                taskId: a.task_id,
+                userId: a.user_id,
+                createdAt: new Date(a.created_at).getTime()
+            };
+        });
+
+        set(state => ({
+            activities: { ...state.activities, ...activities }
+        }));
+    },
+
+    markNotificationRead: async (id) => {
+        set(state => ({
+            notifications: {
+                ...state.notifications,
+                [id]: { ...state.notifications[id], read: true }
+            }
+        }));
+        await supabase.from('notifications').update({ read: true }).eq('id', id);
+    },
+
+    markAllNotificationsRead: async () => {
+        set(state => {
+            const updated = { ...state.notifications };
+            Object.keys(updated).forEach(k => updated[k].read = true);
+            return { notifications: updated };
+        });
+        await supabase.from('notifications').update({ read: true }).eq('user_id', get().user?.id);
+    },
+
+    sendNotification: async (userId, type, title, message, link) => {
+        const id = uuidv4();
+        const notification = {
+            id,
+            userId,
+            type,
+            title,
+            message,
+            link,
+            read: false,
+            createdAt: Date.now()
+        };
+
+        // We don't necessarily update local state if it's for someone else
+        // But if it's for me (testing), I might want to?
+        // Actually, realtime subscription will handle the update if it's for me.
+
+        await supabase.from('notifications').insert({
+            id,
+            user_id: userId,
+            type,
+            title,
+            message,
+            link,
+            read: false
+        });
+    }
 }));
