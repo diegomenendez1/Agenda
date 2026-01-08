@@ -4,7 +4,7 @@ import { Sparkles, Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
 
 
 export function AuthView() {
-    const [isLogin, setIsLogin] = useState(true);
+    const [isLogin] = useState(true);
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');

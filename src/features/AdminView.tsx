@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useStore } from '../core/store';
-import { Shield, Crown, Search, UserPlus, X, Loader2, Trash2, ShieldCheck, User, Bot, Settings, Key, Lock, Mail, Users } from 'lucide-react';
+import { Shield, Crown, Search, UserPlus, X, Loader2, Trash2, ShieldCheck, User, Bot, Key, Lock, Mail, Users } from 'lucide-react';
 import { supabase } from '../core/supabase';
 import clsx from 'clsx';
 import { format } from 'date-fns';

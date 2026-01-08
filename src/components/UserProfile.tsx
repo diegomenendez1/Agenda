@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../core/store';
-import { User, Palette, Save, Users, Check, X, ShieldCheck } from 'lucide-react';
+import { User, Palette, Save, Users, Check, X } from 'lucide-react';
 import { supabase } from '../core/supabase';
 import { clsx } from 'clsx';
 
@@ -160,7 +160,7 @@ function TeamInvitations() {
     }, [user]);
 
     const fetchInvites = async () => {
-        const { data, error } = await supabase
+        const { data } = await supabase
             .from('team_memberships')
             .select(`
                 id,

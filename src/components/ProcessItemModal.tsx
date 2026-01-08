@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Calendar, Flag, ArrowRight, Sparkles, Loader2, Folder, Clock, User, Check, Edit2, Eye, EyeOff, ListTodo } from 'lucide-react';
+import { X, Flag, ArrowRight, Sparkles, Loader2, Folder, Clock, User, Check, Eye, EyeOff, ListTodo } from 'lucide-react';
 import { useStore } from '../core/store';
 import type { InboxItem, Priority } from '../core/types';
 import { fetchWithRetry } from '../core/api';
