@@ -375,7 +375,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                                                             <div className={clsx("text-sm font-medium truncate", isSelected ? "text-accent-primary" : "text-text-primary")}>
                                                                 {member.name}
                                                             </div>
-                                                            <div className="text-[10px] opacity-70 truncate text-text-muted">{member.role}</div>
+                                                            <div className="text-[10px] opacity-70 truncate text-text-muted">{member.email}</div>
                                                         </div>
                                                         {isSelected && <div className="w-2 h-2 rounded-full bg-accent-primary shadow-sm shadow-accent-primary/50" />}
                                                     </button>

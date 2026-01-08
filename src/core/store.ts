@@ -70,7 +70,6 @@ interface Actions {
     markAllNotificationsRead: () => Promise<void>;
     sendNotification: (userId: EntityId, type: 'mention' | 'assignment' | 'status_change' | 'system', title: string, message: string, link?: string) => Promise<void>;
     claimTask: (taskId: EntityId) => Promise<boolean>;
-    toggleFocusMode: () => void;
 }
 
 type Store = AppState & Actions;
@@ -82,14 +81,9 @@ export const useStore = create<Store>((set, get) => ({
     tasks: {},
     projects: {},
     notes: {},
-    focusBlocks: {},
     habits: {},
     activities: {}, // Activity Logs
     notifications: {}, // Notifications
-    isFocusMode: false,
-
-
-    toggleFocusMode: () => set(state => ({ isFocusMode: !state.isFocusMode })),
 
     initialize: async () => {
         const { data: { user } } = await supabase.auth.getUser();

@@ -135,6 +135,8 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
     };
     // Permission Logic
     const isOwner = user?.id === task.ownerId;
+    const isAdmin = user?.role === 'admin' || user?.role === 'owner'; // Global admin privileges
+    const canEdit = isOwner || isAdmin;
 
     // UI States
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -309,17 +311,17 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
 
                         {/* Form Content */}
                         <form onSubmit={handleSave} className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
-                            {!isOwner && (
+                            {!canEdit && (
                                 <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-600 px-4 py-3 rounded-xl flex items-center gap-3 text-sm">
                                     <Lock size={16} />
-                                    <span>view only mode • Only the task owner can edit details.</span>
+                                    <span>view only mode • Only the task owner or admins can edit details.</span>
                                 </div>
                             )}
 
                             <div>
                                 <div className="flex items-center justify-between mb-2">
                                     <label className="block text-xs uppercase text-text-muted font-bold tracking-wider">Title</label>
-                                    {isOwner && title !== originalTitle && (
+                                    {canEdit && title !== originalTitle && (
                                         <button
                                             type="button"
                                             onClick={() => setTitle(originalTitle)}
@@ -330,15 +332,15 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                     )}
                                 </div>
                                 <input
-                                    autoFocus={isOwner}
-                                    disabled={!isOwner}
+                                    autoFocus={canEdit}
+                                    disabled={!canEdit}
                                     type="text"
                                     value={title}
                                     onChange={e => setTitle(e.target.value)}
                                     className={clsx(
                                         "input w-full text-lg font-medium transition-all bg-transparent border-transparent px-0 hover:bg-bg-input hover:px-3 focus:bg-bg-input focus:px-3 focus:border-accent-primary",
                                         title !== originalTitle && "ring-2 ring-violet-500/20 border-violet-500/30",
-                                        !isOwner && "opacity-70 cursor-not-allowed"
+                                        !canEdit && "opacity-70 cursor-not-allowed"
                                     )}
                                     placeholder="Task Title"
                                 />
@@ -347,14 +349,14 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                             <div>
                                 <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2">Description / Context</label>
                                 <textarea
-                                    disabled={!isOwner}
+                                    disabled={!canEdit}
                                     value={description}
                                     onChange={e => setDescription(e.target.value)}
                                     className={clsx(
                                         "input w-full min-h-[120px] text-sm resize-y leading-relaxed",
-                                        !isOwner && "opacity-70 cursor-not-allowed bg-transparent border-transparent px-0 resize-none"
+                                        !canEdit && "opacity-70 cursor-not-allowed bg-transparent border-transparent px-0 resize-none"
                                     )}
-                                    placeholder={isOwner ? "Add details, context or instructions..." : "No description provided."}
+                                    placeholder={canEdit ? "Add details, context or instructions..." : "No description provided."}
                                 />
                             </div>
 
@@ -365,10 +367,10 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                         <ListTodo size={12} className="text-accent-secondary" /> Status
                                     </label>
                                     <select
-                                        disabled={!isOwner}
+                                        disabled={!canEdit}
                                         value={status}
                                         onChange={e => setStatus(e.target.value as TaskStatus)}
-                                        className={clsx("input w-full appearance-none bg-bg-input", !isOwner && "opacity-70 cursor-not-allowed")}
+                                        className={clsx("input w-full appearance-none bg-bg-input", !canEdit && "opacity-70 cursor-not-allowed")}
                                     >
                                         <option value="backlog">Backlog / Incoming</option>
                                         <option value="todo">To Do</option>
@@ -383,10 +385,10 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                     </label>
                                     <div className="relative">
                                         <select
-                                            disabled={!isOwner}
+                                            disabled={!canEdit}
                                             value={projectId}
                                             onChange={e => setProjectId(e.target.value)}
-                                            className={clsx("input w-full appearance-none bg-bg-input", !isOwner && "opacity-70 cursor-not-allowed")}
+                                            className={clsx("input w-full appearance-none bg-bg-input", !canEdit && "opacity-70 cursor-not-allowed")}
                                         >
                                             <option value="">No Project</option>
                                             {Object.values(projects).map(p => (
@@ -407,11 +409,11 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                         <Clock size={12} className="text-accent-secondary" /> Due Date
                                     </label>
                                     <input
-                                        disabled={!isOwner}
+                                        disabled={!canEdit}
                                         type="date"
                                         value={dueDateStr}
                                         onChange={e => setDueDateStr(e.target.value)}
-                                        className={clsx("input w-full", !isOwner && "opacity-70 cursor-not-allowed")}
+                                        className={clsx("input w-full", !canEdit && "opacity-70 cursor-not-allowed")}
                                     />
                                 </div>
 
@@ -444,14 +446,19 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                             .filter(member => member.name.toLowerCase().includes(assigneeSearch.toLowerCase()))
                                             .map(member => {
                                                 const isSelected = assigneeIds.includes(member.id);
-                                                const isLocked = !isOwner;
+                                                // Cascade Logic:
+                                                // - Anyone can add/remove members (open collaboration)
+                                                // - BUT you cannot remove the Owner (integrity protection)
+                                                const isOwnerOfTask = member.id === task.ownerId;
+                                                const isLocked = isOwnerOfTask;
+
                                                 return (
                                                     <button
                                                         key={member.id}
                                                         type="button"
-                                                        disabled={isLocked}
+                                                        disabled={isLocked && isSelected} // Can't untoggle owner
                                                         onClick={() => {
-                                                            if (isLocked) return;
+                                                            if (isLocked && isSelected) return; // Prevention
                                                             setAssigneeIds(prev =>
                                                                 isSelected
                                                                     ? prev.filter(id => id !== member.id)
@@ -463,7 +470,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                                             isSelected
                                                                 ? "bg-accent-primary/5 border-accent-primary/30 shadow-inner"
                                                                 : "bg-bg-input border-transparent text-text-muted hover:bg-bg-card-hover hover:border-border-subtle",
-                                                            isLocked && "opacity-80 cursor-default"
+                                                            (isLocked && isSelected) ? "opacity-100 cursor-not-allowed" : "cursor-pointer"
                                                         )}
                                                     >
                                                         {member.avatar ? (
@@ -477,10 +484,10 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                                             <div className={clsx("text-sm font-medium truncate", isSelected ? "text-accent-primary" : "text-text-primary")}>
                                                                 {member.name}
                                                             </div>
-                                                            <div className="text-[10px] opacity-70 truncate text-text-muted">{member.role}</div>
+                                                            <div className="text-[10px] opacity-70 truncate text-text-muted">{member.email}</div>
                                                         </div>
-                                                        {isLocked && <Lock size={12} className="text-text-muted ml-1" />}
-                                                        {isSelected && !isLocked && <div className="w-2 h-2 rounded-full bg-accent-primary shadow-sm shadow-accent-primary/50" />}
+                                                        {isOwnerOfTask && <div className="text-[10px] font-bold text-amber-500 flex items-center gap-1 border border-amber-500/30 px-1.5 py-0.5 rounded bg-amber-500/10">OWNER</div>}
+                                                        {isSelected && !isOwnerOfTask && <div className="w-2 h-2 rounded-full bg-accent-primary shadow-sm shadow-accent-primary/50" />}
                                                     </button>
                                                 );
                                             })}
@@ -496,7 +503,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                             <button
                                                 key={p}
                                                 type="button"
-                                                disabled={!isOwner}
+                                                disabled={!canEdit}
                                                 onClick={() => setPriority(p)}
                                                 className={clsx(
                                                     "flex-1 py-2 rounded-lg border text-xs font-bold uppercase tracking-wider transition-all shadow-sm",
@@ -506,8 +513,8 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                                                 p === 'medium' ? "bg-yellow-500 text-white border-yellow-600 shadow-yellow-500/20" :
                                                                     "bg-blue-500 text-white border-blue-600 shadow-blue-500/20"
                                                         : "bg-bg-input border-transparent text-text-muted hover:bg-bg-card-hover hover:text-text-primary",
-                                                    !isOwner && priority !== p && "opacity-30",
-                                                    !isOwner && "cursor-default group-hover:bg-transparent"
+                                                    !canEdit && priority !== p && "opacity-30",
+                                                    !canEdit && "cursor-default group-hover:bg-transparent"
                                                 )}
                                             >
                                                 {p}
@@ -517,32 +524,30 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                 </div>
                             </div>
 
-                            {isOwner && (
-                                <div className="flex justify-end pt-5 border-t border-border-subtle mt-2">
-                                    <button
-                                        type="submit"
-                                        disabled={isSuccess}
-                                        className={clsx(
-                                            "text-white px-8 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2",
-                                            isSuccess
-                                                ? "bg-green-500 shadow-green-500/30 scale-105"
-                                                : "bg-violet-600 hover:bg-violet-700 shadow-violet-500/20"
-                                        )}
-                                    >
-                                        {isSuccess ? (
-                                            <>
-                                                <Check size={18} className="animate-bounce" />
-                                                <span>Saved!</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <span>{isProcessing ? 'Confirm & To Do' : 'Save Changes'}</span>
-                                                <ArrowRight size={16} />
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
-                            )}
+                            <div className="flex justify-end pt-5 border-t border-border-subtle mt-2">
+                                <button
+                                    type="submit"
+                                    disabled={isSuccess}
+                                    className={clsx(
+                                        "text-white px-8 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2",
+                                        isSuccess
+                                            ? "bg-green-500 shadow-green-500/30 scale-105"
+                                            : "bg-violet-600 hover:bg-violet-700 shadow-violet-500/20"
+                                    )}
+                                >
+                                    {isSuccess ? (
+                                        <>
+                                            <Check size={18} className="animate-bounce" />
+                                            <span>Saved!</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>{isProcessing ? 'Confirm & To Do' : 'Save Changes'}</span>
+                                            <ArrowRight size={16} />
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         </form>
                     </div>
 

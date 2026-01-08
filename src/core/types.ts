@@ -89,13 +89,6 @@ export interface Note {
     tags: string[];
 }
 
-export interface FocusBlock {
-    id: EntityId;
-    taskId: EntityId;
-    startTime: number;
-    durationMinutes: number;
-}
-
 export interface Habit {
     id: EntityId;
     name: string;
@@ -130,11 +123,9 @@ export interface AppState {
     tasks: Record<EntityId, Task>;
     projects: Record<EntityId, Project>;
     notes: Record<EntityId, Note>;
-    focusBlocks: Record<EntityId, FocusBlock>;
     habits: Record<EntityId, Habit>;
     activities: Record<EntityId, ActivityLog>;
     notifications: Record<EntityId, Notification>;
-    isFocusMode: boolean;
 }
 
 export type ActivityType =

@@ -145,7 +145,7 @@ export function Sidebar() {
                             {!collapsed && (
                                 <div className="flex-1 min-w-0">
                                     <div className="text-[13px] font-semibold truncate text-text-primary group-hover:text-accent-primary transition-colors">{user?.name || "User"}</div>
-                                    <div className="text-[11px] text-text-muted truncate group-hover:text-text-secondary">{user?.role || "Member"}</div>
+                                    <div className="text-[11px] text-text-muted truncate group-hover:text-text-secondary">{user?.email}</div>
                                 </div>
                             )}
                         </NavLink>
@@ -159,18 +159,9 @@ export function Sidebar() {
                         </button>
                     </div>
 
-                    {/* Focus Mode Toggle */}
-                    {!collapsed && (
-                        <button
-                            onClick={() => useStore.getState().toggleFocusMode()}
-                            className="mt-2 w-full flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-wider text-text-muted hover:text-accent-primary transition-colors py-1 opacity-60 hover:opacity-100"
-                        >
-                            <span className="w-2 h-2 rounded-full bg-accent-primary animate-pulse" /> End Distractions
-                        </button>
-                    )}
                 </div>
-            </div>
-        </aside>
+            </div >
+        </aside >
     );
 }
 

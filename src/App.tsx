@@ -19,7 +19,7 @@ import { useStore } from './core/store';
 import { supabase } from './core/supabase';
 
 export default function App() {
-  const { user, initialize, isFocusMode, toggleFocusMode } = useStore();
+  const { user, initialize } = useStore();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -90,28 +90,12 @@ export default function App() {
             <div className="flex h-screen w-screen overflow-hidden bg-bg-app text-text-primary">
 
               <div className="h-full flex gap-0 relative z-10 w-full max-w-[1920px] mx-auto">
-                {/* Focus Mode: Hide Sidebar */}
-                {!isFocusMode && (
-                  <ErrorBoundary>
-                    <Sidebar />
-                  </ErrorBoundary>
-                )}
+                <ErrorBoundary>
+                  <Sidebar />
+                </ErrorBoundary>
 
                 <main className="flex-1 overflow-hidden relative flex flex-col bg-bg-app transition-all">
-                  {isFocusMode && (
-                    <div className="absolute top-4 right-4 z-[60]">
-                      <button
-                        onClick={() => toggleFocusMode()}
-                        className="bg-bg-card border border-border-subtle shadow-lg text-text-primary px-4 py-2 rounded-full font-bold text-xs hover:bg-accent-primary hover:text-white transition-all flex items-center gap-2"
-                      >
-                        <span>Exit Focus</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {!isFocusMode && (
-                    <CommandPalette />
-                  )}
+                  <CommandPalette />
                   <DailyDigestModal />
 
                   <div className="flex-1 overflow-auto custom-scrollbar relative">

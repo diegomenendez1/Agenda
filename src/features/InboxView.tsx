@@ -73,7 +73,15 @@ export function InboxView() {
                         {inboxItems.map(item => (
                             <div
                                 key={item.id}
-                                className="group relative bg-bg-card hover:bg-bg-card-hover border border-border-subtle hover:border-violet-500/30 rounded-xl p-5 transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5"
+                                onClick={(e) => {
+                                    // prevented overlap with edit mode
+                                    if (editingId === item.id) return;
+                                    setProcessingItem(item);
+                                }}
+                                className={clsx(
+                                    "group relative bg-bg-card hover:bg-bg-card-hover border border-border-subtle hover:border-violet-500/30 rounded-xl p-5 transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5",
+                                    editingId !== item.id && "cursor-pointer"
+                                )}
                             >
                                 <div className="flex items-start gap-4">
                                     <div className={clsx(
@@ -87,7 +95,10 @@ export function InboxView() {
 
                                     <div className="flex-1 min-w-0 pt-1">
                                         {editingId === item.id ? (
-                                            <div className="animate-in fade-in zoom-in-95 duration-200">
+                                            <div
+                                                className="animate-in fade-in zoom-in-95 duration-200"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
                                                 <textarea
                                                     value={editText}
                                                     onChange={(e) => setEditText(e.target.value)}
@@ -139,14 +150,18 @@ export function InboxView() {
                                         {!editingId && (
                                             <>
                                                 <button
-                                                    onClick={() => startEditing(item)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        startEditing(item);
+                                                    }}
                                                     className="p-2.5 text-text-muted hover:text-violet-500 hover:bg-violet-500/10 rounded-lg transition-colors"
                                                     title="Edit"
                                                 >
                                                     <Pencil size={18} />
                                                 </button>
                                                 <button
-                                                    onClick={() => {
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
                                                         if (confirm('Are you sure you want to delete this specific item?')) {
                                                             deleteInboxItem(item.id);
                                                         }
@@ -155,13 +170,6 @@ export function InboxView() {
                                                     title="Delete"
                                                 >
                                                     <Trash2 size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={() => setProcessingItem(item)}
-                                                    className="btn btn-primary py-2.5 px-4 shadow-lg shadow-violet-500/20 rounded-lg text-sm flex items-center"
-                                                >
-                                                    <Sparkles size={16} />
-                                                    <span className="ml-2 font-semibold">Process</span>
                                                 </button>
                                             </>
                                         )}

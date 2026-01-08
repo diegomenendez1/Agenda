@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import { useStore } from '../core/store';
-import { Users, Plus, Filter } from 'lucide-react';
+import { Users, Filter, X } from 'lucide-react';
 import { KanbanBoard } from '../components/KanbanBoard';
 
 
 export function TeamBoardView() {
     const { tasks, team, user } = useStore();
+    const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
 
     // Strict Filtering for "Selective Visibility"
     // The Team Board is NOT a public board. It only shows tasks that:
@@ -20,8 +22,19 @@ export function TeamBoardView() {
         const isOwner = t.ownerId === user?.id;
         const isAssigned = t.assigneeIds?.includes(user?.id || '');
 
-        // Show if I am involved
-        return isOwner || isAssigned;
+        // 1. First, basic security filter (must be involved)
+        if (!isOwner && !isAssigned) return false;
+
+        // 2. Second, optional member filter
+        if (selectedMemberId) {
+            // Task must be assigned to the selected member OR owned by them
+            // Actually usually "Filter by person" means "Show me what X is doing".
+            const isMemberAssigned = t.assigneeIds?.includes(selectedMemberId);
+            const isMemberOwner = t.ownerId === selectedMemberId;
+            if (!isMemberAssigned && !isMemberOwner) return false;
+        }
+
+        return true;
     });
 
     return (
@@ -38,23 +51,41 @@ export function TeamBoardView() {
                 </div>
 
                 <div className="flex items-center gap-4 bg-bg-card border border-border-subtle p-2 rounded-xl shadow-sm">
-                    <div className="flex -space-x-2 px-2">
-                        {Object.values(team).slice(0, 5).map(member => (
-                            <img
-                                key={member.id}
-                                src={member.avatar || `https://ui-avatars.com/api/?name=${member.name}`}
-                                alt={member.name}
-                                title={member.name}
-                                className="w-8 h-8 rounded-full border-2 border-bg-card hover:scale-110 transition-transform cursor-pointer shadow-sm"
-                            />
-                        ))}
-                        <button className="w-8 h-8 rounded-full bg-bg-input border-2 border-bg-card flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-card-hover transition-colors">
-                            <Plus size={14} />
-                        </button>
+                    <div className="flex items-center gap-2 px-2">
+                        <span className="text-xs font-bold text-text-muted uppercase tracking-wider mr-2 hidden sm:block">Filter by:</span>
+                        <div className="flex -space-x-2 hover:space-x-1 transition-all duration-300">
+                            {Object.values(team).slice(0, 5).map(member => {
+                                const isSelected = selectedMemberId === member.id;
+                                const isDimmed = selectedMemberId && !isSelected;
+                                return (
+                                    <button
+                                        key={member.id}
+                                        onClick={() => setSelectedMemberId(isSelected ? null : member.id)}
+                                        className={`relative group transition-all duration-300 rounded-full focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-offset-2 ${isDimmed ? 'opacity-30 scale-90 grayscale' : 'opacity-100 scale-100 z-10'}`}
+                                        title={`Filter by ${member.name}`}
+                                    >
+                                        <img
+                                            src={member.avatar || `https://ui-avatars.com/api/?name=${member.name}`}
+                                            alt={member.name}
+                                            className={`w-8 h-8 rounded-full border-2 ${isSelected ? 'border-accent-primary ring-2 ring-accent-primary/30' : 'border-bg-card'}`}
+                                        />
+                                        {isSelected && (
+                                            <div className="absolute -top-1 -right-1 bg-accent-primary text-white rounded-full p-0.5 shadow-sm">
+                                                <X size={8} />
+                                            </div>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
                     <div className="h-6 w-px bg-border-subtle" />
-                    <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-text-muted hover:text-text-primary hover:bg-bg-input transition-colors">
-                        <Filter size={16} /> <span className="hidden md:inline">Filter</span>
+                    <button
+                        onClick={() => setSelectedMemberId(null)}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${selectedMemberId ? 'text-accent-primary bg-accent-primary/10' : 'text-text-muted hover:text-text-primary hover:bg-bg-input'}`}
+                    >
+                        <Filter size={16} />
+                        <span className="hidden md:inline">{selectedMemberId ? 'Clear Filter' : 'Filter'}</span>
                     </button>
                 </div>
             </header>
