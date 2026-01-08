@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Calendar, Flag, ArrowRight, Sparkles, Loader2, Folder, Clock, User, Check, Edit2 } from 'lucide-react';
 import { useStore } from '../core/store';
 import type { InboxItem, Priority } from '../core/types';
+import { fetchWithRetry } from '../core/api';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 
@@ -57,9 +58,14 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
     const handleAutoProcess = async () => {
         setIsProcessing(true);
         try {
-            const webhookUrl = `/api/auto-process?id=${item.id}`;
+            // Determine URL based on environment
+            // In Dev: use local proxy /api/auto-process to avoid CORS
+            // In Prod: use full VITE_N8N_WEBHOOK_URL directly (assumes n8n has CORS allowed for this domain)
+            const webhookUrl = import.meta.env.DEV
+                ? `/api/auto-process?id=${item.id}`
+                : `${import.meta.env.VITE_N8N_WEBHOOK_URL}?id=${item.id}`;
 
-            const response = await fetch(webhookUrl, {
+            const response = await fetchWithRetry(webhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -67,7 +73,9 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                     text: item.text,
                     source: item.source,
                     created_at: new Date(item.createdAt).toISOString(),
+                    // Optimization: Send only minimal necessary data to reduce payload size
                     available_projects: Object.values(projects).map(p => ({ id: p.id, name: p.name })),
+                    // Security warning: We are sending team names. Ensure n8n workflow handles this data responsibly.
                     available_team: Object.values(team).map(m => ({ id: m.id, name: m.name }))
                 })
             });
@@ -79,16 +87,24 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
 
             const responseText = await response.text();
 
+            if (!responseText || responseText.trim() === '') {
+                console.error(`AI Error: Received empty response from n8n (Status: ${response.status})`);
+                throw new Error('AI returned an empty response. Check if your n8n workflow has a "Respond to Webhook" node or if "Response Mode" is set correctly.');
+            }
+
             let data: AIResponse;
             try {
                 const rawData = JSON.parse(responseText);
-                let parsedOutput = rawData.output;
+                // Handle n8n common output formats
+                let parsedOutput = rawData.output || (Array.isArray(rawData) ? rawData[0] : rawData);
+
                 if (typeof parsedOutput === 'string' && parsedOutput.trim().startsWith('{')) {
                     parsedOutput = JSON.parse(parsedOutput);
                 }
-                data = parsedOutput || rawData;
+                data = parsedOutput;
             } catch (e) {
-                throw new Error(`Invalid JSON response`);
+                console.error('Failed to parse n8n response. Status:', response.status, 'Body:', responseText);
+                throw new Error(`Invalid JSON response from AI (Status: ${response.status}). Check the browser console for the full response.`);
             }
 
             const priorityMap: Record<string, Priority> = {
@@ -110,7 +126,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
             }
 
             setShowAIPreview(true);
-            setIsEditingDetails(false); // Default to summary view
+            setIsEditingDetails(true); // Direct to form view, skipping summary card
         } catch (error: any) {
             console.error('AI Processing Error:', error);
             alert(`Failed to process item: ${error.message}`);

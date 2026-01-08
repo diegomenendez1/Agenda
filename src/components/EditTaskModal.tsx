@@ -3,6 +3,7 @@ import { X, Folder, Flag, Clock, Trash2, User, Lock, Sparkles, ArrowRight, Layou
 import { useStore } from '../core/store';
 import { ActivityFeed } from './ActivityFeed'; // Import ActivityFeed
 import type { Task, Priority, TaskStatus } from '../core/types';
+import { fetchWithRetry } from '../core/api';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 
@@ -48,8 +49,11 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
     const handleAutoProcess = async () => {
         setAiLoading(true);
         try {
-            const webhookUrl = '/api/auto-process?id=' + task.id;
-            const response = await fetch(webhookUrl, {
+            const webhookUrl = import.meta.env.DEV
+                ? `/api/auto-process?id=${task.id}`
+                : `${import.meta.env.VITE_N8N_WEBHOOK_URL}?id=${task.id}`;
+
+            const response = await fetchWithRetry(webhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -64,12 +68,26 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
             if (!response.ok) throw new Error('CORS or Network Error');
 
             const responseText = await response.text();
-            const rawData = JSON.parse(responseText);
-            let aiData = rawData.output;
-            if (typeof aiData === 'string' && aiData.trim().startsWith('{')) {
-                aiData = JSON.parse(aiData);
+
+            if (!responseText || responseText.trim() === '') {
+                console.error(`AI Error in EditTaskModal: Received empty response (Status: ${response.status})`);
+                throw new Error('AI returned an empty response. Check n8n configuration.');
             }
-            const data = aiData || rawData;
+
+            let data: AIResponse;
+            try {
+                const rawData = JSON.parse(responseText);
+                const aiData = rawData.output || (Array.isArray(rawData) ? rawData[0] : rawData);
+
+                let parsed = aiData;
+                if (typeof aiData === 'string' && aiData.trim().startsWith('{')) {
+                    parsed = JSON.parse(aiData);
+                }
+                data = parsed;
+            } catch (e) {
+                console.error('Failed to parse n8n response. Status:', response.status, 'Body:', responseText);
+                throw new Error(`Invalid JSON response (Status: ${response.status}).`);
+            }
 
             const priorityMap: Record<string, Priority> = {
                 'P1': 'critical', 'P2': 'high', 'P3': 'medium', 'P4': 'low'

@@ -72,7 +72,7 @@ export function ProjectsView() {
                     <div
                         key={project.id}
                         onClick={() => navigate(`/projects/${project.id}`)}
-                        className="group bg-bg-card p-6 rounded-2xl border border-border-subtle hover:border-accent-primary/40 transition-all duration-300 hover:shadow-xl hover:shadow-accent-primary/5 hover:-translate-y-1 cursor-pointer flex flex-col h-56 relative overflow-hidden"
+                        className="group bg-bg-card p-6 rounded-2xl border border-border-subtle hover:border-accent-primary/40 transition-all duration-300 hover:shadow-xl hover:shadow-accent-primary/5 hover:-translate-y-1 cursor-pointer flex flex-col h-64 relative overflow-hidden"
                     >
                         <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
                             <div className="bg-bg-input p-1.5 rounded-lg text-text-muted hover:text-text-primary">
@@ -87,7 +87,7 @@ export function ProjectsView() {
                         </div>
 
                         <h3 className="text-xl font-bold mb-2 text-text-primary group-hover:text-accent-primary transition-colors">{project.name}</h3>
-                        <p className="text-text-muted text-sm line-clamp-2 flex-1 leading-relaxed">
+                        <p className="text-text-muted text-sm line-clamp-2 flex-1 leading-relaxed pb-1">
                             {project.goal || "No specific goal defined yet."}
                         </p>
 

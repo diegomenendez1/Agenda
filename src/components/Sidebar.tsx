@@ -47,7 +47,7 @@ export function Sidebar() {
                     </div>
                     {!collapsed && (
                         <div className="overflow-hidden flex flex-col justify-center animate-enter">
-                            <span className="font-display font-bold text-lg tracking-tight leading-none text-text-primary">Cortex</span>
+                            <span id="cortex-sidebar-title" className="font-display font-bold text-lg tracking-tight leading-none text-text-primary">Cortex</span>
                             <span className="text-[11px] text-text-muted font-medium tracking-wide uppercase mt-1">Workspace</span>
                         </div>
                     )}

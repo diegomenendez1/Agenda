@@ -1,73 +1,37 @@
-# React + TypeScript + Vite
+# Productivity SaaS MVP
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Project Overview
+This is a Premium Productivity SaaS application built with:
+- **Frontend**: React + TypeScript + Vite
+- **Styling**: TailwindCSS (Custom Design System)
+- **Backend/DB**: Supabase (PostgreSQL + RLS)
+- **Automation/AI**: n8n Webhooks + LLM Agents
 
-Currently, two official plugins are available:
+## Environment Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Local Development
+1. Clone the repository.
+2. create a `.env` file with the following:
+   ```env
+   VITE_SUPABASE_URL=your_supabase_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_key
+   VITE_N8N_WEBHOOK_URL=https://your-n8n-instance.com/webhook/uuid
+   ```
+3. Run `npm install`
+4. Run `npm run dev` in terminal 1.
+5. (Optional) Run `npx supabase status` if using local Supabase.
 
-## React Compiler
+### Production Deployment (Netlify/Vercel)
+1. **Build Command**: `npm run build`
+2. **Publish Directory**: `dist`
+3. **Environment Variables**:
+   You **MUST** set the following in your Netlify/Vercel dashboard:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_N8N_WEBHOOK_URL` (Crucial for AI features to work in production!)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Architecture Notes
+- **API Proxy**: In local dev (`npm run dev`), requests to `/api/auto-process` are proxied to `VITE_N8N_WEBHOOK_URL` to avoid CORS.
+- **Production API**: In production, the app calls `VITE_N8N_WEBHOOK_URL` directly. Ensure your n8n instance allows CORS for your production domain.
+- **State Management**: Zustand store (`src/core/store.ts`).
+- **Resilience**: API calls use `fetchWithRetry` (`src/core/api.ts`) for robustness.
