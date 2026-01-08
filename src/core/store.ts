@@ -648,16 +648,7 @@ export const useStore = create<Store>((set, get) => ({
 
     sendNotification: async (userId, type, title, message, link) => {
         const id = uuidv4();
-        const notification = {
-            id,
-            userId,
-            type,
-            title,
-            message,
-            link,
-            read: false,
-            createdAt: Date.now()
-        };
+
 
         // We don't necessarily update local state if it's for someone else
         // But if it's for me (testing), I might want to?

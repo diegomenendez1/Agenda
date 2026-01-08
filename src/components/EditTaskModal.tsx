@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Folder, Flag, Clock, Trash2, User, Lock, Sparkles, ArrowRight, Layout, AlertTriangle } from 'lucide-react';
+import { X, Folder, Flag, Clock, Trash2, User, Lock, Sparkles, ArrowRight, Layout, AlertTriangle, Search, Loader2, Check } from 'lucide-react';
 import { useStore } from '../core/store';
 import { ActivityFeed } from './ActivityFeed'; // Import ActivityFeed
 import type { Task, Priority, TaskStatus } from '../core/types';
@@ -29,6 +29,21 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
 
     const [aiLoading, setAiLoading] = useState(false);
     const [showAIPreview, setShowAIPreview] = useState(false);
+    const [loadingText, setLoadingText] = useState("Analyzing...");
+    const [assigneeSearch, setAssigneeSearch] = useState(''); // Filter for delegation
+
+    // Narrative Loading Effect
+    useEffect(() => {
+        if (!aiLoading) return;
+        const messages = ["Reading task...", "finding context...", "checking team...", "updating details..."];
+        let i = 0;
+        setLoadingText(messages[0]);
+        const interval = setInterval(() => {
+            i = (i + 1) % messages.length;
+            setLoadingText(messages[i]);
+        }, 800);
+        return () => clearInterval(interval);
+    }, [aiLoading]);
 
     const handleAutoProcess = async () => {
         setAiLoading(true);
@@ -100,8 +115,14 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
         return () => window.removeEventListener('keydown', handleEsc);
     }, [onClose]);
 
-    const handleSave = (e: React.FormEvent) => {
+    const [isSuccess, setIsSuccess] = useState(false);
+
+    const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        setIsSuccess(true);
+        // Micro-interaction delay
+        await new Promise(resolve => setTimeout(resolve, 600));
 
         let dueDate: number | undefined;
         if (dueDateStr) {
@@ -248,21 +269,21 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                     onClick={handleAutoProcess}
                                     disabled={aiLoading}
                                     className={clsx(
-                                        "group relative inline-flex items-center justify-center gap-3 px-8 py-4",
+                                        "group relative inline-flex items-center justify-center gap-3 px-8 py-4 w-full",
                                         "bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-2xl",
-                                        "hover:shadow-xl hover:shadow-violet-500/30 transition-all duration-300 hover:-translate-y-1 active:translate-y-0",
+                                        "shadow-lg shadow-violet-500/20 hover:shadow-violet-500/40 transition-all duration-300",
                                         "disabled:opacity-70 disabled:cursor-not-allowed"
                                     )}
                                 >
                                     {aiLoading ? (
                                         <>
-                                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                            <span className="tracking-wide">Analyzing with AI...</span>
+                                            <Loader2 className="w-5 h-5 animate-spin text-white/80" />
+                                            <span className="tracking-wide font-display">{loadingText}</span>
                                         </>
                                     ) : (
                                         <>
                                             <Sparkles className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                                            <span className="tracking-wide uppercase">Auto-Process with AI</span>
+                                            <span className="tracking-wide font-display">Auto-Process with AI</span>
                                         </>
                                     )}
                                 </button>
@@ -299,10 +320,11 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                         value={title}
                                         onChange={e => setTitle(e.target.value)}
                                         className={clsx(
-                                            "input w-full text-lg font-medium transition-all",
+                                            "input w-full text-lg font-medium transition-all bg-transparent border-transparent px-0 hover:bg-bg-input hover:px-3 focus:bg-bg-input focus:px-3 focus:border-accent-primary",
                                             showAIPreview && title !== originalTitle && "ring-2 ring-violet-500/20 border-violet-500/30",
-                                            !isOwner && "opacity-70 cursor-not-allowed bg-transparent border-transparent px-0"
+                                            !isOwner && "opacity-70 cursor-not-allowed"
                                         )}
+                                        placeholder="Task Title"
                                     />
                                 </div>
 
@@ -357,12 +379,26 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                     </div>
 
                                     <div className="col-span-2">
-                                        <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
-                                            <User size={12} className="text-accent-secondary" /> Share with
-                                        </label>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="block text-xs uppercase text-text-muted font-bold tracking-wider flex items-center gap-2">
+                                                <User size={12} className="text-accent-secondary" /> Share / Delegate
+                                            </label>
+                                            {/* Delegation Search - UX Fix */}
+                                            <div className="relative group/search">
+                                                <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Find member..."
+                                                    value={assigneeSearch}
+                                                    onChange={e => setAssigneeSearch(e.target.value)}
+                                                    className="pl-7 pr-2 py-1 bg-bg-surface border border-transparent hover:border-border-subtle rounded-full text-xs w-[120px] focus:w-[150px] transition-all focus:border-accent-primary focus:outline-none"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                                             {Object.values(team)
                                                 .filter(member => member.id !== user?.id)
+                                                .filter(member => member.name.toLowerCase().includes(assigneeSearch.toLowerCase()))
                                                 .map(member => {
                                                     const isSelected = assigneeIds.includes(member.id);
                                                     const isLocked = !isOwner;
@@ -440,9 +476,27 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
 
                                 {isOwner && (
                                     <div className="flex justify-end pt-5 border-t border-border-subtle mt-2">
-                                        <button type="submit" className="bg-violet-600 hover:bg-violet-700 text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-violet-500/20 transition-all flex items-center gap-2">
-                                            <span>{isProcessing ? 'Confirm & To Do' : 'Save Changes'}</span>
-                                            <ArrowRight size={16} />
+                                        <button
+                                            type="submit"
+                                            disabled={isSuccess}
+                                            className={clsx(
+                                                "text-white px-8 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2",
+                                                isSuccess
+                                                    ? "bg-green-500 shadow-green-500/30 scale-105"
+                                                    : "bg-violet-600 hover:bg-violet-700 shadow-violet-500/20"
+                                            )}
+                                        >
+                                            {isSuccess ? (
+                                                <>
+                                                    <Check size={18} className="animate-bounce" />
+                                                    <span>Saved!</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span>{isProcessing ? 'Confirm & To Do' : 'Save Changes'}</span>
+                                                    <ArrowRight size={16} />
+                                                </>
+                                            )}
                                         </button>
                                     </div>
                                 )}

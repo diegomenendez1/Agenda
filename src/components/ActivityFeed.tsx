@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '../core/store';
 import { formatDistanceToNow } from 'date-fns';
-import { MessageSquare, RefreshCw, User as UserIcon, CheckCircle2, FileEdit, Plus } from 'lucide-react';
+import { MessageSquare, RefreshCw, User as UserIcon, FileEdit, Plus } from 'lucide-react';
 import clsx from 'clsx';
 import type { EntityId } from '../core/types';
 

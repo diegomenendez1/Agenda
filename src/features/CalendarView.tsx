@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { startOfWeek, addDays, format, isSameDay, getHours, addWeeks, subWeeks } from 'date-fns';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
 import { useStore } from '../core/store';
 

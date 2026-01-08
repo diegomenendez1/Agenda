@@ -100,7 +100,7 @@ export function TaskItem({ task, showProject = true, compact = false }: TaskItem
                             {/* Avatars instead of generic count */}
                             {showAvatars ? (
                                 <div className="flex -space-x-2">
-                                    {members.slice(0, 3).map((member, i) => (
+                                    {members.slice(0, 3).map((member) => (
                                         <div key={member.id} className="w-5 h-5 rounded-full border border-bg-card relative z-10" title={member.name}>
                                             <img src={member.avatar || `https://ui-avatars.com/api/?name=${member.name}&background=random`} alt={member.name} className="w-full h-full rounded-full object-cover" />
                                         </div>

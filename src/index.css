@@ -42,10 +42,10 @@
   /* Subtle lift */
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04);
   /* Card depth */
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
-  /* Float */
-  --shadow-glow: 0 0 20px rgba(79, 70, 229, 0.15);
-  /* Accent glow */
+  --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  /* Float - Softer & Deeper */
+  --shadow-glow: 0 0 40px rgba(79, 70, 229, 0.15);
+  /* Accent glow - diffused */
 
   /* Accents - "Electric Violet" to "Royal Indigo" */
   --accent-primary: #4F46E5;
@@ -106,8 +106,8 @@
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.3);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.3);
-  --shadow-glow: 0 0 25px rgba(99, 102, 241, 0.2);
+  --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 10px 10px -5px rgb(0 0 0 / 0.3);
+  --shadow-glow: 0 0 50px rgba(99, 102, 241, 0.2);
 
   /* Accents - Brighter for dark mode */
   --accent-primary: #818CF8;

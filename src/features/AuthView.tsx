@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../core/supabase';
 import { Sparkles, Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
-import clsx from 'clsx';
+
 
 export function AuthView() {
     const [isLogin, setIsLogin] = useState(true);

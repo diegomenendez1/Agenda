@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { X, Calendar, Flag, Briefcase, ArrowRight, Sparkles, Loader2, Folder, Clock, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Calendar, Flag, ArrowRight, Sparkles, Loader2, Folder, Clock, User, Check, Edit2 } from 'lucide-react';
 import { useStore } from '../core/store';
 import type { InboxItem, Priority } from '../core/types';
 import clsx from 'clsx';
@@ -34,6 +34,25 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
     // UI State
     const [isProcessing, setIsProcessing] = useState(false);
     const [showAIPreview, setShowAIPreview] = useState(false);
+    const [isEditingDetails, setIsEditingDetails] = useState(false); // New state for "Executive Mode"
+    const [loadingText, setLoadingText] = useState("Analyzing...");
+
+    useEffect(() => {
+        if (!isProcessing) return;
+        const messages = [
+            "Reading context...",
+            "Matching project...",
+            "Estimating priority...",
+            "Drafting summary..."
+        ];
+        let i = 0;
+        setLoadingText(messages[0]);
+        const interval = setInterval(() => {
+            i = (i + 1) % messages.length;
+            setLoadingText(messages[i]);
+        }, 800);
+        return () => clearInterval(interval);
+    }, [isProcessing]);
 
     const handleAutoProcess = async () => {
         setIsProcessing(true);
@@ -54,7 +73,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
             });
 
             if (!response.ok) {
-                const errorText = await response.text().catch(() => 'No error details');
+                await response.text().catch(() => 'No error details');
                 throw new Error(`Server returned ${response.status} ${response.statusText}`);
             }
 
@@ -91,6 +110,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
             }
 
             setShowAIPreview(true);
+            setIsEditingDetails(false); // Default to summary view
         } catch (error: any) {
             console.error('AI Processing Error:', error);
             alert(`Failed to process item: ${error.message}`);
@@ -99,7 +119,13 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
         }
     };
 
+    const [isSuccess, setIsSuccess] = useState(false);
+
     const handleSave = async () => {
+        setIsSuccess(true);
+        // Micro-interaction delay for visual feedback
+        await new Promise(resolve => setTimeout(resolve, 600));
+
         await convertInboxToTask(item.id, {
             title,
             priority,
@@ -111,7 +137,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
         onClose();
     };
 
-    const projectList = Object.values(projects);
+
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
@@ -147,39 +173,112 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                         </div>
                     </div>
 
-                    {/* AI Process Button */}
                     {/* AI Process Button - Large centered version */}
                     {!showAIPreview && (
-                        <div className="flex justify-center py-4">
+                        <div className="flex justify-center py-8">
                             <button
                                 type="button"
                                 onClick={handleAutoProcess}
                                 disabled={isProcessing}
                                 className={clsx(
-                                    "group relative inline-flex items-center justify-center gap-3 px-8 py-4",
+                                    "group relative inline-flex items-center justify-center gap-3 px-8 py-4 w-full sm:w-auto min-w-[200px]",
                                     "bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-2xl",
-                                    "hover:shadow-xl hover:shadow-violet-500/30 transition-all duration-300 hover:-translate-y-1 active:translate-y-0",
+                                    "shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/40 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0",
                                     "disabled:opacity-70 disabled:cursor-not-allowed"
                                 )}
                             >
                                 {isProcessing ? (
                                     <>
-                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        <span className="tracking-wide">Analyzing with AI...</span>
+                                        <Loader2 className="w-5 h-5 animate-spin text-white/80" />
+                                        <span className="tracking-wide font-display">{loadingText}</span>
                                     </>
                                 ) : (
                                     <>
                                         <Sparkles className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                                        <span className="tracking-wide uppercase">Auto-Process with AI</span>
+                                        <span className="tracking-wide font-display">Auto-Process with AI</span>
                                     </>
                                 )}
                             </button>
                         </div>
                     )}
 
-                    {/* AI Suggestion/Edit Form */}
-                    {(!isProcessing || showAIPreview) && (
-                        <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {/* AI SUMMARY CARD (Executive Mode) */}
+                    {showAIPreview && !isEditingDetails && (
+                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="bg-bg-app border border-border-subtle rounded-2xl p-6 shadow-md relative overflow-hidden group">
+                                <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-violet-500 to-indigo-500" />
+
+                                <h3 className="text-sm font-bold uppercase tracking-wider text-text-muted mb-4 flex items-center gap-2">
+                                    <Sparkles className="w-4 h-4 text-accent-primary" /> AI Proposal
+                                </h3>
+
+                                <div className="space-y-4">
+                                    <div>
+                                        <div className="text-2xl font-display font-semibold text-text-primary leading-tight">
+                                            {title}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-wrap gap-3">
+                                        {/* Priority Chip */}
+                                        <div className={clsx(
+                                            "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide border",
+                                            priority === 'critical' ? "bg-red-500/10 text-red-600 border-red-500/20" :
+                                                priority === 'high' ? "bg-orange-500/10 text-orange-600 border-orange-500/20" :
+                                                    priority === 'medium' ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/20" :
+                                                        "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                                        )}>
+                                            <Flag size={12} /> {priority} priority
+                                        </div>
+
+                                        {/* Project Chip */}
+                                        {selectedProjectId && (
+                                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-bg-surface text-text-secondary border border-border-subtle text-xs font-bold uppercase tracking-wide">
+                                                <Folder size={12} />
+                                                {Object.values(projects).find(p => p.id === selectedProjectId)?.name || 'Project'}
+                                            </div>
+                                        )}
+
+                                        {/* Due Date Chip */}
+                                        {dueDate && (
+                                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-bg-surface text-text-secondary border border-border-subtle text-xs font-bold uppercase tracking-wide">
+                                                <Calendar size={12} />
+                                                {format(new Date(dueDate), 'MMM d, yyyy')}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {context && (
+                                        <p className="text-sm text-text-secondary leading-relaxed bg-bg-surface/50 p-3 rounded-lg border border-border-subtle/30 italic">
+                                            "{context}"
+                                        </p>
+                                    )}
+                                </div>
+
+                                <div className="mt-8 flex gap-3">
+                                    <button
+                                        onClick={handleSave}
+                                        className="flex-1 bg-accent-primary hover:bg-accent-primary/90 text-white py-3 rounded-xl font-bold shadow-lg shadow-accent-primary/20 hover:shadow-accent-primary/30 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2"
+                                    >
+                                        <Check size={18} /> Confirm & Create
+                                    </button>
+                                    <button
+                                        onClick={() => setIsEditingDetails(true)}
+                                        className="px-4 py-3 bg-bg-surface hover:bg-bg-surface-hover text-text-secondary border border-border-subtle rounded-xl font-medium transition-colors hover:text-text-primary"
+                                    >
+                                        <Edit2 size={18} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* AI Suggestion/Edit Form - Only show if editing details or manual mode */}
+                    {(isEditingDetails || (!isProcessing && !showAIPreview)) && (
+                        <div className={clsx(
+                            "flex flex-col gap-6 duration-500",
+                            isEditingDetails ? "animate-in slide-in-from-right-4" : "animate-in fade-in slide-in-from-bottom-4"
+                        )}>
                             {/* Input Title */}
                             <div>
                                 <div className="flex items-center justify-between mb-2">
@@ -335,21 +434,39 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-border-subtle bg-bg-app/50 flex justify-end gap-3 mt-auto">
-                    <button
-                        onClick={onClose}
-                        className="px-6 py-2.5 text-text-secondary hover:text-text-primary hover:bg-bg-card-hover rounded-xl transition-colors font-bold text-sm"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleSave}
-                        className="bg-violet-600 hover:bg-violet-700 text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 transition-all flex items-center gap-2 text-sm"
-                    >
-                        <span>Confirm & Create</span>
-                        <ArrowRight size={16} />
-                    </button>
-                </div>
+                {/* Footer - Only show in Edit/Manual Mode since Summary Card has its own actions */}
+                {(isEditingDetails || !showAIPreview) && (
+                    <div className="p-6 border-t border-border-subtle bg-bg-app/50 flex justify-end gap-3 mt-auto">
+                        <button
+                            onClick={onClose}
+                            className="px-6 py-2.5 text-text-secondary hover:text-text-primary hover:bg-bg-card-hover rounded-xl transition-colors font-bold text-sm"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleSave}
+                            disabled={isSuccess}
+                            className={clsx(
+                                "text-white px-8 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2 text-sm",
+                                isSuccess
+                                    ? "bg-green-500 shadow-green-500/30 scale-105"
+                                    : "bg-accent-primary hover:bg-accent-primary/90 shadow-accent-primary/20 hover:shadow-accent-primary/30"
+                            )}
+                        >
+                            {isSuccess ? (
+                                <>
+                                    <Check size={18} className="animate-bounce" />
+                                    <span>Confirmed!</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span>Confirm & Create</span>
+                                    <ArrowRight size={16} />
+                                </>
+                            )}
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

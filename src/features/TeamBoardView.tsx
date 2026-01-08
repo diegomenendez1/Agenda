@@ -1,7 +1,7 @@
 import { useStore } from '../core/store';
 import { Users, Plus, Filter } from 'lucide-react';
 import { KanbanBoard } from '../components/KanbanBoard';
-import clsx from 'clsx';
+
 
 export function TeamBoardView() {
     const { tasks, team } = useStore();

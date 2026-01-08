@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../core/store';
-import { FolderPlus, MoreHorizontal, Folder, ArrowRight } from 'lucide-react';
+import { FolderPlus, Folder, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 
 export function ProjectsView() {
