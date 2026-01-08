@@ -14,21 +14,28 @@ export function TeamBoardView() {
     // 2. HAVE assignees (shared with someone)
     // 3. The current user is involved in (either as the owner who shared it, or as an assignee)
     const taskList = Object.values(tasks).filter(t => {
-        if (t.visibility !== 'team') return false;
+        // 1. Core Definition: What is a "Team Task"?
+        // It must have 'team' visibility OR have assignees (which implies sharing)
+        const isShared = t.visibility === 'team' || (t.assigneeIds && t.assigneeIds.length > 0);
+        if (!isShared) return false;
 
-        const hasAssignees = t.assigneeIds && t.assigneeIds.length > 0;
-        if (!hasAssignees) return false; // "The only way it shows... is that it has been assigned"
+        // 2. Role-Based Access Control
+        // OWNER: Sees ALL shared tasks (God Mode for Team Board)
+        if (user?.role === 'owner') return true;
 
+        // ADMIN: Should see tasks from their specific team.
+        // TODO: Once 'team_members' relationship is loaded in store, enable this:
+        // if (user?.role === 'admin' && (isMyTeam(t.ownerId) || hasMyTeamMember(t.assigneeIds))) return true;
+
+        // USER / DEFAULT ADMIN: strict "Involved" filter
         const isOwner = t.ownerId === user?.id;
         const isAssigned = t.assigneeIds?.includes(user?.id || '');
 
-        // 1. First, basic security filter (must be involved)
+        // Must be involved to see it
         if (!isOwner && !isAssigned) return false;
 
-        // 2. Second, optional member filter
+        // 3. UI Filters (Selected Member)
         if (selectedMemberId) {
-            // Task must be assigned to the selected member OR owned by them
-            // Actually usually "Filter by person" means "Show me what X is doing".
             const isMemberAssigned = t.assigneeIds?.includes(selectedMemberId);
             const isMemberOwner = t.ownerId === selectedMemberId;
             if (!isMemberAssigned && !isMemberOwner) return false;

@@ -153,14 +153,7 @@ export function AuthView() {
                         <div className="relative flex justify-center text-xs uppercase"><span className="bg-bg-card px-3 text-text-muted font-medium">Or continue with</span></div>
                     </div>
 
-                    <p className="text-sm text-text-secondary">
-                        {isLogin ? "Don't have an account?" : "Already have an account?"}
-                        <button
-                            onClick={() => { setIsLogin(!isLogin); setError(null); }}
-                            className="ml-2 font-semibold text-accent-primary hover:text-accent-secondary transition-colors hover:underline decoration-2 underline-offset-4"
-                        >
-                            {isLogin ? "Sign up for free" : "Log in"}
-                        </button>
+                        {/* Public sign-up disabled to enforce Admin-only user creation */}
                     </p>
                 </div>
             </div>
@@ -168,6 +161,6 @@ export function AuthView() {
             <div className="absolute bottom-6 text-center w-full text-xs text-text-muted font-medium opacity-60">
                 &copy; 2024 Cortex Systems Inc. All rights reserved.
             </div>
-        </div>
+        </div >
     );
 }
