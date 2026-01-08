@@ -65,7 +65,7 @@ export function TaskItem({ task, showProject = true, compact = false }: TaskItem
 
                     <div className="flex items-center gap-3 text-xs text-text-muted">
                         {showProject && project && (
-                            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-bg-input group-hover:bg-white transition-colors border border-transparent group-hover:border-border-subtle">
+                            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-bg-input group-hover:bg-bg-card transition-colors border border-transparent group-hover:border-border-subtle">
                                 <Folder size={12} className="text-accent-secondary" />
                                 <span className="truncate max-w-[120px]">{project.name}</span>
                             </span>

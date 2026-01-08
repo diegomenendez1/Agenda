@@ -63,6 +63,7 @@ export interface Task {
     smartAnalysis?: SmartAnalysis;
     source?: 'manual' | 'email' | 'voice' | 'system';
     estimatedMinutes?: number;
+    acceptedAt?: number;
 }
 
 export interface Project {

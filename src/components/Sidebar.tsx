@@ -126,7 +126,7 @@ export function Sidebar() {
                         >
                             <SearchIcon size={16} className="text-text-muted group-hover:text-accent-primary transition-colors" />
                             <span className="flex-1 text-xs font-medium text-text-secondary">Search...</span>
-                            <kbd className="text-[10px] text-text-muted font-sans border border-border-subtle px-1.5 py-0.5 rounded bg-bg-input group-hover:bg-white transition-colors">⌘K</kbd>
+                            <kbd className="text-[10px] text-text-muted font-sans border border-border-subtle px-1.5 py-0.5 rounded bg-bg-input group-hover:bg-bg-card transition-colors">⌘K</kbd>
                         </button>
                     )}
 

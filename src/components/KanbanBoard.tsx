@@ -8,11 +8,11 @@ import { EditTaskModal } from './EditTaskModal';
 
 // Simplified columns - removed bgClass to reduce visual noise as requested
 const COLUMNS: { id: TaskStatus; label: string; colorClass: string }[] = [
-    { id: 'backlog', label: 'Backlog / Incoming', colorClass: 'bg-slate-300' },
-    { id: 'todo', label: 'To Do', colorClass: 'bg-slate-300' },
-    { id: 'in_progress', label: 'In Progress', colorClass: 'bg-slate-300' },
-    { id: 'review', label: 'Review', colorClass: 'bg-slate-300' },
-    { id: 'done', label: 'Done', colorClass: 'bg-slate-300' }
+    { id: 'backlog', label: 'Backlog / Incoming', colorClass: 'bg-border-highlight' },
+    { id: 'todo', label: 'To Do', colorClass: 'bg-border-highlight' },
+    { id: 'in_progress', label: 'In Progress', colorClass: 'bg-border-highlight' },
+    { id: 'review', label: 'Review', colorClass: 'bg-border-highlight' },
+    { id: 'done', label: 'Done', colorClass: 'bg-border-highlight' }
 ];
 
 interface KanbanBoardProps {
@@ -20,7 +20,7 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
-    const { tasks: storeTasks, updateStatus, addTask, user, team } = useStore();
+    const { tasks: storeTasks, updateStatus, updateTask, addTask, user, team } = useStore();
     const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
 
@@ -155,7 +155,7 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                                 <button
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        updateStatus(task.id, 'todo');
+                                                        updateTask(task.id, { status: 'todo', acceptedAt: Date.now() });
                                                     }}
                                                     className="w-full mb-3 py-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 hover:from-emerald-500 hover:to-teal-500 border border-emerald-500/20 hover:border-transparent text-emerald-600 hover:text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm"
                                                 >
@@ -173,7 +173,7 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                                         <CheckCircle2 size={14} /> Start Task
                                                     </button>
                                                 ) : (
-                                                    <div className="w-full mb-3 py-2 bg-slate-100 border border-slate-200 text-slate-400 text-xs font-bold uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 cursor-default">
+                                                    <div className="w-full mb-3 py-2 bg-bg-input border border-border-subtle text-text-muted text-xs font-bold uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 cursor-default">
                                                         <Clock size={14} /> Waiting for Team
                                                     </div>
                                                 )
@@ -193,6 +193,12 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                                     {format(task.dueDate, 'MMM d')}
                                                 </div>
                                             )}
+                                            {task.acceptedAt && (
+                                                <div className="flex items-center gap-1.5 text-[10px] text-text-muted font-medium ml-2 border-l border-border-subtle pl-2">
+                                                    <span className="opacity-70">Accepted</span>
+                                                    <span className="text-text-secondary">{format(task.acceptedAt, 'MMM d, p')}</span>
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="flex items-center gap-2 max-w-[60%] justify-end">
@@ -202,48 +208,52 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                             {task.priority === 'medium' && <Flag size={14} className="text-yellow-500 flex-shrink-0" />}
                                             {task.priority === 'low' && <Flag size={14} className="text-blue-500 flex-shrink-0" />}
 
-                                            {/* Enhanced Assignees */}
-                                            {task.assigneeIds && task.assigneeIds.length > 0 && (
-                                                <div className="flex items-center gap-1.5 overflow-hidden pl-1">
-                                                    <div className="flex -space-x-2 shrink-0">
-                                                        {task.assigneeIds.map(id => team[id]).filter(Boolean).slice(0, 3).map((member, i) => {
-                                                            // Deterministic color based on name length/char
-                                                            const colors = ['bg-pink-500', 'bg-violet-500', 'bg-indigo-500', 'bg-cyan-500', 'bg-teal-500', 'bg-emerald-500', 'bg-orange-500'];
-                                                            const colorClass = colors[member.name.length % colors.length];
+                                            {/* Enhanced Assignees - Shows Owner + Assignees */}
+                                            {task.assigneeIds && task.assigneeIds.length > 0 && (() => {
+                                                const uniqueIds = Array.from(new Set([task.ownerId, ...task.assigneeIds]));
+                                                const members = uniqueIds.map(id => team[id]).filter(Boolean);
 
-                                                            return (
-                                                                <div
-                                                                    key={member.id}
-                                                                    className={clsx(
-                                                                        "w-5 h-5 rounded-full border border-bg-card flex items-center justify-center text-[8px] font-bold text-white shadow-sm",
-                                                                        !member.avatar && colorClass
-                                                                    )}
-                                                                    title={member.name}
-                                                                >
-                                                                    {member.avatar ? (
-                                                                        <img src={member.avatar} alt={member.name} className="w-full h-full rounded-full object-cover" />
-                                                                    ) : (
-                                                                        member.name.substring(0, 2).toUpperCase()
-                                                                    )}
+                                                return (
+                                                    <div className="flex items-center gap-1.5 overflow-hidden pl-1">
+                                                        <div className="flex -space-x-2 shrink-0">
+                                                            {members.slice(0, 3).map((member, i) => {
+                                                                // Deterministic color based on name length/char
+                                                                const colors = ['bg-pink-500', 'bg-violet-500', 'bg-indigo-500', 'bg-cyan-500', 'bg-teal-500', 'bg-emerald-500', 'bg-orange-500'];
+                                                                const colorClass = colors[member.name.length % colors.length];
+
+                                                                return (
+                                                                    <div
+                                                                        key={member.id}
+                                                                        className={clsx(
+                                                                            "w-5 h-5 rounded-full border border-bg-card flex items-center justify-center text-[8px] font-bold text-white shadow-sm",
+                                                                            !member.avatar && colorClass
+                                                                        )}
+                                                                        title={member.name}
+                                                                    >
+                                                                        {member.avatar ? (
+                                                                            <img src={member.avatar} alt={member.name} className="w-full h-full rounded-full object-cover" />
+                                                                        ) : (
+                                                                            member.name.substring(0, 2).toUpperCase()
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                            {members.length > 3 && (
+                                                                <div className="w-5 h-5 rounded-full bg-bg-input border border-bg-card flex items-center justify-center text-[8px] font-bold text-text-muted shadow-sm">
+                                                                    +{members.length - 3}
                                                                 </div>
-                                                            );
-                                                        })}
-                                                        {task.assigneeIds.length > 3 && (
-                                                            <div className="w-5 h-5 rounded-full bg-slate-200 border border-bg-card flex items-center justify-center text-[8px] font-bold text-slate-500 shadow-sm">
-                                                                +{task.assigneeIds.length - 3}
-                                                            </div>
-                                                        )}
-                                                    </div>
+                                                            )}
+                                                        </div>
 
-                                                    {/* Subtle Name List */}
-                                                    <span className="text-[10px] text-text-muted truncate hidden sm:block opacity-70 group-hover:opacity-100 transition-opacity">
-                                                        {task.assigneeIds
-                                                            .map(id => team[id]?.name?.split(' ')[0])
-                                                            .filter(Boolean)
-                                                            .join(', ')}
-                                                    </span>
-                                                </div>
-                                            )}
+                                                        {/* Subtle Name List */}
+                                                        <span className="text-[10px] text-text-muted truncate hidden sm:block opacity-70 group-hover:opacity-100 transition-opacity">
+                                                            {members
+                                                                .map(m => m.name?.split(' ')[0])
+                                                                .join(', ')}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
                                     </div>
                                 </div>

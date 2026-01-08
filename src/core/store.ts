@@ -13,7 +13,8 @@ const hydrateTask = (t: any): Task => ({
     completedAt: t.completed_at ? new Date(t.completed_at).getTime() : undefined,
     ownerId: t.user_id || t.owner_id, // Support both just in case
     assigneeIds: t.assignee_ids || (t.assignee_id ? [t.assignee_id] : []),
-    visibility: t.visibility || 'private'
+    visibility: t.visibility || 'private',
+    acceptedAt: t.accepted_at ? new Date(t.accepted_at).getTime() : undefined
 });
 
 interface Actions {
@@ -295,6 +296,10 @@ export const useStore = create<Store>((set, get) => ({
         if (updates.projectId) {
             dbUpdates.project_id = updates.projectId;
             delete dbUpdates.projectId;
+        }
+        if (updates.acceptedAt) {
+            dbUpdates.accepted_at = new Date(updates.acceptedAt).toISOString();
+            delete dbUpdates.acceptedAt;
         }
         await supabase.from('tasks').update(dbUpdates).eq('id', id);
     },
