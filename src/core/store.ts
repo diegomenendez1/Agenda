@@ -68,6 +68,7 @@ interface Actions {
     markNotificationRead: (id: EntityId) => Promise<void>;
     markAllNotificationsRead: () => Promise<void>;
     sendNotification: (userId: EntityId, type: 'mention' | 'assignment' | 'status_change' | 'system', title: string, message: string, link?: string) => Promise<void>;
+    claimTask: (taskId: EntityId) => Promise<boolean>;
 }
 
 type Store = AppState & Actions;
@@ -667,5 +668,55 @@ export const useStore = create<Store>((set, get) => ({
             link,
             read: false
         });
+    },
+
+    claimTask: async (taskId) => {
+        const state = get();
+        const userId = state.user?.id;
+        if (!userId) {
+            console.error("No user logged in to claim task");
+            return false;
+        }
+
+        // Call database RPC for atomic locking
+        const { data, error } = await supabase.rpc('claim_task', {
+            task_id: taskId,
+            user_id: userId
+        });
+
+        if (error) {
+            console.error("Error claiming task:", error);
+            return false;
+        }
+
+        if (data && data.success) {
+            // Optimistic / Local update after success
+            set(state => ({
+                tasks: {
+                    ...state.tasks,
+                    [taskId]: {
+                        ...state.tasks[taskId],
+                        assigneeIds: [userId],
+                        status: 'todo',
+                        acceptedAt: Date.now(),
+                        updatedAt: Date.now()
+                    }
+                }
+            }));
+
+            // Log activity
+            get().logActivity(taskId, 'assignment', `Claimed/Accepted the task`);
+
+            return true;
+        } else {
+            // Task likely already taken
+            // Refresh the specific task to see the new assignee
+            const { data: updatedTask } = await supabase.from('tasks').select('*').eq('id', taskId).single();
+            if (updatedTask) {
+                const hydrated = hydrateTask(updatedTask);
+                set(state => ({ tasks: { ...state.tasks, [taskId]: hydrated } }));
+            }
+            return false;
+        }
     }
 }));
