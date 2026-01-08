@@ -7,11 +7,13 @@ export function UserProfile() {
     const { user, updateUserProfile } = useStore();
     const [name, setName] = useState('');
     const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
+    const [aiContext, setAiContext] = useState('');
 
     useEffect(() => {
         if (user) {
             setName(user.name);
             setTheme(user.preferences?.theme || 'system');
+            setAiContext(user.preferences?.aiContext || '');
         }
     }, [user]);
 
@@ -23,7 +25,8 @@ export function UserProfile() {
             // Role is preserved from the existing user object, not editable here
             preferences: {
                 ...user.preferences,
-                theme
+                theme,
+                aiContext
             }
         });
     };
@@ -81,6 +84,27 @@ export function UserProfile() {
                     </div>
 
                     <div className="h-px bg-border-subtle" />
+
+                    {/* AI Assistant Context - Restricted to Admin/Owner */}
+                    {(user?.role === 'owner' || user?.role === 'admin') && (
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-lg font-semibold text-text-primary">AI Assistant Context</h3>
+                            </div>
+                            <p className="text-sm text-text-secondary">
+                                Define your team's focus, your role, or any specific instructions for the AI when processing tasks.
+                                This helps filter noise and prioritize what matters.
+                            </p>
+                            <textarea
+                                value={aiContext}
+                                onChange={(e) => setAiContext(e.target.value)}
+                                className="input w-full min-h-[120px] resize-y text-sm leading-relaxed"
+                                placeholder="Example: I am the Logistics Manager. Prioritize shipments, customs issues, and team coordination. Ignore generic newsletters or HR announcements. My key projects are 'Q4 Expansion' and 'Supplier Audit'."
+                            />
+                        </div>
+                    )}
+
+                    {(user?.role === 'owner' || user?.role === 'admin') && <div className="h-px bg-border-subtle" />}
 
                     {/* Preferences Section */}
                     <div className="space-y-4">

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { useStore } from '../core/store';
-import { Shield, Crown, Search, UserPlus, X, Loader2, Trash2, ShieldCheck, User } from 'lucide-react';
+import { Shield, Crown, Search, UserPlus, X, Loader2, Trash2, ShieldCheck, User, Bot, Settings } from 'lucide-react';
 import { supabase } from '../core/supabase';
 import clsx from 'clsx';
 import { format } from 'date-fns';
@@ -25,6 +25,12 @@ export function AdminView() {
     // Delete User State
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
+    // AI Context Modal State
+    const [isContextModalOpen, setIsContextModalOpen] = useState(false);
+    const [selectedUser, setSelectedUser] = useState<any>(null);
+    const [contextValue, setContextValue] = useState('');
+    const [savingContext, setSavingContext] = useState(false);
+
 
     useEffect(() => {
         fetchUsers();
@@ -44,6 +50,39 @@ export function AdminView() {
         // Optimistic update
         setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
         setUpdating(null);
+    };
+
+    const handleOpenContextModal = (u: any) => {
+        setSelectedUser(u);
+        setContextValue(u.preferences?.aiContext || '');
+        setIsContextModalOpen(true);
+    };
+
+    const handleSaveContext = async () => {
+        if (!selectedUser) return;
+        setSavingContext(true);
+        try {
+            const updatedPreferences = {
+                ...(selectedUser.preferences || {}),
+                aiContext: contextValue
+            };
+
+            const { error } = await supabase
+                .from('profiles')
+                .update({ preferences: updatedPreferences })
+                .eq('id', selectedUser.id);
+
+            if (error) throw error;
+
+            // Optimistic update
+            setUsers(users.map(u => u.id === selectedUser.id ? { ...u, preferences: updatedPreferences } : u));
+            setIsContextModalOpen(false);
+        } catch (err: any) {
+            console.error(err);
+            alert('Failed to save context: ' + err.message);
+        } finally {
+            setSavingContext(false);
+        }
     };
 
     const handleCreateUser = async (e: React.FormEvent) => {
@@ -253,14 +292,28 @@ export function AdminView() {
                                             {format(new Date(u.updated_at), 'MMM d, yyyy')}
                                         </td>
                                         <td className="p-4 text-right pr-6">
-                                            <button
-                                                className="p-2 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
-                                                title="Delete User"
-                                                disabled={deletingId === u.id || u.id === user?.id}
-                                                onClick={() => handleDeleteUser(u.id, u.full_name)}
-                                            >
-                                                {deletingId === u.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                                            </button>
+                                            <div className="flex items-center justify-end gap-1">
+                                                <button
+                                                    className="p-2 text-text-muted hover:text-accent-primary hover:bg-accent-primary/10 rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                                    title={
+                                                        (user?.role !== 'owner' && (u.role === 'admin' || u.role === 'owner'))
+                                                            ? "You cannot modify AI settings for other Admins/Owners"
+                                                            : "Configure AI Context"
+                                                    }
+                                                    disabled={user?.role !== 'owner' && (u.role === 'admin' || u.role === 'owner')}
+                                                    onClick={() => handleOpenContextModal(u)}
+                                                >
+                                                    <Bot className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    className="p-2 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                                    title="Delete User"
+                                                    disabled={deletingId === u.id || u.id === user?.id}
+                                                    onClick={() => handleDeleteUser(u.id, u.full_name)}
+                                                >
+                                                    {deletingId === u.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -363,6 +416,65 @@ export function AdminView() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+            {/* AI Context Modal */}
+            {isContextModalOpen && selectedUser && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+                    <div className="glass-panel w-full max-w-lg rounded-2xl p-0 shadow-2xl border border-border-subtle overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-2 duration-300 bg-bg-card">
+                        <div className="p-6 border-b border-border-subtle bg-bg-input/30 flex justify-between items-center">
+                            <div>
+                                <h3 className="text-lg font-display font-bold text-text-primary flex items-center gap-2">
+                                    <div className="p-1.5 rounded-md bg-violet-500/10 text-violet-500">
+                                        <Bot size={18} />
+                                    </div>
+                                    AI Context Settings
+                                </h3>
+                                <p className="text-xs text-text-muted mt-1">
+                                    Configure the AI assistant behavior for <span className="font-bold text-text-primary">{selectedUser.full_name}</span>.
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setIsContextModalOpen(false)}
+                                className="text-text-muted hover:text-text-primary transition-colors p-1 hover:bg-bg-input rounded-md"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider ml-1">
+                                    Custom AI Prompt / Context
+                                </label>
+                                <textarea
+                                    className="input w-full min-h-[150px] resize-y text-sm leading-relaxed"
+                                    placeholder="Enter specific instructions for the AI when processing tasks for this user..."
+                                    value={contextValue}
+                                    onChange={(e) => setContextValue(e.target.value)}
+                                />
+                                <p className="text-xs text-text-muted ml-1">
+                                    This context is invisible to the user but determines how their tasks are processed.
+                                </p>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-4 border-t border-border-subtle">
+                                <button
+                                    onClick={() => setIsContextModalOpen(false)}
+                                    className="btn btn-ghost"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleSaveContext}
+                                    disabled={savingContext}
+                                    className="btn btn-primary min-w-[100px] shadow-lg shadow-accent-primary/20"
+                                >
+                                    {savingContext ? <Loader2 className="animate-spin w-4 h-4" /> : 'Save Changes'}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

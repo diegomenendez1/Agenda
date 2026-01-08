@@ -16,6 +16,7 @@ export interface UserProfile {
         autoPrioritize: boolean;
         theme: 'light' | 'dark' | 'system';
         taskViewMode?: 'list' | 'board';
+        aiContext?: string;
     };
 }
 

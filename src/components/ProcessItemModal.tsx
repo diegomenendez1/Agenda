@@ -21,7 +21,7 @@ interface AIResponse {
 }
 
 export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
-    const { convertInboxToTask, projects, team, user } = useStore();
+    const { convertInboxToTask, addTask, deleteInboxItem, projects, team, user } = useStore();
 
     // Form State
     const [title, setTitle] = useState(item.text);
@@ -34,9 +34,11 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
     // Visibility derived from assignees now
 
     // UI State
+    const [candidates, setCandidates] = useState<AIResponse[]>([]);
+    const [selectedCandidates, setSelectedCandidates] = useState<number[]>([]);
     const [isProcessing, setIsProcessing] = useState(false);
     const [showAIPreview, setShowAIPreview] = useState(false);
-    const [isEditingDetails, setIsEditingDetails] = useState(false); // New state for "Executive Mode"
+    const [isEditingDetails, setIsEditingDetails] = useState(false);
     const [loadingText, setLoadingText] = useState("Analyzing...");
 
     useEffect(() => {
@@ -58,10 +60,9 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
 
     const handleAutoProcess = async () => {
         setIsProcessing(true);
+        setCandidates([]);
         try {
             // Determine URL based on environment
-            // In Dev: use local proxy /api/auto-process to avoid CORS
-            // In Prod: use full VITE_N8N_WEBHOOK_URL directly (assumes n8n has CORS allowed for this domain)
             const webhookUrl = import.meta.env.DEV
                 ? `/api/auto-process?id=${item.id}`
                 : `${import.meta.env.VITE_N8N_WEBHOOK_URL}?id=${item.id}`;
@@ -77,7 +78,9 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                     // Optimization: Send only minimal necessary data to reduce payload size
                     available_projects: Object.values(projects).map(p => ({ id: p.id, name: p.name })),
                     // Security warning: We are sending team names. Ensure n8n workflow handles this data responsibly.
-                    available_team: Object.values(team).map(m => ({ id: m.id, name: m.name }))
+                    available_team: Object.values(team).map(m => ({ id: m.id, name: m.name })),
+                    // Context injection for better AI decision making
+                    team_context: user?.preferences?.aiContext || "Focus on logistics, shipments, and internal team coordination. Ignore external HR spam or irrelevant newsletters."
                 })
             });
 
@@ -90,24 +93,19 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
 
             if (!responseText || responseText.trim() === '') {
                 console.error(`AI Error: Received empty response from n8n (Status: ${response.status})`);
-                throw new Error('AI returned an empty response. Check if your n8n workflow has a "Respond to Webhook" node or if "Response Mode" is set correctly.');
+                throw new Error('AI returned an empty response.');
             }
 
-            let data: AIResponse;
+            let data: AIResponse | AIResponse[];
             try {
                 let rawData = JSON.parse(responseText);
 
-                // 1. Unwrap Array if present (e.g. n8n default return)
-                if (Array.isArray(rawData)) {
-                    rawData = rawData[0];
-                }
-
-                // 2. Unwrap 'output' property if present (n8n Agent node standard)
+                // Unwrap 'output' property if present (n8n Agent node standard)
                 if (rawData && typeof rawData === 'object' && 'output' in rawData) {
                     rawData = rawData.output;
                 }
 
-                // 3. Parse stringified JSON if strictly necessary
+                // Parse stringified JSON if strictly necessary
                 if (typeof rawData === 'string') {
                     const trimmed = rawData.trim();
                     if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
@@ -122,36 +120,57 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                 data = rawData;
             } catch (e) {
                 console.error('Failed to parse n8n response. Status:', response.status, 'Body:', responseText);
-                throw new Error(`Invalid JSON response from AI (Status: ${response.status}). Check the browser console for the full response.`);
+                throw new Error(`Invalid JSON response from AI.`);
             }
 
-            const priorityMap: Record<string, Priority> = {
-                'P1': 'critical', 'P2': 'high', 'P3': 'medium', 'P4': 'low'
-            };
-
-            if (data.ai_title) setTitle(data.ai_title);
-
-            const mappedPriority = priorityMap[data.ai_priority as string] || data.ai_priority;
-            if (['critical', 'high', 'medium', 'low'].includes(mappedPriority)) {
-                setPriority(mappedPriority as Priority);
+            // Normalization
+            let results: AIResponse[] = [];
+            if (Array.isArray(data)) {
+                results = data;
+            } else {
+                results = [data as AIResponse];
             }
 
-            if (data.ai_date) setDueDate(data.ai_date.split('T')[0]);
-            if (data.ai_context) setContext(data.ai_context);
-            if (data.ai_project_id) setSelectedProjectId(data.ai_project_id);
-            if (data.ai_assignee_ids && Array.isArray(data.ai_assignee_ids)) {
-                if (data.ai_assignee_ids.length > 0) {
-                    setAssigneeIds(data.ai_assignee_ids);
-                }
+            if (results.length === 0) throw new Error("AI returned no tasks.");
+
+            if (results.length === 1) {
+                // Single Task Flow (Classic)
+                applySingleResult(results[0]);
+            } else {
+                // Multi-Task Flow (New)
+                setCandidates(results);
+                setSelectedCandidates(results.map((_, idx) => idx)); // Select all by default
             }
 
             setShowAIPreview(true);
-            setIsEditingDetails(true); // Direct to form view, skipping summary card
+            setIsEditingDetails(true);
         } catch (error: any) {
             console.error('AI Processing Error:', error);
             alert(`Failed to process item: ${error.message}`);
         } finally {
             setIsProcessing(false);
+        }
+    };
+
+    const applySingleResult = (data: AIResponse) => {
+        const priorityMap: Record<string, Priority> = {
+            'P1': 'critical', 'P2': 'high', 'P3': 'medium', 'P4': 'low'
+        };
+
+        if (data.ai_title) setTitle(data.ai_title);
+
+        const mappedPriority = priorityMap[data.ai_priority as string] || data.ai_priority;
+        if (['critical', 'high', 'medium', 'low'].includes(mappedPriority)) {
+            setPriority(mappedPriority as Priority);
+        }
+
+        if (data.ai_date) setDueDate(data.ai_date.split('T')[0]);
+        if (data.ai_context) setContext(data.ai_context);
+        if (data.ai_project_id) setSelectedProjectId(data.ai_project_id);
+        if (data.ai_assignee_ids && Array.isArray(data.ai_assignee_ids)) {
+            if (data.ai_assignee_ids.length > 0) {
+                setAssigneeIds(data.ai_assignee_ids);
+            }
         }
     };
 
@@ -178,6 +197,35 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
         onClose();
     };
 
+    const handleSaveMultiple = async () => {
+        if (selectedCandidates.length === 0) return;
+        setIsSuccess(true);
+        await new Promise(resolve => setTimeout(resolve, 600));
+
+        const priorityMap: Record<string, Priority> = { 'P1': 'critical', 'P2': 'high', 'P3': 'medium', 'P4': 'low' };
+
+        // Filter candidates
+        const tasksToCreate = candidates.filter((_, idx) => selectedCandidates.includes(idx));
+
+        for (const data of tasksToCreate) {
+            const prio = priorityMap[data.ai_priority as string] || data.ai_priority || 'medium';
+            const finalVisibility = (data.ai_assignee_ids?.length || 0) > 0 ? 'team' : 'private';
+
+            await addTask({
+                title: data.ai_title,
+                priority: prio as Priority,
+                projectId: data.ai_project_id,
+                dueDate: data.ai_date ? new Date(data.ai_date).getTime() : undefined,
+                description: data.ai_context,
+                assigneeIds: data.ai_assignee_ids || [],
+                visibility: finalVisibility,
+                status: 'backlog'
+            });
+        }
+        await deleteInboxItem(item.id);
+        onClose();
+    };
+
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
             <div className="bg-bg-card w-full max-w-2xl rounded-2xl shadow-2xl border border-border-subtle overflow-hidden flex flex-col max-h-[90vh]">
@@ -186,9 +234,14 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                     <div>
                         <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
                             <Sparkles className="w-5 h-5 text-violet-500" />
-                            Process Item
+                            {candidates.length > 1 ? 'Select Tasks to Create' : 'Process Item'}
                         </h2>
-                        <p className="text-text-muted text-sm mt-1">Turn this thought into an actionable task</p>
+                        <p className="text-text-muted text-sm mt-1">
+                            {candidates.length > 1
+                                ? `AI found ${candidates.length} potential tasks in this item`
+                                : 'Turn this thought into an actionable task'
+                            }
+                        </p>
                     </div>
                     <button
                         onClick={onClose}
@@ -248,8 +301,66 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                         </div>
                     )}
 
+                    {/* MULTI TASK SELECTION VIEW */}
+                    {candidates.length > 1 && (
+                        <div className="animate-in fade-in slide-in-from-bottom-4 space-y-3">
+                            {candidates.map((c, idx) => {
+                                const isSelected = selectedCandidates.includes(idx);
+                                const proj = c.ai_project_id ? projects[c.ai_project_id] : null;
+                                return (
+                                    <div
+                                        key={idx}
+                                        onClick={() => {
+                                            setSelectedCandidates(prev => isSelected ? prev.filter(i => i !== idx) : [...prev, idx]);
+                                        }}
+                                        className={clsx(
+                                            "p-4 rounded-xl border-2 transition-all cursor-pointer flex gap-4 items-start select-none",
+                                            isSelected
+                                                ? "border-violet-500 bg-violet-500/5 shadow-md"
+                                                : "border-border-subtle hover:border-border-subtle/80 opacity-70 hover:opacity-100"
+                                        )}
+                                    >
+                                        <div className={clsx(
+                                            "w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors",
+                                            isSelected ? "bg-violet-500 border-violet-500" : "border-text-muted/40"
+                                        )}>
+                                            {isSelected && <Check size={14} className="text-white" />}
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className={clsx("font-bold text-base mb-1", isSelected ? "text-text-primary" : "text-text-secondary")}>
+                                                {c.ai_title}
+                                            </h3>
+                                            <p className="text-sm text-text-muted line-clamp-2">{c.ai_context}</p>
+
+                                            <div className="flex flex-wrap gap-2 mt-3">
+                                                <span className={clsx(
+                                                    "px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider border",
+                                                    c.ai_priority === 'critical' ? "bg-red-500/10 text-red-500 border-red-500/20" :
+                                                        c.ai_priority === 'high' ? "bg-orange-500/10 text-orange-500 border-orange-500/20" :
+                                                            "bg-blue-500/10 text-blue-500 border-blue-500/20"
+                                                )}>{c.ai_priority}</span>
+
+                                                {proj && (
+                                                    <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold text-text-secondary bg-bg-subtle border border-border-subtle">
+                                                        <Folder size={10} /> {proj.name}
+                                                    </span>
+                                                )}
+
+                                                {(c.ai_assignee_ids?.length || 0) > 0 && (
+                                                    <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold text-accent-primary bg-accent-primary/10 border border-accent-primary/20">
+                                                        <User size={10} /> {(c.ai_assignee_ids?.length || 0) > 1 ? `${c.ai_assignee_ids?.length} Assignees` : team[c.ai_assignee_ids![0]]?.name || 'Assigned'}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+
                     {/* Form View */}
-                    {(isEditingDetails || (!isProcessing && !showAIPreview)) && (
+                    {(isEditingDetails && candidates.length <= 1) && (
                         <div className={clsx(
                             "flex flex-col gap-6 duration-500",
                             isEditingDetails ? "animate-in slide-in-from-right-4" : "animate-in fade-in slide-in-from-bottom-4"
@@ -416,7 +527,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                 </div>
 
                 {/* Footer */}
-                {(isEditingDetails || !showAIPreview) && (
+                {((isEditingDetails && candidates.length <= 1) || candidates.length > 1) && (
                     <div className="p-6 border-t border-border-subtle bg-bg-app/50 flex justify-end gap-3 mt-auto">
                         <button
                             onClick={onClose}
@@ -425,19 +536,25 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                             Cancel
                         </button>
                         <button
-                            onClick={handleSave}
-                            disabled={isSuccess}
+                            onClick={candidates.length > 1 ? handleSaveMultiple : handleSave}
+                            disabled={isSuccess || (candidates.length > 1 && selectedCandidates.length === 0)}
                             className={clsx(
                                 "text-white px-8 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2 text-sm",
                                 isSuccess
                                     ? "bg-green-500 shadow-green-500/30 scale-105"
-                                    : "bg-accent-primary hover:bg-accent-primary/90 shadow-accent-primary/20 hover:shadow-accent-primary/30"
+                                    : "bg-accent-primary hover:bg-accent-primary/90 shadow-accent-primary/20 hover:shadow-accent-primary/30",
+                                (candidates.length > 1 && selectedCandidates.length === 0) && "opacity-50 cursor-not-allowed"
                             )}
                         >
                             {isSuccess ? (
                                 <>
                                     <Check size={18} className="animate-bounce" />
                                     <span>Confirmed!</span>
+                                </>
+                            ) : candidates.length > 1 ? (
+                                <>
+                                    <ListTodo size={18} />
+                                    <span>Create {selectedCandidates.length} Tasks</span>
                                 </>
                             ) : (
                                 <>
