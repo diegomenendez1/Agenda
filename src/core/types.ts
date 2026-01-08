@@ -110,9 +110,6 @@ export interface Habit {
     createdAt: number;
 }
 
-metadata ?: Record<string, any>; // Store diffs here: { old: 'todo', new: 'done' }
-createdAt: number;
-}
 
 export interface Notification {
     id: EntityId;
@@ -137,6 +134,7 @@ export interface AppState {
     habits: Record<EntityId, Habit>;
     activities: Record<EntityId, ActivityLog>;
     notifications: Record<EntityId, Notification>;
+    isFocusMode: boolean;
 }
 
 export type ActivityType =

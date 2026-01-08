@@ -158,6 +158,16 @@ export function Sidebar() {
                             <LogOut size={18} strokeWidth={2} />
                         </button>
                     </div>
+
+                    {/* Focus Mode Toggle */}
+                    {!collapsed && (
+                        <button
+                            onClick={() => useStore.getState().toggleFocusMode()}
+                            className="mt-2 w-full flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-wider text-text-muted hover:text-accent-primary transition-colors py-1 opacity-60 hover:opacity-100"
+                        >
+                            <span className="w-2 h-2 rounded-full bg-accent-primary animate-pulse" /> End Distractions
+                        </button>
+                    )}
                 </div>
             </div>
         </aside>

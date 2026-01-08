@@ -33,7 +33,7 @@ interface Actions {
     deleteInboxItem: (id: EntityId) => Promise<void>;
 
     // Tasks
-    addTask: (task: Pick<Task, 'title'> & Partial<Omit<Task, 'id' | 'createdAt' | 'tags'>>) => Promise<EntityId>;
+    addTask: (task: Pick<Task, 'title'> & Partial<Omit<Task, 'id' | 'createdAt'>>) => Promise<EntityId>;
     updateTask: (id: EntityId, updates: Partial<Task>) => Promise<void>;
     updateStatus: (id: EntityId, status: TaskStatus) => Promise<void>;
     assignTask: (id: EntityId, assigneeIds: EntityId[]) => Promise<void>;
@@ -69,6 +69,7 @@ interface Actions {
     markAllNotificationsRead: () => Promise<void>;
     sendNotification: (userId: EntityId, type: 'mention' | 'assignment' | 'status_change' | 'system', title: string, message: string, link?: string) => Promise<void>;
     claimTask: (taskId: EntityId) => Promise<boolean>;
+    toggleFocusMode: () => void;
 }
 
 type Store = AppState & Actions;
@@ -84,7 +85,10 @@ export const useStore = create<Store>((set, get) => ({
     habits: {},
     activities: {}, // Activity Logs
     notifications: {}, // Notifications
+    isFocusMode: false,
 
+
+    toggleFocusMode: () => set(state => ({ isFocusMode: !state.isFocusMode })),
 
     initialize: async () => {
         const { data: { user } } = await supabase.auth.getUser();
@@ -316,22 +320,22 @@ export const useStore = create<Store>((set, get) => ({
         }
 
         const { error } = await supabase.from('tasks').insert({
-            id: newTask.id,
-            title: newTask.title,
-            description: newTask.description,
-            status: newTask.status,
-            priority: newTask.priority,
-            project_id: newTask.projectId,
-            due_date: newTask.dueDate ? new Date(newTask.dueDate).toISOString() : null,
-            tags: newTask.tags,
-            created_at: new Date(newTask.createdAt).toISOString(),
-            updated_at: new Date(newTask.updatedAt).toISOString(),
-            owner_id: newTask.ownerId,
-            assignee_ids: newTask.assigneeIds,
-            visibility: newTask.visibility,
-            smart_analysis: newTask.smartAnalysis,
-            source: newTask.source,
-            estimated_minutes: newTask.estimatedMinutes
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            status: task.status,
+            priority: task.priority,
+            project_id: task.projectId,
+            due_date: task.dueDate ? new Date(task.dueDate).toISOString() : null,
+            tags: task.tags,
+            created_at: new Date(task.createdAt).toISOString(),
+            updated_at: new Date(task.updatedAt).toISOString(),
+            owner_id: task.ownerId,
+            assignee_ids: task.assigneeIds,
+            visibility: task.visibility,
+            smart_analysis: task.smartAnalysis,
+            source: task.source,
+            estimated_minutes: task.estimatedMinutes
         });
 
         if (error) console.error(error);

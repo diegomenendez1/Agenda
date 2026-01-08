@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../core/store';
-import { CheckCircle2, Circle, AlertCircle, Calendar, Folder, Lock, Users, Edit2, Mail } from 'lucide-react';
+import { CheckCircle2, Circle, AlertCircle, Calendar, Folder, Lock, Edit2, Mail, Clock } from 'lucide-react';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 import type { Task } from '../core/types';
@@ -13,10 +13,19 @@ interface TaskItemProps {
 }
 
 export function TaskItem({ task, showProject = true, compact = false }: TaskItemProps) {
-    const { projects, toggleTaskStatus } = useStore();
+    const { projects, toggleTaskStatus, team, user } = useStore();
     const [isEditing, setIsEditing] = useState(false);
 
     const project = task.projectId ? projects[task.projectId] : null;
+
+    // Avatar Logic
+    const assigneeIds = task.assigneeIds || [];
+    const members = assigneeIds.map(id => team[id]).filter(Boolean);
+    const showAvatars = members.length > 0;
+
+    // Waiting Logic
+    const isOwner = user?.id === task.ownerId;
+    const isWaiting = isOwner && task.status === 'backlog' && assigneeIds.length > 0 && !assigneeIds.includes(user?.id || '');
 
     return (
         <>
@@ -61,6 +70,13 @@ export function TaskItem({ task, showProject = true, compact = false }: TaskItem
                         )}>
                             {task.title}
                         </span>
+
+                        {/* Waiting Badge */}
+                        {isWaiting && (
+                            <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-700 border border-amber-200">
+                                <Clock size={10} /> Waiting
+                            </span>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-3 text-xs text-text-muted">
@@ -80,21 +96,30 @@ export function TaskItem({ task, showProject = true, compact = false }: TaskItem
                             </span>
                         )}
 
-                        {(task.visibility === 'private' || (task.assigneeIds && task.assigneeIds.length > 0)) && (
-                            <div className="flex items-center gap-2 border-l border-border-subtle pl-2">
-                                {task.visibility === 'private' && <Lock size={12} />}
-                                {task.assigneeIds && task.assigneeIds.length > 0 && (
-                                    <div className="flex items-center gap-1 text-text-secondary">
-                                        <Users size={12} /> <span className="font-medium">{task.assigneeIds.length}</span>
-                                    </div>
-                                )}
-                                {task.source === 'email' && (
-                                    <div className="flex items-center gap-1 text-accent-primary animate-pulse-subtle bg-accent-primary/5 px-1.5 py-0.5 rounded text-[10px] font-bold">
-                                        <Mail size={10} /> EMAIL
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                        <div className="flex items-center gap-2 border-l border-border-subtle pl-2">
+                            {/* Avatars instead of generic count */}
+                            {showAvatars ? (
+                                <div className="flex -space-x-2">
+                                    {members.slice(0, 3).map((member, i) => (
+                                        <div key={member.id} className="w-5 h-5 rounded-full border border-bg-card relative z-10" title={member.name}>
+                                            <img src={member.avatar || `https://ui-avatars.com/api/?name=${member.name}&background=random`} alt={member.name} className="w-full h-full rounded-full object-cover" />
+                                        </div>
+                                    ))}
+                                    {members.length > 3 && (
+                                        <div className="w-5 h-5 rounded-full bg-bg-input border border-bg-card flex items-center justify-center text-[8px] font-bold z-0">
+                                            +{members.length - 3}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (task.visibility === 'private' && <Lock size={12} />)}
+
+
+                            {task.source === 'email' && (
+                                <div className="flex items-center gap-1 text-accent-primary animate-pulse-subtle bg-accent-primary/5 px-1.5 py-0.5 rounded text-[10px] font-bold">
+                                    <Mail size={10} /> EMAIL
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 

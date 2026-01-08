@@ -33,7 +33,7 @@ export function InboxView() {
                     </p>
                 </header>
 
-                <div className="max-w-2xl shadow-lg shadow-accent-primary/5 rounded-xl">
+                <div className="w-full mb-6">
                     <SmartInput onCapture={handleCapture} />
                 </div>
             </div>

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useStore } from '../core/store';
 import type { TaskStatus, Task } from '../core/types';
 import { clsx } from 'clsx';
-import { MoreHorizontal, Plus, Calendar, AlertCircle, CheckCircle2, Lock, Flag, Clock } from 'lucide-react';
+import { MoreHorizontal, Calendar, AlertCircle, CheckCircle2, Lock, Flag, Clock, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { EditTaskModal } from './EditTaskModal';
 
@@ -20,7 +20,7 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
-    const { tasks: storeTasks, updateStatus, updateTask, addTask, user, team } = useStore();
+    const { tasks: storeTasks, updateStatus, updateTask, user, team } = useStore();
     const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
 
@@ -152,15 +152,29 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                     {task.status === 'backlog' && (
                                         <>
                                             {task.ownerId !== user?.id ? (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        updateTask(task.id, { status: 'todo', acceptedAt: Date.now() });
-                                                    }}
-                                                    className="w-full mb-3 py-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 hover:from-emerald-500 hover:to-teal-500 border border-emerald-500/20 hover:border-transparent text-emerald-600 hover:text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm"
-                                                >
-                                                    <CheckCircle2 size={14} /> Accept Task
-                                                </button>
+                                                <div className="flex gap-2 w-full mb-3">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            updateTask(task.id, { status: 'todo', acceptedAt: Date.now() });
+                                                        }}
+                                                        className="flex-1 py-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 hover:from-emerald-500 hover:to-teal-500 border border-emerald-500/20 hover:border-transparent text-emerald-600 hover:text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2 shadow-sm"
+                                                    >
+                                                        <CheckCircle2 size={14} /> Accept
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            // Reject logic: Remove self from assignees
+                                                            const newAssignees = (task.assigneeIds || []).filter(id => id !== user?.id);
+                                                            updateTask(task.id, { assigneeIds: newAssignees });
+                                                        }}
+                                                        className="px-3 py-2 bg-bg-input hover:bg-red-50 text-text-muted hover:text-red-500 border border-border-subtle hover:border-red-200 rounded-lg transition-colors"
+                                                        title="Reject & Remove Me"
+                                                    >
+                                                        <X size={14} />
+                                                    </button>
+                                                </div>
                                             ) : (
                                                 task.visibility === 'private' ? (
                                                     <button
@@ -216,7 +230,7 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                                 return (
                                                     <div className="flex items-center gap-1.5 overflow-hidden pl-1">
                                                         <div className="flex -space-x-2 shrink-0">
-                                                            {members.slice(0, 3).map((member, i) => {
+                                                            {members.slice(0, 3).map((member) => {
                                                                 // Deterministic color based on name length/char
                                                                 const colors = ['bg-pink-500', 'bg-violet-500', 'bg-indigo-500', 'bg-cyan-500', 'bg-teal-500', 'bg-emerald-500', 'bg-orange-500'];
                                                                 const colorClass = colors[member.name.length % colors.length];
@@ -268,16 +282,19 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                         </div>
                     </div>
                 </div>
-            ))}
+            ))
+            }
 
-            {editingTask && (
-                <EditTaskModal
-                    task={editingTask}
-                    onClose={() => {
-                        setEditingTask(null);
-                    }}
-                />
-            )}
-        </div>
+            {
+                editingTask && (
+                    <EditTaskModal
+                        task={editingTask}
+                        onClose={() => {
+                            setEditingTask(null);
+                        }}
+                    />
+                )
+            }
+        </div >
     );
 }

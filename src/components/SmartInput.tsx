@@ -66,8 +66,10 @@ export function SmartInput({ onCapture, isProcessing = false }: SmartInputProps)
             )} />
 
             <div className={clsx(
-                "relative bg-bg-card border border-border-subtle rounded-xl overflow-hidden transition-all shadow-xl",
-                (isExpanded || text.length > 0) ? "shadow-accent-primary/10 border-accent-primary/30" : "shadow-none"
+                "relative bg-bg-card border border-border-subtle rounded-xl overflow-hidden transition-all",
+                (isExpanded || text.length > 0)
+                    ? "shadow-xl shadow-accent-primary/10 border-accent-primary/30"
+                    : "shadow-sm hover:shadow-md" // Match list items
             )}>
 
                 {/* Header Indicators */}

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { X, Folder, Flag, Clock, Trash2, User, Lock, Sparkles, ArrowRight, Layout } from 'lucide-react';
+import { X, Folder, Flag, Clock, Trash2, User, Lock, Sparkles, ArrowRight, Layout, AlertTriangle } from 'lucide-react';
 import { useStore } from '../core/store';
 import { ActivityFeed } from './ActivityFeed'; // Import ActivityFeed
-import type { Task, Priority } from '../core/types';
+import type { Task, Priority, TaskStatus } from '../core/types';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 
@@ -77,15 +77,19 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
             setShowAIPreview(true);
         } catch (error) {
             console.error(error);
-            alert('AI Error. Check if n8n is active.');
+            setErrorMsg('AI Analysis failed. Please check your connection.');
+            // Auto hide error after 3s
+            setTimeout(() => setErrorMsg(null), 4000);
         } finally {
             setAiLoading(false);
         }
     };
     // Permission Logic
     const isOwner = user?.id === task.ownerId;
-    // We snapshot the initial list. Non-owners cannot remove anyone who was ALREADY on the list.
-    const initialAssigneeList = task.assigneeIds || [];
+
+    // UI States
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     // Handle escape key
     useEffect(() => {
@@ -109,7 +113,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
 
         // Check for new shared assignment (Reset to Backlog logic)
         // If we are adding new assignees (other than self), we should reset status to 'backlog' so they can accept it.
-        let status = isProcessing ? 'todo' : undefined;
+        let status: TaskStatus | undefined = isProcessing ? 'todo' : undefined;
         let acceptedAt = undefined;
 
         const oldIds = (task.assigneeIds || []).sort();
@@ -121,7 +125,6 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
             const isSelf = newIds.length === 1 && newIds[0] === user?.id;
 
             // If sharing with others, force backlog for acceptance flow
-            // UNLESS it's already done? (Optional: keep done as done? User didn't specify, but usually re-assigning a done task might mean re-opening or just archive. Let's assume re-opening if needed, but safest is backlog).
             if (!isSelf && task.status !== 'done') {
                 status = 'backlog';
                 acceptedAt = null; // Explicitly clear acceptance
@@ -143,10 +146,8 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
     };
 
     const handleDelete = () => {
-        if (confirm('Are you sure you want to delete this task?')) {
-            deleteTask(task.id);
-            onClose();
-        }
+        deleteTask(task.id);
+        onClose();
     }
 
     return (
@@ -163,6 +164,12 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                         </h2>
                     </div>
                     <div className="flex items-center gap-2">
+                        {errorMsg && (
+                            <span className="text-xs font-bold text-red-500 animate-pulse mr-2 flex items-center gap-1">
+                                <AlertTriangle size={12} /> {errorMsg}
+                            </span>
+                        )}
+
                         <button
                             type="button"
                             onClick={() => setShowActivity(!showActivity)}
@@ -179,14 +186,36 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                         </button>
 
                         {isOwner && (
-                            <button
-                                type="button"
-                                onClick={handleDelete}
-                                className="text-text-muted hover:text-red-500 hover:bg-red-500/10 transition-colors p-2 rounded-lg"
-                                title="Delete Task"
-                            >
-                                <Trash2 size={18} />
-                            </button>
+                            <div className="relative">
+                                {showDeleteConfirm ? (
+                                    <div className="absolute top-full right-0 mt-2 bg-bg-card border border-border-subtle shadow-xl rounded-xl p-3 z-[60] min-w-[200px] animate-in slide-in-from-top-2">
+                                        <p className="text-xs font-bold text-text-primary mb-2">Delete this task?</p>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => setShowDeleteConfirm(false)}
+                                                className="flex-1 px-2 py-1.5 bg-bg-input rounded-lg text-xs font-medium hover:bg-bg-card-hover"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={handleDelete}
+                                                className="flex-1 px-2 py-1.5 bg-red-500 text-white rounded-lg text-xs font-bold hover:bg-red-600 shadow-sm"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowDeleteConfirm(true)}
+                                        className="text-text-muted hover:text-red-500 hover:bg-red-500/10 transition-colors p-2 rounded-lg"
+                                        title="Delete Task"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                )}
+                            </div>
                         )}
                         <button type="button" onClick={onClose} className="text-text-muted hover:text-text-primary hover:bg-bg-input p-2 rounded-lg transition-colors">
                             <X size={20} />
