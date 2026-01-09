@@ -83,12 +83,24 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                     available_team: Object.values(team).map(m => ({ id: m.id, name: m.name })),
                     // Context injection for better AI decision making
                     team_context: user?.preferences?.aiContext || "Focus on logistics, shipments, and internal team coordination. Ignore external HR spam or irrelevant newsletters."
-                })
+                }),
+                timeout: 60000 // Correctly placed inside the options object
             });
 
             if (!response.ok) {
-                await response.text().catch(() => 'No error details');
-                throw new Error(`Server connection failed (${response.status})`);
+                const errorText = await response.text().catch(() => '');
+                console.error("Webhook Error Details:", { status: response.status, text: errorText, url: webhookUrl });
+
+                if (response.status === 404) {
+                    if (errorText.includes("active")) {
+                        throw new Error('404: Workflow is NOT ACTIVE. Turn on the switch in n8n.');
+                    }
+                    throw new Error(`404: Webhook URL Not Found. Server: "${errorText.substring(0, 50)}"`);
+                }
+                if (response.status >= 500) {
+                    throw new Error(`n8n Error (${response.status}): Check workflow logs/model.`);
+                }
+                throw new Error(`Connection failed (${response.status}): ${errorText.substring(0, 100)}`);
             }
 
             const responseText = await response.text();
@@ -139,8 +151,21 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                 applySingleResult(results[0]);
             } else {
                 // Multi-Task Flow (New)
-                setCandidates(results);
-                setSelectedCandidates(results.map((_, idx) => idx)); // Select all by default
+                const priorityOrder: Record<string, number> = {
+                    'critical': 0, 'P1': 0,
+                    'high': 1, 'P2': 1,
+                    'medium': 2, 'P3': 2,
+                    'low': 3, 'P4': 3
+                };
+
+                const sortedResults = [...results].sort((a, b) => {
+                    const pA = priorityOrder[a.ai_priority] ?? 4;
+                    const pB = priorityOrder[b.ai_priority] ?? 4;
+                    return pA - pB;
+                });
+
+                setCandidates(sortedResults);
+                setSelectedCandidates([]); // No select by default as requested
             }
 
             setShowAIPreview(true);
@@ -155,24 +180,24 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
 
     const applySingleResult = (data: AIResponse) => {
         const priorityMap: Record<string, Priority> = {
-            'P1': 'critical', 'P2': 'high', 'P3': 'medium', 'P4': 'low'
+            'P1': 'critical', 'P2': 'high', 'P3': 'medium', 'P4': 'low',
+            'critical': 'critical', 'high': 'high', 'medium': 'medium', 'low': 'low'
         };
 
         if (data.ai_title) setTitle(data.ai_title);
 
-        const mappedPriority = priorityMap[data.ai_priority as string] || data.ai_priority;
-        if (['critical', 'high', 'medium', 'low'].includes(mappedPriority)) {
-            setPriority(mappedPriority as Priority);
-        }
+        const mappedPriority = priorityMap[data.ai_priority as string] || 'medium';
+        setPriority(mappedPriority as Priority);
 
         if (data.ai_date) setDueDate(data.ai_date.split('T')[0]);
         if (data.ai_context) setContext(data.ai_context);
         if (data.ai_project_id) setSelectedProjectId(data.ai_project_id);
         if (data.ai_assignee_ids && Array.isArray(data.ai_assignee_ids)) {
-            if (data.ai_assignee_ids.length > 0) {
-                setAssigneeIds(data.ai_assignee_ids);
-            }
+            setAssigneeIds(data.ai_assignee_ids);
         }
+
+        // Ensure UI transitions
+        setIsProcessing(false);
     };
 
     const [isSuccess, setIsSuccess] = useState(false);
@@ -232,6 +257,8 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                     status: 'backlog'
                 });
             }
+
+            // THE CRITICAL FIX: Delete the item and close the modal IMMEDIATELY
             await deleteInboxItem(item.id);
             onClose();
         } catch (e) {
@@ -544,42 +571,56 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
 
                 {/* Footer */}
                 {((isEditingDetails && candidates.length <= 1) || candidates.length > 1) && (
-                    <div className="p-6 border-t border-border-subtle bg-bg-app/50 flex justify-end gap-3 mt-auto">
-                        <button
-                            onClick={onClose}
-                            className="px-6 py-2.5 text-text-secondary hover:text-text-primary hover:bg-bg-card-hover rounded-xl transition-colors font-bold text-sm"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={candidates.length > 1 ? handleSaveMultiple : handleSave}
-                            disabled={isSuccess || (candidates.length > 1 && selectedCandidates.length === 0)}
-                            className={clsx(
-                                "text-white px-8 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2 text-sm",
-                                isSuccess
-                                    ? "bg-green-500 shadow-green-500/30 scale-105"
-                                    : "bg-accent-primary hover:bg-accent-primary/90 shadow-accent-primary/20 hover:shadow-accent-primary/30",
-                                (candidates.length > 1 && selectedCandidates.length === 0) && "opacity-50 cursor-not-allowed"
-                            )}
-                        >
-                            {isSuccess ? (
-                                <>
-                                    <Check size={18} className="animate-bounce" />
-                                    <span>Confirmed!</span>
-                                </>
-                            ) : candidates.length > 1 ? (
-                                <>
-                                    <ListTodo size={18} />
-                                    <span>Create {selectedCandidates.length} Tasks</span>
-                                </>
-                            ) : (
-                                <>
-                                    <span>Confirm & Create</span>
-                                    <ArrowRight size={16} />
-                                </>
-                            )}
-                        </button>
-                    </div>
+                    {((isEditingDetails && candidates.length <= 1) || candidates.length > 1) && (
+                        <div className="p-6 border-t border-border-subtle bg-bg-app/50 flex items-center justify-between mt-auto">
+                            <div>
+                                {candidates.length > 1 && (
+                                    <button
+                                        onClick={() => setCandidates([])}
+                                        className="text-text-muted hover:text-text-primary text-xs font-bold uppercase tracking-wider px-2 py-1 rounded hover:bg-bg-subtle transition-colors"
+                                    >
+                                        Switch to Manual
+                                    </button>
+                                )}
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={onClose}
+                                    className="px-6 py-2.5 text-text-secondary hover:text-text-primary hover:bg-bg-card-hover rounded-xl transition-colors font-bold text-sm"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={candidates.length > 1 ? handleSaveMultiple : handleSave}
+                                    disabled={isSuccess || (candidates.length > 1 && selectedCandidates.length === 0)}
+                                    className={clsx(
+                                        "text-white px-8 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2 text-sm",
+                                        isSuccess
+                                            ? "bg-green-500 shadow-green-500/30 scale-105"
+                                            : "bg-accent-primary hover:bg-accent-primary/90 shadow-accent-primary/20 hover:shadow-accent-primary/30",
+                                        (candidates.length > 1 && selectedCandidates.length === 0) && "opacity-50 cursor-not-allowed"
+                                    )}
+                                >
+                                    {isSuccess ? (
+                                        <>
+                                            <Check size={18} className="animate-bounce" />
+                                            <span>Confirmed!</span>
+                                        </>
+                                    ) : candidates.length > 1 ? (
+                                        <>
+                                            <ListTodo size={18} />
+                                            <span>Create {selectedCandidates.length} Tasks</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>Confirm & Create</span>
+                                            <ArrowRight size={16} />
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 )}
             </div>
         </div>
