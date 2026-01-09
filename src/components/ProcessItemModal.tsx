@@ -178,53 +178,67 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
     const [isSuccess, setIsSuccess] = useState(false);
 
     const handleSave = async () => {
-        setIsSuccess(true);
-        // Micro-interaction delay for visual feedback
-        await new Promise(resolve => setTimeout(resolve, 600));
+        setError(null);
+        try {
+            setIsSuccess(true);
+            // Micro-interaction delay for visual feedback
+            await new Promise(resolve => setTimeout(resolve, 600));
 
-        // Derived Visibility
-        const finalVisibility = assigneeIds.length > 0 ? 'team' : 'private';
+            // Derived Visibility
+            const finalVisibility = assigneeIds.length > 0 ? 'team' : 'private';
 
-        await convertInboxToTask(item.id, {
-            title,
-            priority,
-            projectId: selectedProjectId || undefined,
-            dueDate: dueDate ? new Date(dueDate).getTime() : undefined,
-            description: context,
-            assigneeIds,
-            visibility: finalVisibility,
-            status: 'backlog'
-        });
-        onClose();
+            await convertInboxToTask(item.id, {
+                title,
+                priority,
+                projectId: selectedProjectId || undefined,
+                dueDate: dueDate ? new Date(dueDate).getTime() : undefined,
+                description: context,
+                assigneeIds,
+                visibility: finalVisibility,
+                status: 'backlog'
+            });
+            onClose();
+        } catch (e) {
+            console.error("Failed to process item:", e);
+            setIsSuccess(false);
+            setError("Failed to save task. Please check your connection.");
+        }
     };
 
     const handleSaveMultiple = async () => {
         if (selectedCandidates.length === 0) return;
-        setIsSuccess(true);
-        await new Promise(resolve => setTimeout(resolve, 600));
+        setError(null);
+        try {
+            setIsSuccess(true);
+            await new Promise(resolve => setTimeout(resolve, 600));
 
-        const priorityMap: Record<string, Priority> = { 'P1': 'critical', 'P2': 'high', 'P3': 'medium', 'P4': 'low' };
+            const priorityMap: Record<string, Priority> = { 'P1': 'critical', 'P2': 'high', 'P3': 'medium', 'P4': 'low' };
 
-        // Filter candidates
-        const tasksToCreate = candidates.filter((_, idx) => selectedCandidates.includes(idx));
+            // Filter candidates
+            const tasksToCreate = candidates.filter((_, idx) => selectedCandidates.includes(idx));
 
-        for (const data of tasksToCreate) {
-            const prio = priorityMap[data.ai_priority as string] || data.ai_priority || 'medium';
-            const finalVisibility = (data.ai_assignee_ids?.length || 0) > 0 ? 'team' : 'private';
+            for (const data of tasksToCreate) {
+                const prio = priorityMap[data.ai_priority as string] || data.ai_priority || 'medium';
+                const finalVisibility = (data.ai_assignee_ids?.length || 0) > 0 ? 'team' : 'private';
 
-            await addTask({
-                title: data.ai_title,
-                priority: prio as Priority,
-                projectId: data.ai_project_id,
-                dueDate: data.ai_date ? new Date(data.ai_date).getTime() : undefined,
-                description: data.ai_context,
-                assigneeIds: data.ai_assignee_ids || [],
-                visibility: finalVisibility,
-                status: 'backlog'
-            });
+                await addTask({
+                    title: data.ai_title,
+                    priority: prio as Priority,
+                    projectId: data.ai_project_id,
+                    dueDate: data.ai_date ? new Date(data.ai_date).getTime() : undefined,
+                    description: data.ai_context,
+                    assigneeIds: data.ai_assignee_ids || [],
+                    visibility: finalVisibility,
+                    status: 'backlog'
+                });
+            }
+            await deleteInboxItem(item.id);
+            onClose();
+        } catch (e) {
+            console.error("Failed to create tasks:", e);
+            setIsSuccess(false);
+            setError("Failed to create tasks. Please try again.");
         }
-        await deleteInboxItem(item.id);
-        onClose();
     };
 
     return (

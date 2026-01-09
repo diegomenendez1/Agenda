@@ -15,7 +15,7 @@ const hydrateTask = (t: any): Task => ({
     createdAt: t.created_at ? new Date(t.created_at).getTime() : Date.now(),
     updatedAt: t.updated_at ? new Date(t.updated_at).getTime() : (t.created_at ? new Date(t.created_at).getTime() : Date.now()),
     completedAt: t.completed_at ? new Date(t.completed_at).getTime() : undefined,
-    ownerId: t.owner_id,
+    ownerId: t.user_id, // Fixed: Map DB 'user_id' into app 'ownerId'
     visibility: t.visibility,
     assigneeIds: t.assignee_ids || [],
     smartAnalysis: t.smart_analysis,
@@ -332,9 +332,9 @@ export const useStore = create<Store>((set, get) => ({
             project_id: task.projectId,
             due_date: task.dueDate ? new Date(task.dueDate).toISOString() : null,
             tags: task.tags,
-            created_at: new Date(task.createdAt).toISOString(),
-            updated_at: new Date(task.updatedAt).toISOString(),
-            owner_id: task.ownerId,
+            created_at: task.createdAt, // Assumed BigInt
+            updated_at: new Date(task.updatedAt).toISOString(), // Assumed Timestamp
+            user_id: task.ownerId,
             assignee_ids: task.assigneeIds,
             visibility: task.visibility,
             smart_analysis: task.smartAnalysis,
@@ -342,7 +342,15 @@ export const useStore = create<Store>((set, get) => ({
             estimated_minutes: task.estimatedMinutes
         });
 
-        if (error) console.error(error);
+        if (error) {
+            console.error("Failed to persist task:", error);
+            // Rollback optimistic update
+            set(state => {
+                const { [id]: _, ...rest } = state.tasks;
+                return { tasks: rest };
+            });
+            throw error;
+        }
 
         return id;
     },
@@ -420,7 +428,7 @@ export const useStore = create<Store>((set, get) => ({
             }
         }));
 
-        await supabase.from('tasks').update({ status: newStatus, completed_at: newStatus === 'done' ? Date.now() : null, updated_at: new Date().toISOString() }).eq('id', id);
+        await supabase.from('tasks').update({ status: newStatus, completed_at: newStatus === 'done' ? new Date().toISOString() : null, updated_at: new Date().toISOString() }).eq('id', id);
     },
 
     deleteTask: async (id) => {
