@@ -571,56 +571,54 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
 
                 {/* Footer */}
                 {((isEditingDetails && candidates.length <= 1) || candidates.length > 1) && (
-                    {((isEditingDetails && candidates.length <= 1) || candidates.length > 1) && (
-                        <div className="p-6 border-t border-border-subtle bg-bg-app/50 flex items-center justify-between mt-auto">
-                            <div>
-                                {candidates.length > 1 && (
-                                    <button
-                                        onClick={() => setCandidates([])}
-                                        className="text-text-muted hover:text-text-primary text-xs font-bold uppercase tracking-wider px-2 py-1 rounded hover:bg-bg-subtle transition-colors"
-                                    >
-                                        Switch to Manual
-                                    </button>
-                                )}
-                            </div>
-                            <div className="flex gap-3">
+                    <div className="p-6 border-t border-border-subtle bg-bg-app/50 flex items-center justify-between mt-auto">
+                        <div>
+                            {candidates.length > 1 && (
                                 <button
-                                    onClick={onClose}
-                                    className="px-6 py-2.5 text-text-secondary hover:text-text-primary hover:bg-bg-card-hover rounded-xl transition-colors font-bold text-sm"
+                                    onClick={() => setCandidates([])}
+                                    className="text-text-muted hover:text-text-primary text-xs font-bold uppercase tracking-wider px-2 py-1 rounded hover:bg-bg-subtle transition-colors"
                                 >
-                                    Cancel
+                                    Switch to Manual
                                 </button>
-                                <button
-                                    onClick={candidates.length > 1 ? handleSaveMultiple : handleSave}
-                                    disabled={isSuccess || (candidates.length > 1 && selectedCandidates.length === 0)}
-                                    className={clsx(
-                                        "text-white px-8 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2 text-sm",
-                                        isSuccess
-                                            ? "bg-green-500 shadow-green-500/30 scale-105"
-                                            : "bg-accent-primary hover:bg-accent-primary/90 shadow-accent-primary/20 hover:shadow-accent-primary/30",
-                                        (candidates.length > 1 && selectedCandidates.length === 0) && "opacity-50 cursor-not-allowed"
-                                    )}
-                                >
-                                    {isSuccess ? (
-                                        <>
-                                            <Check size={18} className="animate-bounce" />
-                                            <span>Confirmed!</span>
-                                        </>
-                                    ) : candidates.length > 1 ? (
-                                        <>
-                                            <ListTodo size={18} />
-                                            <span>Create {selectedCandidates.length} Tasks</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span>Confirm & Create</span>
-                                            <ArrowRight size={16} />
-                                        </>
-                                    )}
-                                </button>
-                            </div>
+                            )}
                         </div>
-                    )}
+                        <div className="flex gap-3">
+                            <button
+                                onClick={onClose}
+                                className="px-6 py-2.5 text-text-secondary hover:text-text-primary hover:bg-bg-card-hover rounded-xl transition-colors font-bold text-sm"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={candidates.length > 1 ? handleSaveMultiple : handleSave}
+                                disabled={isSuccess || (candidates.length > 1 && selectedCandidates.length === 0)}
+                                className={clsx(
+                                    "text-white px-8 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2 text-sm",
+                                    isSuccess
+                                        ? "bg-green-500 shadow-green-500/30 scale-105"
+                                        : "bg-accent-primary hover:bg-accent-primary/90 shadow-accent-primary/20 hover:shadow-accent-primary/30",
+                                    (candidates.length > 1 && selectedCandidates.length === 0) && "opacity-50 cursor-not-allowed"
+                                )}
+                            >
+                                {isSuccess ? (
+                                    <>
+                                        <Check size={18} className="animate-bounce" />
+                                        <span>Confirmed!</span>
+                                    </>
+                                ) : candidates.length > 1 ? (
+                                    <>
+                                        <ListTodo size={18} />
+                                        <span>Create {selectedCandidates.length} Tasks</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span>Confirm & Create</span>
+                                        <ArrowRight size={16} />
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>
