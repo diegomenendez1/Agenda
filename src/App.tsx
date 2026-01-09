@@ -11,6 +11,7 @@ import { TeamBoardView } from './features/TeamBoardView';
 import { AuthView } from './features/AuthView';
 import { AdminView } from './features/AdminView';
 import { SettingsView } from './features/SettingsView';
+import { KPIView } from './features/KPIView';
 import { CommandPalette } from './components/CommandPalette';
 import { Sidebar } from './components/Sidebar';
 import { DailyDigestModal } from './components/DailyDigestModal';
@@ -110,6 +111,7 @@ export default function App() {
                         <Route path="/projects/:projectId" element={<ProjectDetailView />} />
                         <Route path="/notes" element={<NotesView />} />
                         <Route path="/notes/:noteId" element={<NotesView />} />
+                        <Route path="/kpis" element={<KPIView />} />
                         <Route path="/admin" element={<AdminView />} />
                         <Route path="/settings" element={<SettingsView />} />
                       </Routes>

@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Inbox, CheckSquare, Calendar, Layers, StickyNote, Users, Sparkles, LogOut, Shield, ChevronRight } from 'lucide-react';
+import { Inbox, CheckSquare, Calendar, Layers, StickyNote, Users, Sparkles, LogOut, Shield, ChevronRight, TrendingUp } from 'lucide-react';
 import { useStore } from '../core/store';
 import { supabase } from '../core/supabase';
 import { NotificationCenter } from './NotificationCenter';
@@ -21,6 +21,7 @@ export function Sidebar() {
         { icon: Users, label: 'Team', path: '/team' },
         { icon: Calendar, label: 'Calendar', path: '/calendar' },
         { icon: Layers, label: 'Projects', path: '/projects' },
+        { icon: TrendingUp, label: 'Analytics', path: '/kpis' },
         { icon: StickyNote, label: 'Notes', path: '/notes' },
     ];
 
