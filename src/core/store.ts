@@ -3,6 +3,14 @@ import { supabase } from './supabase';
 import type { AppState, Task, EntityId, Note, UserProfile, TaskStatus, Habit } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
+const toSeconds = (ms?: number) => ms ? Math.round(ms / 1000) : null;
+const fromSeconds = (s?: any) => {
+    if (!s) return undefined;
+    const num = Number(s);
+    // Safety check: if it looks like MS (year > 3000), treat as MS, else Seconds
+    return num > 100000000000 ? num : num * 1000;
+};
+
 const hydrateTask = (t: any): Task => ({
     id: t.id,
     title: t.title,
@@ -10,18 +18,18 @@ const hydrateTask = (t: any): Task => ({
     status: t.status,
     priority: t.priority,
     projectId: t.project_id,
-    dueDate: t.due_date ? new Date(t.due_date).getTime() : undefined,
+    dueDate: fromSeconds(t.due_date), // BIGINT
     tags: t.tags || [],
-    createdAt: t.created_at ? new Date(t.created_at).getTime() : Date.now(),
-    updatedAt: t.updated_at ? new Date(t.updated_at).getTime() : (t.created_at ? new Date(t.created_at).getTime() : Date.now()),
-    completedAt: t.completed_at ? new Date(t.completed_at).getTime() : undefined,
+    createdAt: fromSeconds(t.created_at) || Date.now(), // BIGINT
+    updatedAt: t.updated_at ? new Date(t.updated_at).getTime() : Date.now(), // TIMESTAMPTZ (String -> Number for App)
+    completedAt: fromSeconds(t.completed_at), // BIGINT
     ownerId: t.user_id, // Fixed: Map DB 'user_id' into app 'ownerId'
     visibility: t.visibility,
     assigneeIds: t.assignee_ids || [],
     smartAnalysis: t.smart_analysis,
     source: t.source,
     estimatedMinutes: t.estimated_minutes,
-    acceptedAt: t.accepted_at ? new Date(t.accepted_at).getTime() : undefined,
+    acceptedAt: fromSeconds(t.accepted_at),
 });
 
 interface Actions {
@@ -118,7 +126,7 @@ export const useStore = create<Store>((set, get) => ({
         (inboxRes.data as any[])?.forEach((i: any) => {
             inbox[i.id] = {
                 ...i,
-                createdAt: i.created_at ? new Date(i.created_at).getTime() : Date.now()
+                createdAt: i.created_at ? fromSeconds(i.created_at) || Date.now() : Date.now()
             };
         });
 
@@ -131,8 +139,8 @@ export const useStore = create<Store>((set, get) => ({
         (projectsRes.data as any[])?.forEach((p: any) => {
             projects[p.id] = {
                 ...p,
-                createdAt: p.created_at ? new Date(p.created_at).getTime() : Date.now(),
-                deadline: p.deadline ? new Date(p.deadline).getTime() : undefined
+                createdAt: p.created_at ? fromSeconds(p.created_at) || Date.now() : Date.now(),
+                deadline: fromSeconds(p.deadline)
             }
         });
 
@@ -141,8 +149,8 @@ export const useStore = create<Store>((set, get) => ({
             notes[n.id] = {
                 ...n,
                 projectId: n.project_id,
-                createdAt: n.created_at ? new Date(n.created_at).getTime() : Date.now(),
-                updatedAt: n.updated_at ? new Date(n.updated_at).getTime() : Date.now()
+                createdAt: fromSeconds(n.created_at) || Date.now(),
+                updatedAt: fromSeconds(n.updated_at) || Date.now()
             };
         });
 
@@ -162,7 +170,7 @@ export const useStore = create<Store>((set, get) => ({
             notifications[n.id] = {
                 ...n,
                 userId: n.user_id,
-                createdAt: n.created_at ? new Date(n.created_at).getTime() : Date.now()
+                createdAt: n.created_at ? fromSeconds(n.created_at) || Date.now() : Date.now()
             };
         });
 
@@ -266,7 +274,7 @@ export const useStore = create<Store>((set, get) => ({
             text,
             source,
             user_id: userId,
-            created_at: new Date(newItem.createdAt).toISOString()
+            created_at: newItem.createdAt // BIGINT (Number)
         });
         if (error) {
             console.error(error);
@@ -324,10 +332,10 @@ export const useStore = create<Store>((set, get) => ({
             status: task.status,
             priority: task.priority,
             project_id: task.projectId,
-            due_date: task.dueDate ? new Date(task.dueDate).toISOString() : null,
+            due_date: task.dueDate, // BIGINT (Number)
             tags: task.tags,
-            created_at: new Date(task.createdAt).toISOString(),
-            updated_at: new Date(task.updatedAt).toISOString(),
+            created_at: task.createdAt, // BIGINT (Number)
+            updated_at: new Date(task.updatedAt).toISOString(), // TIMESTAMPTZ (String)
             user_id: task.ownerId,
             assignee_ids: task.assigneeIds,
             visibility: task.visibility,
@@ -380,10 +388,10 @@ export const useStore = create<Store>((set, get) => ({
         if (updates.status !== undefined) dbUpdates.status = updates.status;
         if (updates.priority !== undefined) dbUpdates.priority = updates.priority;
         if (updates.projectId !== undefined) dbUpdates.project_id = updates.projectId;
-        if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate ? new Date(updates.dueDate).toISOString() : null;
+        if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate; // BIGINT (Number)
         if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
-        if (updates.updatedAt !== undefined) dbUpdates.updated_at = new Date(updates.updatedAt).toISOString();
-        if (updates.completedAt !== undefined) dbUpdates.completed_at = updates.completedAt ? new Date(updates.completedAt).toISOString() : null;
+        if (updates.updatedAt !== undefined) dbUpdates.updated_at = new Date(updates.updatedAt).toISOString(); // TIMESTAMPTZ (String)
+        if (updates.completedAt !== undefined) dbUpdates.completed_at = updates.completedAt; // BIGINT (Number)
         if (updates.assigneeIds !== undefined) {
             dbUpdates.assignee_ids = updates.assigneeIds;
             const currentUserId = get().user?.id;
@@ -441,13 +449,13 @@ export const useStore = create<Store>((set, get) => ({
             }
         }));
 
-        const completedAt = newStatus === 'done' ? new Date().toISOString() : null;
-        const updatedAt = new Date().toISOString();
+        const completedAt = newStatus === 'done' ? Date.now() : null;
+        const updatedAt = Date.now();
 
         await supabase.from('tasks').update({
             status: newStatus,
-            completed_at: completedAt,
-            updated_at: updatedAt
+            completed_at: completedAt, // BIGINT (Number)
+            updated_at: new Date(updatedAt).toISOString() // TIMESTAMPTZ (String)
         }).eq('id', id);
     },
 
@@ -494,7 +502,7 @@ export const useStore = create<Store>((set, get) => ({
             goal,
             color,
             user_id: userId,
-            created_at: new Date(now).toISOString()
+            created_at: toSeconds(now)
         });
         return id;
     },
@@ -511,8 +519,8 @@ export const useStore = create<Store>((set, get) => ({
             title,
             body,
             user_id: userId,
-            created_at: new Date(now).toISOString(),
-            updated_at: new Date(now).toISOString()
+            created_at: now, // BIGINT (Number)
+            updated_at: new Date(now).toISOString() // TIMESTAMPTZ (String)
         });
         return id;
     },

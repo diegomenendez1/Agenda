@@ -82,7 +82,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                     // Security warning: We are sending team names. Ensure n8n workflow handles this data responsibly.
                     available_team: Object.values(team).map(m => ({ id: m.id, name: m.name })),
                     // Context injection for better AI decision making
-                    team_context: user?.preferences?.aiContext || "Focus on logistics, shipments, and internal team coordination. Ignore external HR spam or irrelevant newsletters."
+                    team_context: user?.preferences?.aiContext || "CRITICAL RULE: If a task mentions 'Urgent', 'Critical', or 'ASAP', assign HIGH or CRITICAL priority even if the due date is in the future. Do not downgrade priority based on scheduling."
                 }),
                 timeout: 60000 // Correctly placed inside the options object
             });
