@@ -59,6 +59,7 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
 
     const handleDragStart = (e: React.DragEvent, taskId: string) => {
         setDraggedTaskId(taskId);
+        e.dataTransfer.setData('text/plain', taskId);
         e.dataTransfer.effectAllowed = 'move';
     };
 
@@ -69,10 +70,15 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
 
     const handleDrop = async (e: React.DragEvent, status: TaskStatus) => {
         e.preventDefault();
-        if (draggedTaskId) {
+        const taskId = e.dataTransfer.getData('text/plain');
+
+        if (taskId) {
+            await updateStatus(taskId, status);
+        } else if (draggedTaskId) {
+            // Fallback to state if dataTransfer is empty (some browsers/conditions)
             await updateStatus(draggedTaskId, status);
-            setDraggedTaskId(null);
         }
+        setDraggedTaskId(null);
     };
 
     const getPriorityBorder = (priority: string) => {

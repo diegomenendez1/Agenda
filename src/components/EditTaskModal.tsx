@@ -153,12 +153,27 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
 
     const [isSuccess, setIsSuccess] = useState(false);
 
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSave = async (e?: React.FormEvent | React.FocusEvent) => {
+        if (e) e.preventDefault();
+
+        // Don't save if nothing changed (optional optimization, but good for onBlur)
+        if (title === task.title &&
+            description === (task.description || '') &&
+            status === task.status &&
+            projectId === (task.projectId || '') &&
+            priority === task.priority &&
+            dueDateStr === (task.dueDate ? format(new Date(task.dueDate), 'yyyy-MM-dd') : '') &&
+            JSON.stringify(assigneeIds) === JSON.stringify(task.assigneeIds)
+        ) {
+            if (e && e.type === 'submit') onClose(); // If explicit submit, close
+            return;
+        }
 
         setIsSuccess(true);
-        // Micro-interaction delay
-        await new Promise(resolve => setTimeout(resolve, 600));
+        // Micro-interaction delay only on explicit submit
+        if (e && e.type === 'submit') {
+            await new Promise(resolve => setTimeout(resolve, 600));
+        }
 
         let dueDate: number | undefined;
         if (dueDateStr) {
@@ -182,7 +197,9 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
             visibility: derivedVisibility
         });
 
-        onClose();
+        if (e && e.type === 'submit') {
+            onClose();
+        }
     };
 
     const handleDelete = () => {
@@ -337,6 +354,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                     type="text"
                                     value={title}
                                     onChange={e => setTitle(e.target.value)}
+                                    onBlur={handleSave}
                                     className={clsx(
                                         "input w-full text-lg font-medium transition-all bg-transparent border-transparent px-0 hover:bg-bg-input hover:px-3 focus:bg-bg-input focus:px-3 focus:border-accent-primary",
                                         title !== originalTitle && "ring-2 ring-violet-500/20 border-violet-500/30",
@@ -352,6 +370,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                     disabled={!canEdit}
                                     value={description}
                                     onChange={e => setDescription(e.target.value)}
+                                    onBlur={handleSave}
                                     className={clsx(
                                         "input w-full min-h-[120px] text-sm resize-y leading-relaxed",
                                         !canEdit && "opacity-70 cursor-not-allowed bg-transparent border-transparent px-0 resize-none"
