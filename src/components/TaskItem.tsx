@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../core/store';
-import { CheckCircle2, Circle, AlertCircle, Calendar, Folder, Lock, Edit2, Mail, Clock } from 'lucide-react';
+import { CheckCircle2, Circle, AlertCircle, Calendar, Folder, Lock, Edit2, Mail, Clock, Users } from 'lucide-react';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 import type { Task } from '../core/types';
@@ -26,6 +26,9 @@ export function TaskItem({ task, showProject = true, compact = false }: TaskItem
     // Waiting Logic
     const isOwner = user?.id === task.ownerId;
     const isWaiting = isOwner && task.status === 'backlog' && assigneeIds.length > 0 && !assigneeIds.includes(user?.id || '');
+
+    // Shared Logic
+    const isShared = task.visibility === 'team';
 
     return (
         <>
@@ -97,7 +100,13 @@ export function TaskItem({ task, showProject = true, compact = false }: TaskItem
                         )}
 
                         <div className="flex items-center gap-2 border-l border-border-subtle pl-2">
-                            {/* Avatars instead of generic count */}
+                            {/* Shared Badge (if no specific avatars shown, OR in addition? Let's show if shared and NOT private) */}
+                            {/* Logic: 
+                                1. If Avatars shown -> Implicitly shared.
+                                2. If No Avatars but Shared -> Show Users Icon.
+                                3. If Private -> Show Lock.
+                            */}
+
                             {showAvatars ? (
                                 <div className="flex -space-x-2">
                                     {members.slice(0, 3).map((member) => (
@@ -111,7 +120,16 @@ export function TaskItem({ task, showProject = true, compact = false }: TaskItem
                                         </div>
                                     )}
                                 </div>
-                            ) : (task.visibility === 'private' && <Lock size={12} />)}
+                            ) : (
+                                <>
+                                    {isShared && (
+                                        <div className="flex items-center gap-1 text-accent-secondary" title="Shared with Team">
+                                            <Users size={14} />
+                                        </div>
+                                    )}
+                                    {task.visibility === 'private' && <Lock size={12} />}
+                                </>
+                            )}
 
 
                             {task.source === 'email' && (
