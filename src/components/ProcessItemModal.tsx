@@ -205,10 +205,6 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
     const handleSave = async () => {
         setError(null);
         try {
-            setIsSuccess(true);
-            // Micro-interaction delay for visual feedback
-            await new Promise(resolve => setTimeout(resolve, 600));
-
             // Derived Visibility
             const finalVisibility = assigneeIds.length > 0 ? 'team' : 'private';
 
@@ -222,11 +218,15 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                 visibility: finalVisibility,
                 status: 'backlog'
             });
+
+            setIsSuccess(true);
+            // Micro-interaction delay for visual feedback
+            await new Promise(resolve => setTimeout(resolve, 800));
             onClose();
-        } catch (e) {
+        } catch (e: any) {
             console.error("Failed to process item:", e);
             setIsSuccess(false);
-            setError("Failed to save task. Please check your connection.");
+            setError(e.message || "Failed to save task. Please check your connection.");
         }
     };
 
@@ -234,9 +234,6 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
         if (selectedCandidates.length === 0) return;
         setError(null);
         try {
-            setIsSuccess(true);
-            await new Promise(resolve => setTimeout(resolve, 600));
-
             const priorityMap: Record<string, Priority> = { 'P1': 'critical', 'P2': 'high', 'P3': 'medium', 'P4': 'low' };
 
             // Filter candidates
@@ -258,13 +255,17 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                 });
             }
 
+            setIsSuccess(true);
+            // Micro-interaction delay for visual feedback
+            await new Promise(resolve => setTimeout(resolve, 800));
+
             // THE CRITICAL FIX: Delete the item and close the modal IMMEDIATELY
             await deleteInboxItem(item.id);
             onClose();
-        } catch (e) {
+        } catch (e: any) {
             console.error("Failed to create tasks:", e);
             setIsSuccess(false);
-            setError("Failed to create tasks. Please try again.");
+            setError(e.message || "Failed to create tasks. Please try again.");
         }
     };
 
