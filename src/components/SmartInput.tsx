@@ -45,7 +45,7 @@ export function SmartInput({ onCapture, isProcessing = false }: SmartInputProps)
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
             e.preventDefault();
             handleSubmit();
         }
@@ -112,6 +112,7 @@ export function SmartInput({ onCapture, isProcessing = false }: SmartInputProps)
                         <button
                             type="submit"
                             disabled={!text.trim() || isProcessing}
+                            title="Press Ctrl+Enter to capture"
                             className={clsx(
                                 "p-2 rounded-lg transition-all duration-200 mt-0.5",
                                 text.trim()
@@ -144,7 +145,7 @@ export function SmartInput({ onCapture, isProcessing = false }: SmartInputProps)
                     {/* Quick Actions / Footer */}
                     {(isExpanded || showPromptContext) && (
                         <div className="flex items-center gap-3 px-4 pb-3 pt-1 animate-in fade-in slide-in-from-top-1 border-t border-border-subtle/30 mt-1">
-                            <span className="text-xs text-text-muted">Type <kbd className="font-mono bg-bg-app border border-border-subtle rounded px-1.5 py-0.5 text-[10px] font-medium text-text-secondary">Enter</kbd> to capture</span>
+                            <span className="text-xs text-text-muted">Type <kbd className="font-mono bg-bg-app border border-border-subtle rounded px-1.5 py-0.5 text-[10px] font-medium text-text-secondary">Ctrl+Enter</kbd> to capture</span>
                             <div className="flex-1" />
                             <button
                                 type="button"

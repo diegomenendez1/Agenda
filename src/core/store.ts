@@ -260,8 +260,14 @@ export const useStore = create<Store>((set, get) => ({
         // Optimistic
         const newItem = { id, text, source, processed: false, createdAt: Date.now() };
         set(state => ({ inbox: { ...state.inbox, [id]: newItem as any } }));
-
-        const { error } = await supabase.from('inbox_items').insert({ id, text, source });
+        const userId = get().user?.id;
+        const { error } = await supabase.from('inbox_items').insert({
+            id,
+            text,
+            source,
+            user_id: userId,
+            created_at: new Date(newItem.createdAt).toISOString()
+        });
         if (error) {
             console.error(error);
             // Rollback could be implemented here
@@ -288,6 +294,7 @@ export const useStore = create<Store>((set, get) => ({
 
     addTask: async (taskData) => {
         const id = uuidv4();
+        const userId = get().user?.id || 'unknown';
         const task: any = {
             id,
             title: taskData.title,
@@ -299,9 +306,9 @@ export const useStore = create<Store>((set, get) => ({
             tags: taskData.tags || [],
             createdAt: Date.now(),
             updatedAt: Date.now(),
-            ownerId: get().user?.id || 'unknown',
+            ownerId: userId,
             assigneeIds: taskData.assigneeIds || [],
-            visibility: (taskData.assigneeIds && taskData.assigneeIds.length > 0) ? 'team' : (taskData.visibility || 'private'),
+            visibility: (taskData.assigneeIds && taskData.assigneeIds.filter(id => id !== userId).length > 0) ? 'team' : (taskData.visibility || 'private'),
             smartAnalysis: taskData.smartAnalysis,
             source: taskData.source,
             estimatedMinutes: taskData.estimatedMinutes
@@ -309,19 +316,6 @@ export const useStore = create<Store>((set, get) => ({
 
         // Optimistic update
         set(state => ({ tasks: { ...state.tasks, [id]: task } }));
-
-        // Log Activity (Automatic)
-        get().logActivity(id, 'creation', `Created task "${task.title}"`);
-
-        // Notify assignees (if any)
-        if (taskData.assigneeIds && taskData.assigneeIds.length > 0) {
-            const currentUserId = get().user?.id;
-            taskData.assigneeIds.forEach(uid => {
-                if (uid !== currentUserId) {
-                    get().sendNotification(uid, 'assignment', 'New Task Assigned', `You were assigned to "${taskData.title}"`, `/tasks/${id}`);
-                }
-            });
-        }
 
         const { error } = await supabase.from('tasks').insert({
             id: task.id,
@@ -332,8 +326,8 @@ export const useStore = create<Store>((set, get) => ({
             project_id: task.projectId,
             due_date: task.dueDate ? new Date(task.dueDate).toISOString() : null,
             tags: task.tags,
-            created_at: task.createdAt, // Assumed BigInt
-            updated_at: new Date(task.updatedAt).toISOString(), // Assumed Timestamp
+            created_at: new Date(task.createdAt).toISOString(),
+            updated_at: new Date(task.updatedAt).toISOString(),
             user_id: task.ownerId,
             assignee_ids: task.assigneeIds,
             visibility: task.visibility,
@@ -352,11 +346,23 @@ export const useStore = create<Store>((set, get) => ({
             throw error;
         }
 
+        // 3. PERSISTED ACTIONS (Log & Notify only after DB success)
+        get().logActivity(id, 'creation', `Created task "${task.title}"`);
+
+        // Notify assignees (if any)
+        if (taskData.assigneeIds && taskData.assigneeIds.length > 0) {
+            const currentUserId = get().user?.id;
+            taskData.assigneeIds.forEach(uid => {
+                if (uid !== currentUserId) {
+                    get().sendNotification(uid, 'assignment', 'New Task Assigned', `You were assigned to "${taskData.title}"`, `/tasks/${id}`);
+                }
+            });
+        }
+
         return id;
     },
 
     updateTask: async (id, updates) => {
-        // Optimistic
         set(state => {
             const task = state.tasks[id];
             if (!task) return state;
@@ -368,25 +374,32 @@ export const useStore = create<Store>((set, get) => ({
             return { tasks: { ...state.tasks, [id]: { ...task, ...finalUpdates } } };
         });
 
-        const dbUpdates: any = { ...updates };
-        if (updates.assigneeIds) {
+        const dbUpdates: any = {};
+        if (updates.title !== undefined) dbUpdates.title = updates.title;
+        if (updates.description !== undefined) dbUpdates.description = updates.description;
+        if (updates.status !== undefined) dbUpdates.status = updates.status;
+        if (updates.priority !== undefined) dbUpdates.priority = updates.priority;
+        if (updates.projectId !== undefined) dbUpdates.project_id = updates.projectId;
+        if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate ? new Date(updates.dueDate).toISOString() : null;
+        if (updates.tags !== undefined) dbUpdates.tags = updates.tags;
+        if (updates.updatedAt !== undefined) dbUpdates.updated_at = new Date(updates.updatedAt).toISOString();
+        if (updates.completedAt !== undefined) dbUpdates.completed_at = updates.completedAt ? new Date(updates.completedAt).toISOString() : null;
+        if (updates.assigneeIds !== undefined) {
             dbUpdates.assignee_ids = updates.assigneeIds;
-            dbUpdates.visibility = (updates.assigneeIds.length > 0) ? 'team' : dbUpdates.visibility;
-            delete dbUpdates.assigneeIds;
+            const currentUserId = get().user?.id;
+            const hasOthers = updates.assigneeIds.filter(id => id !== currentUserId).length > 0;
+            if (hasOthers) dbUpdates.visibility = 'team';
         }
-        if (updates.visibility) dbUpdates.visibility = updates.visibility;
-        if (updates.projectId) {
-            dbUpdates.project_id = updates.projectId;
-            delete dbUpdates.projectId;
-        }
-        if (updates.acceptedAt) {
-            dbUpdates.accepted_at = new Date(updates.acceptedAt).toISOString();
-            delete dbUpdates.acceptedAt;
-        }
+        if (updates.visibility !== undefined) dbUpdates.visibility = updates.visibility;
+        if (updates.smartAnalysis !== undefined) dbUpdates.smart_analysis = updates.smartAnalysis;
+        if (updates.source !== undefined) dbUpdates.source = updates.source;
+        if (updates.estimatedMinutes !== undefined) dbUpdates.estimated_minutes = updates.estimatedMinutes;
+        if (updates.acceptedAt !== undefined) dbUpdates.accepted_at = updates.acceptedAt ? new Date(updates.acceptedAt).toISOString() : null;
+
         await supabase.from('tasks').update(dbUpdates).eq('id', id);
 
         // Notify new assignees logic could go here similar to addTask
-        // Simplified: The caller of updateTask/assignTask usually handles specific notifications or we can hook it here. 
+        // Simplified: The caller of updateTask/assignTask usually handles specific notifications or we can hook it here.
         // For now, let's keep it simple and let distinct actions handle it or triggers.
     },
 
@@ -428,7 +441,14 @@ export const useStore = create<Store>((set, get) => ({
             }
         }));
 
-        await supabase.from('tasks').update({ status: newStatus, completed_at: newStatus === 'done' ? new Date().toISOString() : null, updated_at: new Date().toISOString() }).eq('id', id);
+        const completedAt = newStatus === 'done' ? new Date().toISOString() : null;
+        const updatedAt = new Date().toISOString();
+
+        await supabase.from('tasks').update({
+            status: newStatus,
+            completed_at: completedAt,
+            updated_at: updatedAt
+        }).eq('id', id);
     },
 
     deleteTask: async (id) => {
@@ -443,9 +463,9 @@ export const useStore = create<Store>((set, get) => ({
     clearCompletedTasks: async () => {
         const state = get();
         const completedTaskIds = Object.values(state.tasks)
-            .filter(t => t.status === 'done' && (t.ownerId === state.user?.id)) // Only delete own completed tasks or generally all completed? 
+            .filter(t => t.status === 'done' && (t.ownerId === state.user?.id)) // Only delete own completed tasks or generally all completed?
             // Better safety: only delete tasks visible to the user that are done.
-            // Even safer: Only delete tasks owned by the user. 
+            // Even safer: Only delete tasks owned by the user.
             // Logic: Filter tasks that are completed.
             .map(t => t.id);
 
@@ -463,21 +483,37 @@ export const useStore = create<Store>((set, get) => ({
 
     addProject: async (name, goal, color = '#6366f1') => {
         const id = uuidv4();
+        const now = Date.now();
         // Optimistic
-        const newProject = { id, name, goal, color, status: 'active', created_at: Date.now() };
+        const newProject = { id, name, goal, color, status: 'active', createdAt: now };
         set(state => ({ projects: { ...state.projects, [id]: newProject as any } }));
-
-        await supabase.from('projects').insert({ id, name, goal, color });
+        const userId = get().user?.id;
+        await supabase.from('projects').insert({
+            id,
+            name,
+            goal,
+            color,
+            user_id: userId,
+            created_at: new Date(now).toISOString()
+        });
         return id;
     },
 
     addNote: async (title, body) => {
         const id = uuidv4();
+        const now = Date.now();
         // Optimistic
-        const newNote = { id, title, body, created_at: Date.now(), updated_at: Date.now(), tags: [] };
+        const newNote = { id, title, body, createdAt: now, updatedAt: now, tags: [] };
         set(state => ({ notes: { ...state.notes, [id]: newNote as any } }));
-
-        await supabase.from('notes').insert({ id, title, body });
+        const userId = get().user?.id;
+        await supabase.from('notes').insert({
+            id,
+            title,
+            body,
+            user_id: userId,
+            created_at: new Date(now).toISOString(),
+            updated_at: new Date(now).toISOString()
+        });
         return id;
     },
 

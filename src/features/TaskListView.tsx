@@ -44,14 +44,21 @@ export function TaskListView() {
         return allTasks.filter(task => {
             const isAssignee = task.assigneeIds?.includes(user.id);
             const isShared = task.visibility === 'team';
-
-            // If it's a shared task, ONLY show if I am assigned to it. 
-            // Even if I am the owner, if I delegated it (shared it) and didn't assign myself, I don't want to see it in "My Tasks".
-            if (isShared && !isAssignee) return false;
-
-            // If it's private, show if I am the owner (standard)
             const isOwner = task.ownerId === user.id;
-            if (!isShared && !isOwner) return false; // Should not happen given RLS, but for robust client filtering
+
+            // View Rules:
+            // 1. Owner always sees their tasks (Private or Shared/Delegated)
+            // 2. Assignees see shared tasks
+            // 3. Team sees shared tasks (if Policy allows, but UI filters to 'My Tasks' usually. 
+            //    Here we want to ensure 'My Delegated Tasks' are visible too).
+
+            if (isShared) {
+                // Show if I am the assignee OR the owner
+                if (!isAssignee && !isOwner) return false;
+            } else {
+                // Private: Show only if Owner
+                if (!isOwner) return false;
+            }
 
             if (filter === 'all') return true;
             if (!task.dueDate) return false;
