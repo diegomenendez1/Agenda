@@ -330,10 +330,10 @@ export const useStore = create<Store>((set, get) => ({
             status: task.status,
             priority: task.priority,
             project_id: task.projectId,
-            due_date: task.dueDate ? new Date(task.dueDate).toISOString() : null,
+            due_date: task.dueDate || null, // Send timestamp (bigint)
             tags: task.tags,
-            created_at: task.createdAt,
-            updated_at: task.updatedAt,
+            created_at: new Date(task.createdAt).toISOString(), // Send ISO String (timestamptz)
+            updated_at: new Date(task.updatedAt).toISOString(), // Send ISO String (timestamptz)
             user_id: task.ownerId,
             assignee_ids: task.assigneeIds,
             visibility: task.visibility,
