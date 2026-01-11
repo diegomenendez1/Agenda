@@ -124,37 +124,69 @@ export function CalendarView() {
                             ))}
 
                             {/* Tasks overlapping the grid */}
-                            {tasksOnCalendar
-                                .filter(task => isSameDay(new Date(task.dueDate!), day))
-                                .map(task => {
-                                    const date = new Date(task.dueDate!);
-                                    const hour = date.getHours();
-                                    const minutes = date.getMinutes();
-                                    const topOffset = ((hour - 6) * 80) + ((minutes / 60) * 80);
+                            {(() => {
+                                const dayTasks = tasksOnCalendar
+                                    .filter(task => isSameDay(new Date(task.dueDate!), day))
+                                    .sort((a, b) => a.dueDate! - b.dueDate!);
 
-                                    return (
-                                        <div
-                                            key={task.id}
-                                            draggable
-                                            onDragStart={(e) => handleDragStart(e, task.id)}
-                                            className={clsx(
-                                                "absolute left-1 right-1 rounded-lg px-2.5 py-1.5 text-xs font-medium overflow-hidden hover:z-20 hover:scale-[1.02] transition-all cursor-grab active:cursor-grabbing shadow-sm border-l-[3px]",
-                                                task.priority === 'critical' ? "bg-red-500/10 border-red-500 text-red-700 dark:text-red-300" :
-                                                    task.priority === 'high' ? "bg-orange-500/10 border-orange-500 text-orange-700 dark:text-orange-300" :
-                                                        "bg-accent-primary/10 border-accent-primary text-accent-primary"
-                                            )}
-                                            style={{
-                                                top: `${topOffset}px`,
-                                                height: '75px'
-                                            }}
-                                            title={task.title}
-                                        >
-                                            <div className="font-bold truncate text-[13px]">{task.title}</div>
-                                            <div className="opacity-80 mt-0.5 font-medium">{format(date, 'h:mm a')}</div>
-                                        </div>
-                                    );
-                                })
-                            }
+                                // Group tasks into overlapping bubbles
+                                const bubbles: any[][] = [];
+                                dayTasks.forEach(task => {
+                                    let placed = false;
+                                    for (const bubble of bubbles) {
+                                        // Simple overlap check: within 1 hour of any task in bubble
+                                        const overlaps = bubble.some(t => {
+                                            const start1 = t.dueDate!;
+                                            const end1 = t.dueDate! + (60 * 60 * 1000);
+                                            const start2 = task.dueDate!;
+                                            const end2 = task.dueDate! + (60 * 60 * 1000);
+                                            return start1 < end2 && start2 < end1;
+                                        });
+                                        if (overlaps) {
+                                            bubble.push(task);
+                                            placed = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!placed) bubbles.push([task]);
+                                });
+
+                                return bubbles.flatMap(bubble => {
+                                    return bubble.map((task, idx) => {
+                                        const date = new Date(task.dueDate!);
+                                        const hour = date.getHours();
+                                        const minutes = date.getMinutes();
+                                        const topOffset = ((hour - 6) * 80) + ((minutes / 60) * 80);
+
+                                        const width = 100 / bubble.length;
+                                        const left = idx * width;
+
+                                        return (
+                                            <div
+                                                key={task.id}
+                                                draggable
+                                                onDragStart={(e) => handleDragStart(e, task.id)}
+                                                className={clsx(
+                                                    "absolute rounded-lg px-2.5 py-1.5 text-xs font-medium overflow-hidden hover:z-20 hover:scale-[1.02] transition-all cursor-grab active:cursor-grabbing shadow-sm border-l-[3px]",
+                                                    task.priority === 'critical' ? "bg-red-500/10 border-red-500 text-red-700 dark:text-red-300" :
+                                                        task.priority === 'high' ? "bg-orange-500/10 border-orange-500 text-orange-700 dark:text-orange-300" :
+                                                            "bg-accent-primary/10 border-accent-primary text-accent-primary"
+                                                )}
+                                                style={{
+                                                    top: `${topOffset}px`,
+                                                    height: '75px',
+                                                    left: `${left}%`,
+                                                    width: `${width}%`
+                                                }}
+                                                title={task.title}
+                                            >
+                                                <div className="font-bold truncate text-[13px]">{task.title}</div>
+                                                <div className="opacity-80 mt-0.5 font-medium">{format(date, 'h:mm a')}</div>
+                                            </div>
+                                        );
+                                    });
+                                });
+                            })()}
 
                             {/* Current Time Indicator */}
                             {isSameDay(day, today) && (

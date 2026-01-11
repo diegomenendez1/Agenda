@@ -27,7 +27,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
     // Visibility is derived from assignees
 
     const initialDate = task.dueDate ? new Date(task.dueDate) : null;
-    const [dueDateStr, setDueDateStr] = useState(initialDate ? format(initialDate, 'yyyy-MM-dd') : '');
+    const [dueDateStr, setDueDateStr] = useState(initialDate ? format(initialDate, "yyyy-MM-dd'T'HH:mm") : '');
 
     const [aiLoading, setAiLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("Analyzing...");
@@ -162,7 +162,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
             status === task.status &&
             projectId === (task.projectId || '') &&
             priority === task.priority &&
-            dueDateStr === (task.dueDate ? format(new Date(task.dueDate), 'yyyy-MM-dd') : '') &&
+            dueDateStr === (task.dueDate ? format(new Date(task.dueDate), "yyyy-MM-dd'T'HH:mm") : '') &&
             JSON.stringify(assigneeIds) === JSON.stringify(task.assigneeIds)
         ) {
             if (e && e.type === 'submit') onClose(); // If explicit submit, close
@@ -177,10 +177,10 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
 
         let dueDate: number | undefined;
         if (dueDateStr) {
-            const [year, month, day] = dueDateStr.split('-').map(Number);
-            const properDate = new Date(year, month - 1, day);
-            properDate.setHours(9, 0, 0, 0);
-            dueDate = properDate.getTime();
+            const date = new Date(dueDateStr);
+            if (!isNaN(date.getTime())) {
+                dueDate = date.getTime();
+            }
         }
 
         // Derived visibility
@@ -429,7 +429,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                     </label>
                                     <input
                                         disabled={!canEdit}
-                                        type="date"
+                                        type="datetime-local"
                                         value={dueDateStr}
                                         onChange={e => setDueDateStr(e.target.value)}
                                         className={clsx("input w-full", !canEdit && "opacity-70 cursor-not-allowed")}
@@ -543,29 +543,31 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                 </div>
                             </div>
 
-                            <div className="flex justify-end pt-5 border-t border-border-subtle mt-2">
-                                <button
-                                    type="submit"
-                                    disabled={isSuccess}
-                                    className={clsx(
-                                        "text-white px-8 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2",
-                                        isSuccess
-                                            ? "bg-green-500 shadow-green-500/30 scale-105"
-                                            : "bg-violet-600 hover:bg-violet-700 shadow-violet-500/20"
-                                    )}
-                                >
-                                    {isSuccess ? (
-                                        <>
-                                            <Check size={18} className="animate-bounce" />
-                                            <span>Saved!</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span>{isProcessing ? 'Confirm & To Do' : 'Save Changes'}</span>
-                                            <ArrowRight size={16} />
-                                        </>
-                                    )}
-                                </button>
+                            <div className="sticky bottom-0 bg-bg-card border-t border-border-subtle pt-5 pb-2 mt-2 -mx-6 px-6 z-10">
+                                <div className="flex justify-end">
+                                    <button
+                                        type="submit"
+                                        disabled={isSuccess}
+                                        className={clsx(
+                                            "text-white px-8 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2",
+                                            isSuccess
+                                                ? "bg-green-500 shadow-green-500/30 scale-105"
+                                                : "bg-violet-600 hover:bg-violet-700 shadow-violet-500/20"
+                                        )}
+                                    >
+                                        {isSuccess ? (
+                                            <>
+                                                <Check size={18} className="animate-bounce" />
+                                                <span>Saved!</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span>{isProcessing ? 'Confirm & To Do' : 'Save Changes'}</span>
+                                                <ArrowRight size={16} />
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
                             </div>
                         </form>
                     </div>
