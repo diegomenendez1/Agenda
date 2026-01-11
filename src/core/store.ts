@@ -79,6 +79,7 @@ interface Actions {
     markAllNotificationsRead: () => Promise<void>;
     sendNotification: (userId: EntityId, type: 'mention' | 'assignment' | 'status_change' | 'system', title: string, message: string, link?: string) => Promise<void>;
     claimTask: (taskId: EntityId) => Promise<boolean>;
+    unassignTask: (taskId: EntityId, userId: EntityId) => Promise<void>;
 }
 
 type Store = AppState & Actions;
@@ -771,15 +772,67 @@ export const useStore = create<Store>((set, get) => ({
             get().logActivity(taskId, 'assignment', `Claimed/Accepted the task`);
 
             return true;
-        } else {
-            // Task likely already taken
-            // Refresh the specific task to see the new assignee
-            const { data: updatedTask } = await supabase.from('tasks').select('*').eq('id', taskId).single();
-            if (updatedTask) {
-                const hydrated = hydrateTask(updatedTask);
-                set(state => ({ tasks: { ...state.tasks, [taskId]: hydrated } }));
-            }
             return false;
+        }
+    },
+
+    unassignTask: async (taskId, userId) => {
+        const state = get();
+        const task = state.tasks[taskId];
+        if (!task) return;
+
+        // Filter out the user
+        const newAssignees = (task.assigneeIds || []).filter(id => id !== userId);
+
+        // Determine new visibility
+        // If there are still OTHER assignees (besides owner), it stays 'team'.
+        // If the only person left is the owner (or no one), it effectively becomes private to the owner unless explicitly set otherwise.
+        // However, we usually keep 'team' if there are multiple people.
+        // If assignees is empty, it's effectively private or backlog.
+        // Let's refine: If assigneeIds is empty, visibility could be 'private'.
+        // But if the owner wants it shared, they might have set it manually? 
+        // For now, let's stick to the rule: if assigneeIds has people != ownerId, it's team. Else private.
+        const ownerId = task.ownerId;
+        const hasOtherAssignees = newAssignees.filter(id => id !== ownerId).length > 0;
+        const newVisibility = hasOtherAssignees ? 'team' : 'private';
+
+        // Optimistic Update
+        set(state => ({
+            tasks: {
+                ...state.tasks,
+                [taskId]: {
+                    ...task,
+                    assigneeIds: newAssignees,
+                    visibility: newVisibility,
+                    updatedAt: Date.now()
+                }
+            }
+        }));
+
+        // Database Update
+        await supabase.from('tasks').update({
+            assignee_ids: newAssignees,
+            visibility: newVisibility,
+            updated_at: new Date().toISOString()
+        }).eq('id', taskId);
+
+        // Activity Log
+        // Get user name for better log
+        const leavingUser = state.team[userId] || state.user;
+        const leaverName = leavingUser?.name || 'A user';
+
+        await state.logActivity(taskId, 'assignment', `${leaverName} left the task`);
+
+        // Notify Owner if the one leaving is not the owner
+        if (userId !== ownerId) {
+            state.sendNotification(
+                ownerId,
+                'assignment',
+                'Assignee Left',
+                `${leaverName} removed themselves from "${task.title}"`,
+                `/tasks/${taskId}`
+            );
         }
     }
 }));
+

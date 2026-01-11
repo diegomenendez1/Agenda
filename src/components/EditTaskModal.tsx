@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Folder, Flag, Clock, Trash2, User, Lock, Sparkles, ArrowRight, Layout, AlertTriangle, Search, Loader2, Check, Eye, EyeOff, ListTodo } from 'lucide-react';
+import { X, Folder, Flag, Clock, Trash2, User, Lock, Sparkles, ArrowRight, Layout, AlertTriangle, Search, Loader2, Check, Eye, EyeOff, ListTodo, UserMinus } from 'lucide-react';
 import { useStore } from '../core/store';
 import { ActivityFeed } from './ActivityFeed';
 import type { Task, Priority, TaskStatus } from '../core/types';
@@ -14,7 +14,7 @@ interface EditTaskModalProps {
 }
 
 export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskModalProps) {
-    const { updateTask, projects, deleteTask, team, user } = useStore();
+    const { updateTask, projects, deleteTask, unassignTask, team, user } = useStore();
     const [showActivity, setShowActivity] = useState(true);
 
     const [title, setTitle] = useState(task.title);
@@ -138,8 +138,20 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
     const isAdmin = user?.role === 'admin' || user?.role === 'owner'; // Global admin privileges
     const canEdit = isOwner || isAdmin;
 
+    // DEBUG LOG
+    useEffect(() => {
+        console.log('DEBUG: EditTaskModal', {
+            taskId: task.id,
+            userId: user?.id,
+            assigneeIds,
+            isOwner,
+            includesUser: user && assigneeIds.includes(user.id)
+        });
+    }, [task, user, assigneeIds, isOwner]);
+
     // UI States
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     // Handle escape key
@@ -270,6 +282,44 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                         title="Delete Task"
                                     >
                                         <Trash2 size={18} />
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Leave Task Button (For Assignees who are NOT Owner) */}
+                        {!isOwner && user && assigneeIds.includes(user.id) && (
+                            <div className="relative">
+                                {showLeaveConfirm ? (
+                                    <div className="absolute top-full right-0 mt-2 bg-bg-card border border-border-subtle shadow-xl rounded-xl p-3 z-[60] min-w-[200px] animate-in slide-in-from-top-2">
+                                        <p className="text-xs font-bold text-text-primary mb-2">Leave this task?</p>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => setShowLeaveConfirm(false)}
+                                                className="flex-1 px-2 py-1.5 bg-bg-input rounded-lg text-xs font-medium hover:bg-bg-card-hover"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    unassignTask(task.id, user.id);
+                                                    onClose();
+                                                }}
+                                                className="flex-1 px-2 py-1.5 bg-orange-500 text-white rounded-lg text-xs font-bold hover:bg-orange-600 shadow-sm"
+                                            >
+                                                Leave
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <button
+                                        type="button"
+                                        data-testid="leave-task-btn"
+                                        onClick={() => setShowLeaveConfirm(true)}
+                                        className="text-text-muted hover:text-orange-500 hover:bg-orange-500/10 transition-colors p-2 rounded-lg"
+                                        title="Leave Task (Unassign me)"
+                                    >
+                                        <UserMinus size={18} />
                                     </button>
                                 )}
                             </div>
