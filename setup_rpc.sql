@@ -1,0 +1,11 @@
+
+-- Create a helper function to run raw SQL (Security Definier to allow DDL)
+create or replace function exec_sql(sql_query text)
+returns void
+language plpgsql
+security definer
+as $$
+begin
+  execute sql_query;
+end;
+$$;

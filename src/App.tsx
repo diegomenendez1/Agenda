@@ -25,9 +25,9 @@ export default function App() {
 
   useEffect(() => {
     // Check active session on mount
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
-        initialize(); // Load data
+        await initialize(); // Load data
       }
       setLoading(false);
     });
