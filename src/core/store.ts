@@ -772,8 +772,9 @@ export const useStore = create<Store>((set, get) => ({
             get().logActivity(taskId, 'assignment', `Claimed/Accepted the task`);
 
             return true;
-            return false;
         }
+
+        return false;
     },
 
     unassignTask: async (taskId, userId) => {
