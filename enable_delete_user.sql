@@ -31,6 +31,11 @@ BEGIN
   DELETE FROM public.tasks WHERE user_id = target_user_id;
   DELETE FROM public.projects WHERE user_id = target_user_id;
   DELETE FROM public.team_members WHERE user_id = target_user_id;
+  DELETE FROM public.habits WHERE user_id = target_user_id;
+  DELETE FROM public.notifications WHERE user_id = target_user_id;
+  
+  -- Delete Team Memberships (where they are either manager or member)
+  DELETE FROM public.team_memberships WHERE manager_id = target_user_id OR member_id = target_user_id;
   
   -- Delete the profile
   DELETE FROM public.profiles WHERE id = target_user_id;
