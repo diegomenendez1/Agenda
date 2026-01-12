@@ -1,23 +1,39 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, Check, Clock, User, MessageSquare, AlertCircle, X } from 'lucide-react';
+import { Bell, Check, Clock, User, MessageSquare, AlertCircle, X, Trash2, CheckCheck } from 'lucide-react';
 import { useStore } from '../core/store';
 import clsx from 'clsx';
 import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';
 
 export function NotificationCenter() {
-    const { notifications, markNotificationRead, markAllNotificationsRead } = useStore();
+    const { notifications, markNotificationRead, markAllNotificationsRead, deleteNotification, clearAllNotifications } = useStore();
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
+    const contentRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
+
+    // Mark as read when opened
+    useEffect(() => {
+        if (isOpen && unreadCount > 0) {
+            // We could mark all as read automatically, or just clear the "new" visual state.
+            // Commercial apps often mark as read when you see them.
+            // Let's mark all as read when opened to clear the dot.
+            markAllNotificationsRead();
+        }
+    }, [isOpen]);
 
     const allNotifications = Object.values(notifications || {}).sort((a, b) => b.createdAt - a.createdAt);
     const unreadCount = allNotifications.filter(n => !n.read).length;
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+            const target = event.target as Node;
+            const isOutsideContainer = containerRef.current && !containerRef.current.contains(target);
+            const isOutsideContent = contentRef.current && !contentRef.current.contains(target);
+
+            if (isOutsideContainer && isOutsideContent) {
                 setIsOpen(false);
             }
         };
@@ -25,8 +41,8 @@ export function NotificationCenter() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleItemClick = (notification: any) => {
-        markNotificationRead(notification.id);
+    const handleItemClick = async (notification: any) => {
+        await markNotificationRead(notification.id);
         if (notification.link) {
             navigate(notification.link);
             setIsOpen(false);
@@ -58,6 +74,7 @@ export function NotificationCenter() {
 
             {isOpen && createPortal(
                 <div
+                    ref={contentRef}
                     className="fixed z-[9999] w-[380px] max-h-[600px] bg-bg-card border border-border-subtle rounded-xl shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200"
                     style={{
                         left: containerRef.current ? containerRef.current.getBoundingClientRect().right + 16 + 'px' : '300px',
@@ -73,21 +90,25 @@ export function NotificationCenter() {
                                 </span>
                             )}
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-1">
+                            {allNotifications.length > 0 && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        clearAllNotifications();
+                                    }}
+                                    className="p-1.5 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                                    title="Delete all"
+                                >
+                                    <Trash2 size={14} />
+                                </button>
+                            )}
                             <button
                                 onClick={() => setIsOpen(false)}
-                                className="text-text-muted hover:text-text-primary p-1 rounded transition-colors"
+                                className="p-1.5 text-text-muted hover:text-text-primary hover:bg-bg-input rounded-lg transition-colors"
                             >
                                 <X size={14} />
                             </button>
-                            {unreadCount > 0 && (
-                                <button
-                                    onClick={() => markAllNotificationsRead()}
-                                    className="text-[10px] font-bold text-accent-primary hover:bg-accent-primary/10 px-2 py-1 rounded transition-colors"
-                                >
-                                    Mark all read
-                                </button>
-                            )}
                         </div>
                     </div>
 
@@ -122,8 +143,18 @@ export function NotificationCenter() {
                                                     {notification.title}
                                                 </p>
                                                 <span className="text-[10px] text-text-muted shrink-0 whitespace-nowrap">
-                                                    {formatDistanceToNow(notification.createdAt, { addSuffix: true })}
+                                                    {formatDistanceToNow(notification.createdAt, { addSuffix: true, locale: es })}
                                                 </span>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        deleteNotification(notification.id);
+                                                    }}
+                                                    className="p-1 text-text-muted hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    title="Delete"
+                                                >
+                                                    <X size={12} />
+                                                </button>
                                             </div>
                                             <p className="text-xs text-text-muted line-clamp-2 leading-relaxed">
                                                 {notification.message}

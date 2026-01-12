@@ -16,8 +16,8 @@ test.describe('Social Scenarios UI', () => {
 
             // Login
             console.log("Logging in...");
-            await page.fill('input[type="email"]', 'lead@test.com');
-            await page.fill('input[type="password"]', 'SocialTest.2026');
+            await page.fill('input[type="email"]', 'diegomenendez1@gmail.com');
+            await page.fill('input[type="password"]', 'Yali.202');
             await page.click('button[type="submit"]');
 
             // Navigate to Projects

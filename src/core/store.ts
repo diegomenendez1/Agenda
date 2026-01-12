@@ -77,6 +77,8 @@ interface Actions {
     // Notifications
     markNotificationRead: (id: EntityId) => Promise<void>;
     markAllNotificationsRead: () => Promise<void>;
+    deleteNotification: (id: EntityId) => Promise<void>;
+    clearAllNotifications: () => Promise<void>;
     sendNotification: (userId: EntityId, type: 'mention' | 'assignment' | 'status_change' | 'system', title: string, message: string, link?: string) => Promise<void>;
     claimTask: (taskId: EntityId) => Promise<boolean>;
     unassignTask: (taskId: EntityId, userId: EntityId) => Promise<void>;
@@ -249,18 +251,26 @@ export const useStore = create<Store>((set, get) => ({
                     }
                 }
             })
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, (payload: any) => {
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, (payload: any) => {
                 const n = payload.new;
                 const currentUserId = get().user?.id;
-                // Only process if it's for me
-                if (n.user_id !== currentUserId) return;
 
-                const notification = {
-                    ...n,
-                    userId: n.user_id,
-                    createdAt: new Date(n.created_at).getTime()
-                };
-                set(state => ({ notifications: { ...state.notifications, [n.id]: notification } }));
+                if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                    // Only process if it's for me
+                    if (n.user_id !== currentUserId) return;
+
+                    const notification = {
+                        ...n,
+                        userId: n.user_id,
+                        createdAt: n.created_at ? fromSeconds(n.created_at) || Date.now() : Date.now()
+                    };
+                    set(state => ({ notifications: { ...state.notifications, [n.id]: notification } }));
+                } else if (payload.eventType === 'DELETE') {
+                    set(state => {
+                        const { [payload.old.id]: _, ...rest } = state.notifications;
+                        return { notifications: rest };
+                    });
+                }
             })
             .subscribe();
     },
@@ -713,6 +723,21 @@ export const useStore = create<Store>((set, get) => ({
             return { notifications: updated };
         });
         await supabase.from('notifications').update({ read: true }).eq('user_id', get().user?.id);
+    },
+
+    deleteNotification: async (id) => {
+        set(state => {
+            const { [id]: _, ...rest } = state.notifications;
+            return { notifications: rest };
+        });
+        await supabase.from('notifications').delete().eq('id', id);
+    },
+
+    clearAllNotifications: async () => {
+        const userId = get().user?.id;
+        if (!userId) return;
+        set({ notifications: {} });
+        await supabase.from('notifications').delete().eq('user_id', userId);
     },
 
     sendNotification: async (userId, type, title, message, link) => {
