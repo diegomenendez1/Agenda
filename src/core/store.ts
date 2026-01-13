@@ -82,6 +82,12 @@ interface Actions {
     sendNotification: (userId: EntityId, type: 'mention' | 'assignment' | 'status_change' | 'system', title: string, message: string, link?: string) => Promise<void>;
     claimTask: (taskId: EntityId) => Promise<boolean>;
     unassignTask: (taskId: EntityId, userId: EntityId) => Promise<void>;
+
+    // Invitations
+    fetchInvitations: () => Promise<void>;
+    sendInvitation: (email: string, role: string) => Promise<void>;
+    revokeInvitation: (id: string) => Promise<void>;
+    leaveTeam: () => Promise<void>;
 }
 
 type Store = AppState & Actions;
@@ -96,7 +102,60 @@ export const useStore = create<Store>((set, get) => ({
     habits: {},
     activities: {}, // Activity Logs
     notifications: {}, // Notifications
+    activities: {}, // Activity Logs
+    notifications: {}, // Notifications
     onlineUsers: [], // Real-time presence
+    activeInvitations: [],
+
+    // --- Actions ---
+
+    fetchInvitations: async () => {
+        // Mock implementation for now as we don't have the table yet
+        // In a real scenario: const { data } = await supabase.from('team_invitations').select('*');
+        // if (data) set({ activeInvitations: data });
+    },
+
+    sendInvitation: async (email, role) => {
+        const { user } = get();
+        // Optimistic update
+        const newInvite: any = {
+            id: crypto.randomUUID(),
+            email,
+            role,
+            invitedBy: user?.id || 'system',
+            invitedByName: user?.name,
+            teamId: 'default-team',
+            status: 'pending',
+            createdAt: Date.now()
+        };
+
+        set(state => ({
+            activeInvitations: [...state.activeInvitations, newInvite]
+        }));
+
+        // Call RPC (simulated)
+        // const { error } = await supabase.rpc('invite_user_to_team', { email });
+        // For existing users, update their profile too?
+        // Implementation detail: for now we just track invites.
+    },
+
+    revokeInvitation: async (id) => {
+        set(state => ({
+            activeInvitations: state.activeInvitations.filter(i => i.id !== id)
+        }));
+        // await supabase.from('team_invitations').delete().eq('id', id);
+    },
+
+    leaveTeam: async () => {
+        const { user } = get();
+        if (!user) return;
+
+        // Clear local team state and tasks to simulate leaving
+        set({ team: {}, tasks: {} });
+
+        // RPC call would go here
+        // await supabase.rpc('leave_team', { user_id: user.id });
+    },
 
     initialize: async () => {
         const { data: { user } } = await supabase.auth.getUser();

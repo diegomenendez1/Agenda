@@ -94,6 +94,13 @@ export function AdminView() {
     };
 
     const handleInviteToTeam = async (targetId: string, targetName: string) => {
+        // This function was originally for "existing users".
+        // Now we also want to support email invites.
+        // For this specific button (on existing user row), existing RPC is fine, 
+        // but let's also update the store's "activeInvitations" for visibility if we can map it.
+        // Or, simpler: just use the new store action for *new* invites.
+
+        // For now, let's keep the RPC but maybe show a toast.
         if (!confirm(`Invite ${targetName} to join your team?`)) return;
 
         try {
@@ -102,12 +109,22 @@ export function AdminView() {
             });
 
             if (error) throw error;
+
+            // Allow tracking this as an "invite" in our new system too?
+            // Since we don't have the email easily here without looking it up, let's skip adding to 'activeInvitations' manually 
+            // unless we refactor 'users' list to include email. (It does).
+            // But 'activeInvitations' is mostly for *pending* emails not yet in the system or pending *team* logic.
+            // Let's assume this RPC handles the backend state.
+
             alert(`Invitation sent to ${targetName}`);
         } catch (err: any) {
             console.error(err);
             alert('Failed to invite: ' + err.message);
         }
     };
+
+    // NEW: Handle email invite from a new modal or input?
+    // Let's add an "Invite by Email" button to the top toolbar.
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -282,6 +299,16 @@ export function AdminView() {
                     </div>
                     <div className="flex items-center gap-4 w-full sm:w-auto justify-end">
                         <button
+                            onClick={() => {
+                                const email = prompt("Enter email to invite:");
+                                if (email) useStore.getState().sendInvitation(email, 'user');
+                            }}
+                            className="btn btn-outline shadow-sm flex items-center gap-2"
+                        >
+                            <Mail size={18} />
+                            <span>Invite by Email</span>
+                        </button>
+                        <button
                             onClick={() => setIsCreateModalOpen(true)}
                             className="btn btn-primary shadow-lg shadow-accent-primary/20 flex items-center gap-2"
                         >
@@ -410,263 +437,317 @@ export function AdminView() {
                     </table>
                 </div>
             </div>
+        </div>
 
-            {/* Create User Modal */}
-            {isCreateModalOpen && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-                    <div className="glass-panel w-full max-w-md rounded-2xl p-0 shadow-2xl border border-border-subtle overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-2 duration-300 bg-bg-card">
-                        <div className="p-6 border-b border-border-subtle bg-bg-input/30 flex justify-between items-center">
-                            <div>
-                                <h3 className="text-lg font-display font-bold text-text-primary flex items-center gap-2">
-                                    <div className="p-1.5 rounded-md bg-accent-primary/10 text-accent-primary">
-                                        <UserPlus size={18} />
-                                    </div>
-                                    Create New User
-                                </h3>
-                                <p className="text-xs text-text-muted mt-1">Add a new member to your workspace.</p>
-                            </div>
-                            <button
-                                onClick={() => setIsCreateModalOpen(false)}
-                                className="text-text-muted hover:text-text-primary transition-colors p-1 hover:bg-bg-input rounded-md"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleCreateUser} className="p-6 space-y-5">
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider ml-1">Full Name</label>
-                                <input
-                                    type="text"
-                                    required
-                                    className="input w-full"
-                                    placeholder="e.g., Jane Doe"
-                                    value={newName}
-                                    onChange={(e) => setNewName(e.target.value)}
-                                />
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider ml-1">Email Address</label>
-                                <input
-                                    type="email"
-                                    required
-                                    className="input w-full"
-                                    placeholder="e.g., jane@example.com"
-                                    value={newUserEmail}
-                                    onChange={(e) => setNewUserEmail(e.target.value)}
-                                />
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider ml-1">Temporary Password</label>
-                                <input
-                                    type="text"
-                                    required
-                                    className="input w-full font-mono text-sm bg-bg-input/50"
-                                    placeholder="Secret.123"
-                                    value={newUserPass}
-                                    onChange={(e) => setNewUserPass(e.target.value)}
-                                />
-                                <p className="text-[11px] text-text-muted ml-1 flex items-center gap-1">
-                                    <ShieldCheck size={10} /> Must be at least 6 characters.
-                                </p>
-                            </div>
-
-                            {createError && (
-                                <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-medium flex items-center gap-2">
-                                    <Shield size={14} />
-                                    {createError}
-                                </div>
-                            )}
-
-                            {createSuccess && (
-                                <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-sm font-medium flex items-center gap-2">
-                                    <ShieldCheck size={14} />
-                                    {createSuccess}
-                                </div>
-                            )}
-
-                            <div className="flex justify-end gap-3 pt-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsCreateModalOpen(false)}
-                                    className="btn btn-ghost"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={creatingUser}
-                                    className="btn btn-primary min-w-[120px] shadow-lg shadow-accent-primary/20"
-                                >
-                                    {creatingUser ? <Loader2 className="animate-spin w-4 h-4" /> : 'Create User'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-            {/* AI Context Modal */}
-            {isContextModalOpen && selectedUser && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-                    <div className="glass-panel w-full max-w-lg rounded-2xl p-0 shadow-2xl border border-border-subtle overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-2 duration-300 bg-bg-card">
-                        <div className="p-6 border-b border-border-subtle bg-bg-input/30 flex justify-between items-center">
-                            <div>
-                                <h3 className="text-lg font-display font-bold text-text-primary flex items-center gap-2">
-                                    <div className="p-1.5 rounded-md bg-violet-500/10 text-violet-500">
-                                        <Bot size={18} />
-                                    </div>
-                                    AI Context Settings
-                                </h3>
-                                <p className="text-xs text-text-muted mt-1">
-                                    Configure the AI assistant behavior for <span className="font-bold text-text-primary">{selectedUser.full_name}</span>.
-                                </p>
-                            </div>
-                            <button
-                                onClick={() => setIsContextModalOpen(false)}
-                                className="text-text-muted hover:text-text-primary transition-colors p-1 hover:bg-bg-input rounded-md"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div className="p-6 space-y-4">
-                            <div className="space-y-2">
-                                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider ml-1">
-                                    Custom AI Prompt / Context
-                                </label>
-                                <textarea
-                                    className="input w-full min-h-[150px] resize-y text-sm leading-relaxed"
-                                    placeholder="Enter specific instructions for the AI when processing tasks for this user..."
-                                    value={contextValue}
-                                    onChange={(e) => setContextValue(e.target.value)}
-                                />
-                                <p className="text-xs text-text-muted ml-1">
-                                    This context is invisible to the user but determines how their tasks are processed.
-                                </p>
-                            </div>
-
-                            <div className="flex justify-end gap-3 pt-4 border-t border-border-subtle">
-                                <button
-                                    onClick={() => setIsContextModalOpen(false)}
-                                    className="btn btn-ghost"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleSaveContext}
-                                    disabled={savingContext}
-                                    className="btn btn-primary min-w-[100px] shadow-lg shadow-accent-primary/20"
-                                >
-                                    {savingContext ? <Loader2 className="animate-spin w-4 h-4" /> : 'Save Changes'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-            {/* Security Modal */}
-            {isSecurityModalOpen && securityUser && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-                    <div className="glass-panel w-full max-w-lg rounded-2xl p-0 shadow-2xl border border-border-subtle overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-2 duration-300 bg-bg-card">
-                        <div className="p-6 border-b border-border-subtle bg-bg-input/30 flex justify-between items-center">
-                            <div>
-                                <h3 className="text-lg font-display font-bold text-text-primary flex items-center gap-2">
-                                    <div className="p-1.5 rounded-md bg-amber-500/10 text-amber-500">
-                                        <Lock size={18} />
-                                    </div>
-                                    Security Settings
-                                </h3>
-                                <p className="text-xs text-text-muted mt-1">
-                                    Manage access and credentials for <span className="font-bold text-text-primary">{securityUser.full_name}</span>.
-                                </p>
-                            </div>
-                            <button
-                                onClick={() => setIsSecurityModalOpen(false)}
-                                className="text-text-muted hover:text-text-primary transition-colors p-1 hover:bg-bg-input rounded-md"
-                            >
-                                <X size={20} />
-                            </button>
-                        </div>
-
-                        <div className="p-6 space-y-8">
-                            {securityMessage && (
-                                <div className={clsx(
-                                    "p-3 rounded-lg text-sm font-medium flex items-center gap-2",
-                                    securityMessage.type === 'success' ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" : "bg-red-500/10 text-red-500 border border-red-500/20"
-                                )}>
-                                    {securityMessage.type === 'success' ? <ShieldCheck size={14} /> : <Shield size={14} />}
-                                    {securityMessage.text}
-                                </div>
-                            )}
-
-                            {/* Option 1: Email Reset */}
-                            <div className="space-y-3">
-                                <div className="flex items-start gap-4">
-                                    <div className="p-2 rounded-lg bg-bg-input text-text-muted">
-                                        <Mail size={20} />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h4 className="text-sm font-bold text-text-primary">Send Password Reset Email</h4>
-                                        <p className="text-xs text-text-secondary mt-1">
-                                            Sends a secure link to <strong>{securityUser.email}</strong> allowing them to choose a new password. This is the recommended method.
-                                        </p>
-                                        <button
-                                            onClick={handleSendResetEmail}
-                                            disabled={sendingResetEmail}
-                                            className="mt-3 btn btn-outline btn-sm"
-                                        >
-                                            {sendingResetEmail ? <Loader2 className="animate-spin w-3.5 h-3.5 mr-2" /> : null}
-                                            Send Reset Link
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="h-px bg-border-subtle" />
-
-                            {/* Option 2: Manual Reset (Owner Only) */}
-                            {(user?.role === 'owner' || user?.role === 'admin') && (
-                                <div className="space-y-3">
-                                    <div className="flex items-start gap-4">
-                                        <div className="p-2 rounded-lg bg-red-500/10 text-red-500">
-                                            <Key size={20} />
-                                        </div>
-                                        <div className="flex-1">
-                                            <h4 className="text-sm font-bold text-text-primary flex items-center gap-2">
-                                                Manual Password Override
-                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-500/20 text-red-500 uppercase">Danger Zone</span>
-                                            </h4>
-                                            <p className="text-xs text-text-secondary mt-1">
-                                                Forcefully set a new password. Use this if you need to take control of the account or if the user cannot access their email.
-                                            </p>
-
-                                            <div className="mt-3 flex gap-2">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Enter new password..."
-                                                    className="input flex-1 text-sm h-9"
-                                                    value={manualPassword}
-                                                    onChange={(e) => setManualPassword(e.target.value)}
-                                                />
-                                                <button
-                                                    onClick={handleManualReset}
-                                                    disabled={resettingPassword || !manualPassword}
-                                                    className="btn btn-warning btn-sm whitespace-nowrap"
-                                                >
-                                                    {resettingPassword ? <Loader2 className="animate-spin w-3.5 h-3.5" /> : 'Set Password'}
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
+            {/* Pending Invitations Section */ }
+    <div className="glass-panel rounded-2xl overflow-hidden flex-1 flex flex-col border border-border-subtle shadow-xl shadow-accent-primary/5 mt-8">
+        <div className="p-5 border-b border-border-subtle bg-bg-card/50">
+            <h3 className="text-lg font-display font-bold text-text-primary flex items-center gap-2">
+                <Mail className="w-5 h-5 text-accent-primary" />
+                Pending Invitations
+            </h3>
+        </div>
+        <div className="flex-1 overflow-auto custom-scrollbar bg-bg-card p-0">
+            {useStore().activeInvitations.length === 0 ? (
+                <div className="p-8 text-center text-text-muted text-sm">No pending invitations.</div>
+            ) : (
+                <table className="w-full text-left border-collapse">
+                    <thead className="bg-bg-input/50 text-xs font-bold text-text-muted uppercase tracking-wider">
+                        <tr>
+                            <th className="p-4 pl-6">Email</th>
+                            <th className="p-4">Role</th>
+                            <th className="p-4">Invited By</th>
+                            <th className="p-4">Sent</th>
+                            <th className="p-4 text-right pr-6">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border-subtle">
+                        {useStore().activeInvitations.map(invite => (
+                            <tr key={invite.id} className="hover:bg-accent-primary/5 transition-colors">
+                                <td className="p-4 pl-6 font-medium text-text-primary">{invite.email}</td>
+                                <td className="p-4 text-xs font-bold uppercase tracking-wider">{invite.role}</td>
+                                <td className="p-4 text-sm text-text-secondary">{invite.invitedByName || 'System'}</td>
+                                <td className="p-4 text-text-muted text-xs font-mono">
+                                    {format(new Date(invite.createdAt), 'MMM d, HH:mm')}
+                                </td>
+                                <td className="p-4 text-right pr-6">
+                                    <button
+                                        onClick={() => useStore().revokeInvitation(invite.id)}
+                                        className="text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-colors text-xs font-bold"
+                                    >
+                                        Revoke
+                                    </button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             )}
         </div>
+    </div>
+
+    {/* Create User Modal */ }
+    {
+        isCreateModalOpen && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+                <div className="glass-panel w-full max-w-md rounded-2xl p-0 shadow-2xl border border-border-subtle overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-2 duration-300 bg-bg-card">
+                    <div className="p-6 border-b border-border-subtle bg-bg-input/30 flex justify-between items-center">
+                        <div>
+                            <h3 className="text-lg font-display font-bold text-text-primary flex items-center gap-2">
+                                <div className="p-1.5 rounded-md bg-accent-primary/10 text-accent-primary">
+                                    <UserPlus size={18} />
+                                </div>
+                                Create New User
+                            </h3>
+                            <p className="text-xs text-text-muted mt-1">Add a new member to your workspace.</p>
+                        </div>
+                        <button
+                            onClick={() => setIsCreateModalOpen(false)}
+                            className="text-text-muted hover:text-text-primary transition-colors p-1 hover:bg-bg-input rounded-md"
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
+
+                    <form onSubmit={handleCreateUser} className="p-6 space-y-5">
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider ml-1">Full Name</label>
+                            <input
+                                type="text"
+                                required
+                                className="input w-full"
+                                placeholder="e.g., Jane Doe"
+                                value={newName}
+                                onChange={(e) => setNewName(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider ml-1">Email Address</label>
+                            <input
+                                type="email"
+                                required
+                                className="input w-full"
+                                placeholder="e.g., jane@example.com"
+                                value={newUserEmail}
+                                onChange={(e) => setNewUserEmail(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider ml-1">Temporary Password</label>
+                            <input
+                                type="text"
+                                required
+                                className="input w-full font-mono text-sm bg-bg-input/50"
+                                placeholder="Secret.123"
+                                value={newUserPass}
+                                onChange={(e) => setNewUserPass(e.target.value)}
+                            />
+                            <p className="text-[11px] text-text-muted ml-1 flex items-center gap-1">
+                                <ShieldCheck size={10} /> Must be at least 6 characters.
+                            </p>
+                        </div>
+
+                        {createError && (
+                            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-medium flex items-center gap-2">
+                                <Shield size={14} />
+                                {createError}
+                            </div>
+                        )}
+
+                        {createSuccess && (
+                            <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-sm font-medium flex items-center gap-2">
+                                <ShieldCheck size={14} />
+                                {createSuccess}
+                            </div>
+                        )}
+
+                        <div className="flex justify-end gap-3 pt-2">
+                            <button
+                                type="button"
+                                onClick={() => setIsCreateModalOpen(false)}
+                                className="btn btn-ghost"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={creatingUser}
+                                className="btn btn-primary min-w-[120px] shadow-lg shadow-accent-primary/20"
+                            >
+                                {creatingUser ? <Loader2 className="animate-spin w-4 h-4" /> : 'Create User'}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        )
+    }
+    {/* AI Context Modal */ }
+    {
+        isContextModalOpen && selectedUser && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+                <div className="glass-panel w-full max-w-lg rounded-2xl p-0 shadow-2xl border border-border-subtle overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-2 duration-300 bg-bg-card">
+                    <div className="p-6 border-b border-border-subtle bg-bg-input/30 flex justify-between items-center">
+                        <div>
+                            <h3 className="text-lg font-display font-bold text-text-primary flex items-center gap-2">
+                                <div className="p-1.5 rounded-md bg-violet-500/10 text-violet-500">
+                                    <Bot size={18} />
+                                </div>
+                                AI Context Settings
+                            </h3>
+                            <p className="text-xs text-text-muted mt-1">
+                                Configure the AI assistant behavior for <span className="font-bold text-text-primary">{selectedUser.full_name}</span>.
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setIsContextModalOpen(false)}
+                            className="text-text-muted hover:text-text-primary transition-colors p-1 hover:bg-bg-input rounded-md"
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
+
+                    <div className="p-6 space-y-4">
+                        <div className="space-y-2">
+                            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider ml-1">
+                                Custom AI Prompt / Context
+                            </label>
+                            <textarea
+                                className="input w-full min-h-[150px] resize-y text-sm leading-relaxed"
+                                placeholder="Enter specific instructions for the AI when processing tasks for this user..."
+                                value={contextValue}
+                                onChange={(e) => setContextValue(e.target.value)}
+                            />
+                            <p className="text-xs text-text-muted ml-1">
+                                This context is invisible to the user but determines how their tasks are processed.
+                            </p>
+                        </div>
+
+                        <div className="flex justify-end gap-3 pt-4 border-t border-border-subtle">
+                            <button
+                                onClick={() => setIsContextModalOpen(false)}
+                                className="btn btn-ghost"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSaveContext}
+                                disabled={savingContext}
+                                className="btn btn-primary min-w-[100px] shadow-lg shadow-accent-primary/20"
+                            >
+                                {savingContext ? <Loader2 className="animate-spin w-4 h-4" /> : 'Save Changes'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+    {/* Security Modal */ }
+    {
+        isSecurityModalOpen && securityUser && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+                <div className="glass-panel w-full max-w-lg rounded-2xl p-0 shadow-2xl border border-border-subtle overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-2 duration-300 bg-bg-card">
+                    <div className="p-6 border-b border-border-subtle bg-bg-input/30 flex justify-between items-center">
+                        <div>
+                            <h3 className="text-lg font-display font-bold text-text-primary flex items-center gap-2">
+                                <div className="p-1.5 rounded-md bg-amber-500/10 text-amber-500">
+                                    <Lock size={18} />
+                                </div>
+                                Security Settings
+                            </h3>
+                            <p className="text-xs text-text-muted mt-1">
+                                Manage access and credentials for <span className="font-bold text-text-primary">{securityUser.full_name}</span>.
+                            </p>
+                        </div>
+                        <button
+                            onClick={() => setIsSecurityModalOpen(false)}
+                            className="text-text-muted hover:text-text-primary transition-colors p-1 hover:bg-bg-input rounded-md"
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
+
+                    <div className="p-6 space-y-8">
+                        {securityMessage && (
+                            <div className={clsx(
+                                "p-3 rounded-lg text-sm font-medium flex items-center gap-2",
+                                securityMessage.type === 'success' ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" : "bg-red-500/10 text-red-500 border border-red-500/20"
+                            )}>
+                                {securityMessage.type === 'success' ? <ShieldCheck size={14} /> : <Shield size={14} />}
+                                {securityMessage.text}
+                            </div>
+                        )}
+
+                        {/* Option 1: Email Reset */}
+                        <div className="space-y-3">
+                            <div className="flex items-start gap-4">
+                                <div className="p-2 rounded-lg bg-bg-input text-text-muted">
+                                    <Mail size={20} />
+                                </div>
+                                <div className="flex-1">
+                                    <h4 className="text-sm font-bold text-text-primary">Send Password Reset Email</h4>
+                                    <p className="text-xs text-text-secondary mt-1">
+                                        Sends a secure link to <strong>{securityUser.email}</strong> allowing them to choose a new password. This is the recommended method.
+                                    </p>
+                                    <button
+                                        onClick={handleSendResetEmail}
+                                        disabled={sendingResetEmail}
+                                        className="mt-3 btn btn-outline btn-sm"
+                                    >
+                                        {sendingResetEmail ? <Loader2 className="animate-spin w-3.5 h-3.5 mr-2" /> : null}
+                                        Send Reset Link
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="h-px bg-border-subtle" />
+
+                        {/* Option 2: Manual Reset (Owner Only) */}
+                        {(user?.role === 'owner' || user?.role === 'admin') && (
+                            <div className="space-y-3">
+                                <div className="flex items-start gap-4">
+                                    <div className="p-2 rounded-lg bg-red-500/10 text-red-500">
+                                        <Key size={20} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="text-sm font-bold text-text-primary flex items-center gap-2">
+                                            Manual Password Override
+                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-500/20 text-red-500 uppercase">Danger Zone</span>
+                                        </h4>
+                                        <p className="text-xs text-text-secondary mt-1">
+                                            Forcefully set a new password. Use this if you need to take control of the account or if the user cannot access their email.
+                                        </p>
+
+                                        <div className="mt-3 flex gap-2">
+                                            <input
+                                                type="text"
+                                                placeholder="Enter new password..."
+                                                className="input flex-1 text-sm h-9"
+                                                value={manualPassword}
+                                                onChange={(e) => setManualPassword(e.target.value)}
+                                            />
+                                            <button
+                                                onClick={handleManualReset}
+                                                disabled={resettingPassword || !manualPassword}
+                                                className="btn btn-warning btn-sm whitespace-nowrap"
+                                            >
+                                                {resettingPassword ? <Loader2 className="animate-spin w-3.5 h-3.5" /> : 'Set Password'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        )
+    }
+        </div >
     );
 }
 

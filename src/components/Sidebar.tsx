@@ -163,6 +163,23 @@ export function Sidebar() {
                         </button>
                     </div>
 
+                    {/* Leave Team Option (Non-Owners) */}
+                    {user?.role !== 'owner' && (
+                        <div className={clsx("mt-2 border-t border-border-subtle pt-2 flex justify-center", !collapsed && "justify-start px-2")}>
+                            <button
+                                onClick={() => {
+                                    if (confirm("Are you sure you want to leave this team? You will lose access to shared projects.")) {
+                                        useStore.getState().leaveTeam();
+                                        window.location.reload();
+                                    }
+                                }}
+                                className="flex items-center gap-2 text-[10px] text-text-muted hover:text-red-500 transition-colors w-full justify-center"
+                            >
+                                <span className={clsx(!collapsed ? "inline" : "hidden")}>Leave Team</span>
+                            </button>
+                        </div>
+                    )}
+
                 </div>
             </div >
         </aside >

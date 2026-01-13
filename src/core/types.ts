@@ -26,6 +26,21 @@ export interface TeamMember {
     role: string; // e.g., "Developer", "Designer"
     avatar?: string;
     email: string;
+    status?: 'active' | 'pending' | 'suspended';
+    invitedBy?: EntityId;
+    invitedAt?: number;
+}
+
+export interface TeamInvitation {
+    id: EntityId;
+    email: string;
+    role: string;
+    invitedBy: EntityId; // User ID of the inviter
+    invitedByName?: string;
+    teamId: EntityId;
+    status: 'pending' | 'accepted' | 'declined' | 'revoked';
+    createdAt: number;
+    token?: string; // For link-based invites
 }
 
 export interface SmartAnalysis {
@@ -127,6 +142,8 @@ export interface AppState {
     habits: Record<EntityId, Habit>;
     activities: Record<EntityId, ActivityLog>;
     notifications: Record<EntityId, Notification>;
+
+    activeInvitations: TeamInvitation[]; // List of pending invitations
     onlineUsers: EntityId[]; // List of user IDs currently online
 }
 
