@@ -217,7 +217,7 @@ function TeamInvitations() {
                                 <p className="text-sm font-medium text-text-primary">
                                     <span className="font-bold">{invite.manager.full_name}</span> invites you to join their team.
                                 </p>
-                                <p className="text-xs text-text-muted">Manager • {invite.manager.email}</p>
+                                <p className="text-xs text-text-muted">Lead • {invite.manager.email}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2">

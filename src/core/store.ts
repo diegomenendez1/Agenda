@@ -485,7 +485,7 @@ export const useStore = create<Store>((set, get) => ({
             const currentUserId = get().user?.id;
             taskData.assigneeIds.forEach(uid => {
                 if (uid !== currentUserId) {
-                    get().sendNotification(uid, 'assignment', 'New Task Assigned', `You were assigned to "${taskData.title}"`, `/tasks/${id}`);
+                    get().sendNotification(uid, 'assignment', 'New Task Assigned', `You were assigned to "${taskData.title}"`, `/tasks?taskId=${id}`);
                 }
             });
         }
@@ -591,7 +591,7 @@ export const useStore = create<Store>((set, get) => ({
                     'status_change',
                     'Task Ready for Review',
                     `"${task.title}" is ready for your approval.`,
-                    `/tasks/${id}`
+                    `/tasks?taskId=${id}`
                 );
             }
         }
@@ -607,7 +607,7 @@ export const useStore = create<Store>((set, get) => ({
         const currentUserId = state.user?.id;
         assigneeIds.forEach(uid => {
             if (uid !== currentUserId) {
-                state.sendNotification(uid, 'assignment', 'Task Assigned', `You were assigned to "${task?.title}"`, `/tasks/${id}`);
+                state.sendNotification(uid, 'assignment', 'Task Assigned', `You were assigned to "${task?.title}"`, `/tasks?taskId=${id}`);
             }
         });
     },
@@ -675,7 +675,7 @@ export const useStore = create<Store>((set, get) => ({
                 'status_change',
                 'Review Requested',
                 `"${task.title}" was marked for review.`,
-                `/tasks/${id}`
+                `/tasks?taskId=${id}`
             );
         }
     },
@@ -860,7 +860,7 @@ export const useStore = create<Store>((set, get) => ({
                             'mention',
                             'You were mentioned',
                             `${state.user?.name} mentioned you in a comment`,
-                            `/tasks/${taskId}`
+                            `/tasks?taskId=${taskId}`
                         );
                     }
                 });
@@ -1054,7 +1054,7 @@ export const useStore = create<Store>((set, get) => ({
                 'assignment',
                 'Assignee Left',
                 `${leaverName} removed themselves from "${task.title}"`,
-                `/tasks/${taskId}`
+                `/tasks?taskId=${taskId}`
             );
         }
     }

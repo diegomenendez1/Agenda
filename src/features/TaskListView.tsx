@@ -1,14 +1,27 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useStore } from '../core/store';
 import { CheckCircle2, Calendar, ClipboardList, LayoutList, KanbanSquare, Trash2, Plus } from 'lucide-react';
 import { TaskItem } from '../components/TaskItem';
 import { KanbanBoard } from '../components/KanbanBoard';
+import { EditTaskModal } from '../components/EditTaskModal';
 import { isSameDay, isFuture } from 'date-fns';
+import { useSearchParams, useParams } from 'react-router-dom';
 import clsx from 'clsx';
 
 export function TaskListView() {
     const { tasks, user, updateUserProfile, clearCompletedTasks } = useStore();
     const [filter, setFilter] = useState<'all' | 'today' | 'upcoming'>('all');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const { taskId: pathTaskId } = useParams();
+    const [editingTask, setEditingTask] = useState<any>(null);
+
+    // Deep Linking to Task
+    useEffect(() => {
+        const taskId = searchParams.get('taskId') || pathTaskId;
+        if (taskId && tasks[taskId]) {
+            setEditingTask(tasks[taskId]);
+        }
+    }, [searchParams, pathTaskId, tasks]);
 
     // Persistent View Mode
     const viewMode = user?.preferences?.taskViewMode || 'list';
@@ -201,6 +214,18 @@ export function TaskListView() {
                     </ul>
                 )}
             </div>
+
+            {editingTask && (
+                <EditTaskModal
+                    task={editingTask}
+                    onClose={() => {
+                        setEditingTask(null);
+                        const params = new URLSearchParams(searchParams);
+                        params.delete('taskId');
+                        setSearchParams(params);
+                    }}
+                />
+            )}
         </div>
     );
 }

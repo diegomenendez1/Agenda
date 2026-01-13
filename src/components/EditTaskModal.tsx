@@ -599,7 +599,6 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                                             </div>
                                                             <div className="text-[10px] opacity-70 truncate text-text-muted">{member.email}</div>
                                                         </div>
-                                                        {isOwnerOfTask && <div className="text-[10px] font-bold text-amber-500 flex items-center gap-1 border border-amber-500/30 px-1.5 py-0.5 rounded bg-amber-500/10">OWNER</div>}
                                                         {isSelected && !isOwnerOfTask && <div className="w-2 h-2 rounded-full bg-accent-primary shadow-sm shadow-accent-primary/50" />}
                                                     </button>
                                                 );

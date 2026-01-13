@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, Check, Clock, User, MessageSquare, AlertCircle, X, Trash2 } from 'lucide-react';
+import { Bell, Check, Clock, User, MessageSquare, AlertCircle, X, Trash2, XCircle } from 'lucide-react';
 import { useStore } from '../core/store';
 import clsx from 'clsx';
 import { formatDistanceToNow } from 'date-fns';
@@ -53,6 +53,7 @@ export function NotificationCenter() {
         switch (type) {
             case 'mention': return <User size={16} className="text-blue-500" />;
             case 'assignment': return <AlertCircle size={16} className="text-orange-500" />;
+            case 'rejection': return <XCircle size={16} className="text-red-500" />;
             case 'status_change': return <Clock size={16} className="text-purple-500" />;
             case 'system': return <Check size={16} className="text-gray-500" />;
             default: return <MessageSquare size={16} className="text-gray-500" />;
@@ -128,7 +129,7 @@ export function NotificationCenter() {
                                         onClick={() => handleItemClick(notification)}
                                         className={clsx(
                                             "p-4 hover:bg-bg-input/50 transition-colors cursor-pointer flex gap-3 group relative",
-                                            !notification.read && "bg-accent-primary/5"
+                                            !notification.read && notification.type === 'rejection' ? "bg-red-500/5 animate-pulse" : !notification.read && "bg-accent-primary/5"
                                         )}
                                     >
                                         <div className={clsx(

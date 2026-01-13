@@ -184,6 +184,15 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                                             // Reject logic: Remove self from assignees
                                                             const newAssignees = (task.assigneeIds || []).filter(id => id !== user?.id);
                                                             updateTask(task.id, { assigneeIds: newAssignees });
+
+                                                            // Notify owner
+                                                            useStore.getState().sendNotification(
+                                                                task.ownerId,
+                                                                'rejection',
+                                                                'Task Assignment Rejected',
+                                                                `${user?.name || 'A team member'} has removed themselves from "${task.title}".`,
+                                                                `/tasks?taskId=${task.id}`
+                                                            );
                                                         }}
                                                         className="px-3 py-2 bg-bg-input hover:bg-red-50 text-text-muted hover:text-red-500 border border-border-subtle hover:border-red-200 rounded-lg transition-colors"
                                                         title="Reject & Remove Me"
@@ -212,42 +221,50 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                     )}
 
                                     {/* Meta info */}
-                                    <div className="flex items-center justify-between pt-3 border-t border-border-subtle/50 mt-1">
-                                        <div className="flex items-center gap-2 text-text-muted">
-                                            {task.dueDate && (
-                                                <div className={clsx(
-                                                    "flex items-center gap-1.5 text-[11px] font-medium transition-colors",
-                                                    task.dueDate < Date.now() ? "text-red-500" : "text-text-muted group-hover:text-text-secondary"
-                                                )}>
-                                                    <Calendar size={12} />
-                                                    {format(task.dueDate, 'MMM d')}
-                                                </div>
-                                            )}
-                                            {task.acceptedAt && (
-                                                <div className="flex items-center gap-1.5 text-[10px] text-text-muted font-medium ml-2 border-l border-border-subtle pl-2">
-                                                    <span className="opacity-70">Accepted</span>
-                                                    <span className="text-text-secondary">{format(task.acceptedAt, 'MMM d, p')}</span>
-                                                </div>
-                                            )}
+                                    <div className="flex flex-col gap-2.5 pt-3 border-t border-border-subtle/40 mt-1">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                {task.dueDate && (
+                                                    <div className={clsx(
+                                                        "flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold border transition-colors",
+                                                        task.dueDate < Date.now() && task.status !== 'done'
+                                                            ? "bg-red-500/10 text-red-600 border-red-500/20"
+                                                            : "bg-bg-input text-text-muted border-border-subtle"
+                                                    )}>
+                                                        <Calendar size={10} />
+                                                        {format(task.dueDate, 'MMM d')}
+                                                    </div>
+                                                )}
+                                                {task.acceptedAt && (
+                                                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/5 border border-emerald-500/20 text-[9px] text-emerald-600 font-bold uppercase tracking-wider">
+                                                        <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                                                        Accepted {format(task.acceptedAt, 'MMM d, p')}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="flex items-center gap-1.5">
+                                                {task.priority === 'critical' && (
+                                                    <div className="px-1.5 py-0.5 rounded bg-red-500/10 text-red-600 border border-red-500/20 text-[9px] font-bold uppercase">Critical</div>
+                                                )}
+                                                {task.priority === 'high' && <Flag size={12} className="text-orange-500" />}
+                                                {task.priority === 'medium' && <Flag size={12} className="text-yellow-500" />}
+                                                {task.priority === 'low' && <Flag size={12} className="text-blue-500" />}
+                                            </div>
                                         </div>
 
-                                        <div className="flex items-center gap-2 max-w-[60%] justify-end">
-                                            {/* Priority Badge */}
-                                            {task.priority === 'critical' && <AlertCircle size={14} className="text-red-600 flex-shrink-0" />}
-                                            {task.priority === 'high' && <Flag size={14} className="text-orange-500 flex-shrink-0" />}
-                                            {task.priority === 'medium' && <Flag size={14} className="text-yellow-500 flex-shrink-0" />}
-                                            {task.priority === 'low' && <Flag size={14} className="text-blue-500 flex-shrink-0" />}
-
-                                            {/* Enhanced Assignees - Shows Owner + Assignees */}
-                                            {task.assigneeIds && task.assigneeIds.length > 0 && (() => {
-                                                const uniqueIds = Array.from(new Set([task.ownerId, ...task.assigneeIds]));
+                                        <div className="flex items-center justify-between gap-3">
+                                            {/* Assignees & Owner */}
+                                            {(() => {
+                                                const uniqueIds = Array.from(new Set([task.ownerId, ...task.assigneeIds || []]));
                                                 const members = uniqueIds.map(id => team[id]).filter(Boolean);
 
+                                                if (members.length === 0) return <div />;
+
                                                 return (
-                                                    <div className="flex items-center gap-1.5 overflow-hidden pl-1">
-                                                        <div className="flex -space-x-2 shrink-0">
+                                                    <div className="flex items-center gap-2 overflow-hidden w-full">
+                                                        <div className="flex -space-x-1.5 shrink-0">
                                                             {members.slice(0, 3).map((member) => {
-                                                                // Deterministic color based on name length/char
                                                                 const colors = ['bg-pink-500', 'bg-violet-500', 'bg-indigo-500', 'bg-cyan-500', 'bg-teal-500', 'bg-emerald-500', 'bg-orange-500'];
                                                                 const colorClass = colors[member.name.length % colors.length];
 
@@ -255,7 +272,7 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                                                     <div
                                                                         key={member.id}
                                                                         className={clsx(
-                                                                            "w-5 h-5 rounded-full border border-bg-card flex items-center justify-center text-[8px] font-bold text-white shadow-sm",
+                                                                            "w-5 h-5 rounded-full border-2 border-bg-card flex items-center justify-center text-[8px] font-bold text-white shadow-sm ring-1 ring-border-subtle/20",
                                                                             !member.avatar && colorClass
                                                                         )}
                                                                         title={member.name}
@@ -269,17 +286,14 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                                                 );
                                                             })}
                                                             {members.length > 3 && (
-                                                                <div className="w-5 h-5 rounded-full bg-bg-input border border-bg-card flex items-center justify-center text-[8px] font-bold text-text-muted shadow-sm">
+                                                                <div className="w-5 h-5 rounded-full bg-bg-input border-2 border-bg-card flex items-center justify-center text-[8px] font-bold text-text-muted shadow-sm">
                                                                     +{members.length - 3}
                                                                 </div>
                                                             )}
                                                         </div>
 
-                                                        {/* Subtle Name List */}
-                                                        <span className="text-[10px] text-text-muted truncate hidden sm:block opacity-70 group-hover:opacity-100 transition-opacity">
-                                                            {members
-                                                                .map(m => m.name?.split(' ')[0])
-                                                                .join(', ')}
+                                                        <span className="text-[10px] text-text-muted truncate opacity-80 group-hover:opacity-100 transition-opacity whitespace-nowrap overflow-hidden">
+                                                            {members.map(m => m.name?.split(' ')[0]).join(', ')}
                                                         </span>
                                                     </div>
                                                 );

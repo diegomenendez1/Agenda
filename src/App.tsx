@@ -105,6 +105,7 @@ export default function App() {
                         <Route path="/" element={<Navigate to="/inbox" replace />} />
                         <Route path="/inbox" element={<InboxView />} />
                         <Route path="/tasks" element={<TaskListView />} />
+                        <Route path="/tasks/:taskId" element={<TaskListView />} />
                         <Route path="/team" element={<TeamBoardView />} />
                         <Route path="/calendar" element={<CalendarView />} />
                         <Route path="/projects" element={<ProjectsView />} />
