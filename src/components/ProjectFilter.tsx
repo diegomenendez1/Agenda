@@ -76,22 +76,22 @@ export function ProjectFilter({ projects, selectedProjectIds, onSelectionChange 
             </button>
 
             {isOpen && (
-                <div className="absolute top-full mt-2 left-0 w-64 bg-bg-card border border-border-subtle rounded-xl shadow-xl z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden flex flex-col">
-                    <div className="p-3 border-b border-border-subtle bg-bg-app/50 backdrop-blur-sm">
-                        <div className="relative">
-                            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted" />
+                <div className="absolute top-full mt-2 right-0 w-72 bg-bg-card border border-border-subtle rounded-2xl shadow-2xl z-[100] animate-in fade-in zoom-in-95 duration-200 overflow-hidden flex flex-col ring-1 ring-black/5 dark:ring-white/5">
+                    <div className="p-3.5 border-b border-border-subtle bg-bg-app/50 backdrop-blur-md">
+                        <div className="relative group">
+                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors" />
                             <input
                                 type="text"
-                                placeholder="Find project..."
+                                placeholder="Search projects..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-bg-input pl-8 pr-3 py-1.5 rounded-lg text-sm border-none focus:ring-1 focus:ring-accent-primary placeholder:text-text-muted/50"
+                                className="w-full bg-bg-input pl-9 pr-3 py-2 rounded-xl text-sm border border-transparent focus:border-accent-primary/30 focus:bg-bg-card outline-none transition-all placeholder:text-text-muted/40 shadow-inner"
                                 autoFocus
                             />
                         </div>
                     </div>
 
-                    <div className="max-h-64 overflow-y-auto p-1 custom-scrollbar">
+                    <div className="max-h-[320px] overflow-y-auto p-1.5 custom-scrollbar">
                         {filteredProjects.length === 0 ? (
                             <div className="py-8 text-center text-text-muted text-xs">
                                 No active projects found
