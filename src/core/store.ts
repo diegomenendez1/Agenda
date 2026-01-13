@@ -423,6 +423,8 @@ export const useStore = create<Store>((set, get) => ({
     addTask: async (taskData) => {
         const id = uuidv4();
         const userId = get().user?.id || 'unknown';
+        const hasOtherAssignees = taskData.assigneeIds && taskData.assigneeIds.filter(id => id !== userId).length > 0;
+
         const task: any = {
             id,
             title: taskData.title,
@@ -436,12 +438,13 @@ export const useStore = create<Store>((set, get) => ({
             updatedAt: Date.now(),
             ownerId: userId,
             assigneeIds: taskData.assigneeIds || [],
-            visibility: (taskData.assigneeIds && taskData.assigneeIds.filter(id => id !== userId).length > 0) ? 'team' : (taskData.visibility || 'private'),
+            visibility: hasOtherAssignees ? 'team' : (taskData.visibility || 'private'),
             smartAnalysis: taskData.smartAnalysis,
             source: taskData.source,
             estimatedMinutes: taskData.estimatedMinutes
         };
 
+        // ... existing persistence logic ...
         // Optimistic update
         set(state => ({ tasks: { ...state.tasks, [id]: task } }));
 
@@ -491,12 +494,17 @@ export const useStore = create<Store>((set, get) => ({
     },
 
     updateTask: async (id, updates) => {
+        const userId = get().user?.id;
+
         set(state => {
             const task = state.tasks[id];
             if (!task) return state;
 
-            // If assigning to someone, it implies sharing with the team (if list is not empty)
-            const newVisibility = (updates.assigneeIds && updates.assigneeIds.length > 0) ? 'team' : (updates.visibility || task.visibility);
+            // If assigning to someone other than yourself, it implies sharing with the team
+            const targetAssigneeIds = updates.assigneeIds || task.assigneeIds || [];
+            const hasOtherAssignees = targetAssigneeIds.filter(uid => uid !== userId).length > 0;
+
+            const newVisibility = hasOtherAssignees ? 'team' : (updates.visibility || task.visibility);
             const finalUpdates = { ...updates, visibility: newVisibility };
 
             return { tasks: { ...state.tasks, [id]: { ...task, ...finalUpdates } } };
@@ -514,9 +522,8 @@ export const useStore = create<Store>((set, get) => ({
         if (updates.completedAt !== undefined) dbUpdates.completed_at = updates.completedAt; // BIGINT (Number)
         if (updates.assigneeIds !== undefined) {
             dbUpdates.assignee_ids = updates.assigneeIds;
-            const currentUserId = get().user?.id;
-            const hasOthers = updates.assigneeIds.filter(id => id !== currentUserId).length > 0;
-            if (hasOthers) dbUpdates.visibility = 'team';
+            const hasOthers = updates.assigneeIds.filter(uid => uid !== userId).length > 0;
+            dbUpdates.visibility = hasOthers ? 'team' : 'private';
         }
         if (updates.visibility !== undefined) dbUpdates.visibility = updates.visibility;
         if (updates.smartAnalysis !== undefined) dbUpdates.smart_analysis = updates.smartAnalysis;

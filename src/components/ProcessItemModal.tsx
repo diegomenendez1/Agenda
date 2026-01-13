@@ -79,8 +79,10 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                     created_at: new Date(item.createdAt).toISOString(),
                     // Optimization: Send only minimal necessary data to reduce payload size
                     available_projects: Object.values(projects).map(p => ({ id: p.id, name: p.name })),
-                    // Security warning: We are sending team names. Ensure n8n workflow handles this data responsibly.
-                    available_team: Object.values(team).map(m => ({ id: m.id, name: m.name })),
+                    // Security warning: We are sending team names. Filter out current user to avoid self-assignment loops.
+                    available_team: Object.values(team)
+                        .filter(m => m.id !== user?.id)
+                        .map(m => ({ id: m.id, name: m.name })),
                     // Context injection for better AI decision making
                     team_context: user?.preferences?.aiContext || "CRITICAL RULE: If a task mentions 'Urgent', 'Critical', or 'ASAP', assign HIGH or CRITICAL priority even if the due date is in the future. Do not downgrade priority based on scheduling."
                 }),
@@ -209,8 +211,8 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
             // Micro-interaction delay for visual feedback
             await new Promise(resolve => setTimeout(resolve, 600));
 
-            // Derived Visibility
-            const finalVisibility = assigneeIds.length > 0 ? 'team' : 'private';
+            // Derived Visibility: only 'team' if someone else is assigned
+            const finalVisibility = assigneeIds.filter(id => id !== user?.id).length > 0 ? 'team' : 'private';
 
             await convertInboxToTask(item.id, {
                 title,
@@ -244,7 +246,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
 
             for (const data of tasksToCreate) {
                 const prio = priorityMap[data.ai_priority as string] || data.ai_priority || 'medium';
-                const finalVisibility = (data.ai_assignee_ids?.length || 0) > 0 ? 'team' : 'private';
+                const finalVisibility = (data.ai_assignee_ids?.filter(id => id !== user?.id).length || 0) > 0 ? 'team' : 'private';
 
                 await addTask({
                     title: data.ai_title,

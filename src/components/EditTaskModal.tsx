@@ -62,7 +62,9 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                     text: task.title,
                     source: task.source || 'manual',
                     available_projects: Object.values(projects).map(p => ({ id: p.id, name: p.name })),
-                    available_team: Object.values(team).map(m => ({ id: m.id, name: m.name }))
+                    available_team: Object.values(team)
+                        .filter(m => m.id !== user?.id)
+                        .map(m => ({ id: m.id, name: m.name }))
                 })
             });
 
@@ -197,8 +199,8 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
             }
         }
 
-        // Derived visibility
-        const derivedVisibility = assigneeIds.length > 0 ? 'team' : 'private';
+        // Derived visibility: only 'team' if someone else is assigned
+        const derivedVisibility = assigneeIds.filter(uid => uid !== user?.id).length > 0 ? 'team' : 'private';
 
         updateTask(task.id, {
             title,
@@ -653,7 +655,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                                     priority,
                                                     dueDate: date && !isNaN(date.getTime()) ? date.getTime() : undefined,
                                                     assigneeIds,
-                                                    visibility: assigneeIds.length > 0 ? 'team' : 'private'
+                                                    visibility: assigneeIds.filter(uid => uid !== user?.id).length > 0 ? 'team' : 'private'
                                                 });
                                                 setIsSuccess(true);
                                                 setTimeout(onClose, 800);
