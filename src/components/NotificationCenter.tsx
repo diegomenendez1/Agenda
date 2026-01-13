@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, Check, Clock, User, MessageSquare, AlertCircle, X, Trash2, CheckCheck } from 'lucide-react';
+import { Bell, Check, Clock, User, MessageSquare, AlertCircle, X, Trash2 } from 'lucide-react';
 import { useStore } from '../core/store';
 import clsx from 'clsx';
 import { formatDistanceToNow } from 'date-fns';

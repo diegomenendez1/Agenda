@@ -1,13 +1,16 @@
 import { useState } from 'react';
+import clsx from 'clsx';
 import { PresenceIndicator } from '../components/PresenceIndicator';
+import { WorkloadChart } from '../components/WorkloadChart';
 import { useStore } from '../core/store';
-import { Users, Filter, X } from 'lucide-react';
+import { Users, Filter, X, BarChart2 } from 'lucide-react';
 import { KanbanBoard } from '../components/KanbanBoard';
 
 
 export function TeamBoardView() {
     const { tasks, team, user } = useStore();
     const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+    const [showWorkload, setShowWorkload] = useState(false);
 
     // Strict Filtering for "Selective Visibility"
     // The Team Board is NOT a public board. It only shows tasks that:
@@ -100,12 +103,31 @@ export function TeamBoardView() {
                         <Filter size={16} />
                         <span className="hidden md:inline">{selectedMemberId ? 'Clear Filter' : 'Filter'}</span>
                     </button>
+                    <div className="h-6 w-px bg-border-subtle" />
+                    <button
+                        onClick={() => setShowWorkload(!showWorkload)}
+                        className={clsx(
+                            "p-1.5 rounded-lg transition-colors",
+                            showWorkload ? "bg-accent-primary text-white" : "text-muted hover:text-primary hover:bg-bg-input"
+                        )}
+                        title="Toggle Workload View"
+                    >
+                        <BarChart2 size={20} />
+                    </button>
                 </div>
             </header>
+
+            {showWorkload && (
+                <div className="mb-6 p-4 rounded-xl glass-panel border border-border-subtle animate-enter">
+                    <h3 className="text-sm font-bold text-text-muted uppercase tracking-wider mb-4">Team Workload Distribution</h3>
+                    <WorkloadChart tasks={taskList} team={team} />
+                </div>
+            )
+            }
 
             <div className="flex-1 overflow-hidden -mx-2 px-2 pb-2">
                 <KanbanBoard tasks={taskList} />
             </div>
-        </div>
+        </div >
     );
 }

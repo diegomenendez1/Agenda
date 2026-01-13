@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../core/store';
-import { ArrowLeft, Folder, Plus, LayoutList, Kanban as KanbanIcon, StickyNote } from 'lucide-react';
+import { ArrowLeft, Folder, Plus, LayoutList, Kanban as KanbanIcon, StickyNote, TrendingUp } from 'lucide-react';
 import { TaskItem } from '../components/TaskItem';
+import { BurndownChart } from '../components/BurndownChart';
 import type { TaskStatus } from '../core/types';
 import clsx from 'clsx';
 import { format } from 'date-fns';
@@ -13,7 +14,7 @@ export function ProjectDetailView() {
     const { projects, tasks, notes, addTask, updateTask } = useStore();
 
     const [newTaskTitle, setNewTaskTitle] = useState('');
-    const [viewMode, setViewMode] = useState<'list' | 'board' | 'notes'>('list');
+    const [viewMode, setViewMode] = useState<'list' | 'board' | 'notes' | 'analytics'>('list');
 
     const project = projectId ? projects[projectId] : null;
 
@@ -149,6 +150,16 @@ export function ProjectDetailView() {
                         >
                             <StickyNote size={20} />
                         </button>
+                        <button
+                            onClick={() => setViewMode('analytics')}
+                            className={clsx(
+                                "p-2 rounded transition-colors",
+                                viewMode === 'analytics' ? "bg-accent-primary text-white" : "text-muted hover:text-primary"
+                            )}
+                            title="Analytics & Burndown"
+                        >
+                            <TrendingUp size={20} />
+                        </button>
                     </div>
                 </div>
 
@@ -165,7 +176,7 @@ export function ProjectDetailView() {
             </header>
 
             {/* Quick Add (Visible in list/board views) */}
-            {viewMode !== 'notes' && (
+            {(viewMode === 'list' || viewMode === 'board') && (
                 <div className="px-8 pt-6 pb-2 flex-shrink-0">
                     <form onSubmit={handleQuickAdd} className="relative max-w-4xl mx-auto w-full">
                         <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted">
@@ -267,6 +278,39 @@ export function ProjectDetailView() {
                                     ))}
                                 </ul>
                             )}
+                        </div>
+                    </div>
+                )}
+
+                {viewMode === 'analytics' && (
+                    <div className="h-full overflow-y-auto p-8 pt-4">
+                        <div className="max-w-4xl mx-auto space-y-8">
+                            <div className="glass-panel p-6 rounded-2xl border border-border-subtle shadow-sm">
+                                <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
+                                    <TrendingUp className="text-accent-primary" />
+                                    Burn-down Chart
+                                </h2>
+                                <p className="text-muted mb-6">Tracking remaining tasks against the ideal completion rate.</p>
+
+                                <div className="bg-bg-app/50 p-4 rounded-xl border border-border-subtle h-[300px] flex flex-col justify-end pb-8">
+                                    <BurndownChart
+                                        tasks={projectTasks}
+                                        startDate={project.createdAt} // Fallback to createdAt
+                                        // TODO: Add deadline to project model for better charts
+                                        height={300}
+                                    />
+                                </div>
+                                <div className="flex justify-center gap-8 mt-4 text-sm">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-0.5 border-t-2 border-dashed border-text-muted"></div>
+                                        <span className="text-muted">Ideal Pace</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-0.5 bg-accent-primary"></div>
+                                        <span className="text-accent-primary font-medium">Actual Remaining</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}

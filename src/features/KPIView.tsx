@@ -1,6 +1,7 @@
 import { useStore } from '../core/store';
-import { BarChart, Activity, CheckCircle, Clock, AlertCircle, TrendingUp, Users } from 'lucide-react';
+import { BarChart, Activity, CheckCircle, Clock, AlertCircle, TrendingUp, Users, Zap } from 'lucide-react';
 import clsx from 'clsx';
+import { ActivityChart } from '../components/ActivityChart';
 
 export function KPIView() {
     const { tasks, user } = useStore();
@@ -88,6 +89,17 @@ export function KPIView() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Completion Progress */}
                 <div className="glass-panel p-6 rounded-2xl border border-border-subtle shadow-sm lg:col-span-2">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-lg font-bold flex items-center gap-2">
+                            <Zap className="w-5 h-5 text-amber-500" />
+                            Activity Velocity
+                        </h3>
+                        <span className="text-xs text-muted font-mono bg-bg-input px-2 py-1 rounded">Last 14 Days</span>
+                    </div>
+                    <ActivityChart tasks={visibleTasks} height={160} />
+
+                    <div className="h-px bg-border-subtle my-8" />
+
                     <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
                         <BarChart className="w-5 h-5 text-text-muted" />
                         Completion Status

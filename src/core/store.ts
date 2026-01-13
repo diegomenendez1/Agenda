@@ -284,7 +284,7 @@ export const useStore = create<Store>((set, get) => ({
                 const onlineIds = Object.keys(newState);
                 set({ onlineUsers: onlineIds });
             })
-            .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+            .on('presence', { event: 'join' }, ({ newPresences }) => {
                 // key is usually the userId if we set it as such, or a session ID.
                 // Supabase presence state uses optional 'user_id' in payload?
                 // Let's rely on syncing the full state for simplicity or tracking joins.
