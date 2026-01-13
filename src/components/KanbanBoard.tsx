@@ -20,7 +20,7 @@ interface KanbanBoardProps {
 }
 
 export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
-    const { tasks: storeTasks, updateStatus, updateTask, user, team } = useStore();
+    const { tasks: storeTasks, updateStatus, updateTask, user, team, projects } = useStore();
     const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
 
@@ -144,9 +144,19 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                     )}
                                 >
                                     <div className="flex justify-between items-start mb-3">
-                                        <span className="text-[14px] font-medium text-text-primary line-clamp-3 leading-snug">
-                                            {task.title}
-                                        </span>
+                                        <div className="flex flex-col gap-1 pr-6 w-full">
+                                            {task.projectId && projects[task.projectId] && (
+                                                <div className="flex items-center gap-1.5">
+                                                    <div className="w-1.5 h-1.5 rounded-full shadow-sm" style={{ backgroundColor: projects[task.projectId].color }} />
+                                                    <span className="text-[10px] text-text-muted font-medium uppercase tracking-wide truncate max-w-[120px]">
+                                                        {projects[task.projectId].name}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            <span className="text-[14px] font-medium text-text-primary line-clamp-3 leading-snug">
+                                                {task.title}
+                                            </span>
+                                        </div>
                                         {task.ownerId === user?.id && (
                                             <button className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-text-primary p-1 -mt-1 -mr-1 transition-opacity">
                                                 <MoreHorizontal size={16} />

@@ -5,11 +5,13 @@ import { WorkloadChart } from '../components/WorkloadChart';
 import { useStore } from '../core/store';
 import { Users, Filter, X, BarChart2 } from 'lucide-react';
 import { KanbanBoard } from '../components/KanbanBoard';
+import { ProjectFilter } from '../components/ProjectFilter';
 
 
 export function TeamBoardView() {
-    const { tasks, team, user } = useStore();
+    const { tasks, team, user, projects } = useStore();
     const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+    const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
     const [showWorkload, setShowWorkload] = useState(false);
 
     // Strict Filtering for "Selective Visibility"
@@ -43,6 +45,11 @@ export function TeamBoardView() {
             const isMemberAssigned = t.assigneeIds?.includes(selectedMemberId);
             const isMemberOwner = t.ownerId === selectedMemberId;
             if (!isMemberAssigned && !isMemberOwner) return false;
+        }
+
+        // 4. Project Filter
+        if (selectedProjectIds.length > 0) {
+            if (!t.projectId || !selectedProjectIds.includes(t.projectId)) return false;
         }
 
         return true;
@@ -96,12 +103,21 @@ export function TeamBoardView() {
                         </div>
                     </div>
                     <div className="h-6 w-px bg-border-subtle" />
+                    <ProjectFilter
+                        projects={Object.values(projects)}
+                        selectedProjectIds={selectedProjectIds}
+                        onSelectionChange={setSelectedProjectIds}
+                    />
+                    <div className="h-6 w-px bg-border-subtle" />
                     <button
-                        onClick={() => setSelectedMemberId(null)}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${selectedMemberId ? 'text-accent-primary bg-accent-primary/10' : 'text-text-muted hover:text-text-primary hover:bg-bg-input'}`}
+                        onClick={() => {
+                            setSelectedMemberId(null);
+                            setSelectedProjectIds([]);
+                        }}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${selectedMemberId || selectedProjectIds.length > 0 ? 'text-accent-primary bg-accent-primary/10' : 'text-text-muted hover:text-text-primary hover:bg-bg-input'}`}
                     >
                         <Filter size={16} />
-                        <span className="hidden md:inline">{selectedMemberId ? 'Clear Filter' : 'Filter'}</span>
+                        <span className="hidden md:inline">{selectedMemberId || selectedProjectIds.length > 0 ? 'Clear Filters' : 'Filter'}</span>
                     </button>
                     <div className="h-6 w-px bg-border-subtle" />
                     <button
