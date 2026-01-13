@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../core/store';
-import { CheckCircle2, Circle, AlertCircle, Calendar, Folder, Lock, Edit2, Mail, Clock, Users } from 'lucide-react';
+import { CheckCircle2, Circle, AlertCircle, Calendar, Folder, Lock, Edit2, Mail, Clock, Users, Repeat } from 'lucide-react';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 import type { Task } from '../core/types';
@@ -97,6 +97,12 @@ export function TaskItem({ task, showProject = true, compact = false }: TaskItem
                             )}>
                                 <Calendar size={12} /> {format(task.dueDate, 'MMM d')}
                             </span>
+                        )}
+
+                        {task.recurrence && (
+                            <div className="flex items-center gap-1 text-accent-secondary" title={`Repeats ${task.recurrence.frequency}`}>
+                                <Repeat size={12} />
+                            </div>
                         )}
 
                         <div className="flex items-center gap-2 border-l border-border-subtle pl-2">

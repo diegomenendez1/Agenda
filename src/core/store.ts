@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { supabase } from './supabase';
 import type { AppState, Task, EntityId, Note, UserProfile, TaskStatus, Habit } from './types';
 import { v4 as uuidv4 } from 'uuid';
+import { calculateNextDueDate, shouldRecur } from './recurrenceUtils';
 
 const toSeconds = (ms?: number) => ms ? Math.round(ms / 1000) : null;
 const fromSeconds = (s?: any) => {
@@ -100,8 +101,6 @@ export const useStore = create<Store>((set, get) => ({
     projects: {},
     notes: {},
     habits: {},
-    activities: {}, // Activity Logs
-    notifications: {}, // Notifications
     activities: {}, // Activity Logs
     notifications: {}, // Notifications
     onlineUsers: [], // Real-time presence
@@ -547,10 +546,33 @@ export const useStore = create<Store>((set, get) => ({
             console.log(`Forcing status to 'review' because user ${currentUserId} is not the owner ${task.ownerId}`);
         }
 
-        await state.updateTask(id, {
+        const updates: Partial<Task> = {
             status: targetStatus,
             completedAt: targetStatus === 'done' ? Date.now() : undefined
-        });
+        };
+
+        // NEW: Recurring Task Logic
+        if (targetStatus === 'done' && task.recurrence && shouldRecur(task)) {
+            const nextDueDate = calculateNextDueDate(task.recurrence, task.dueDate, Date.now());
+
+            await state.addTask({
+                title: task.title,
+                description: task.description,
+                priority: task.priority,
+                projectId: task.projectId,
+                tags: task.tags,
+                assigneeIds: task.assigneeIds,
+                estimatedMinutes: task.estimatedMinutes,
+                source: 'system',
+                visibility: task.visibility,
+                recurrence: task.recurrence,
+                originalTaskId: task.originalTaskId || task.id,
+                dueDate: nextDueDate,
+                status: 'todo'
+            });
+        }
+
+        await state.updateTask(id, updates);
 
         if (oldStatus !== targetStatus) {
             await state.logActivity(id, 'status_change', `Changed status to ${targetStatus.replace('_', ' ')}`, { old: oldStatus, new: targetStatus });
@@ -608,6 +630,27 @@ export const useStore = create<Store>((set, get) => ({
                 }
             }
         }));
+
+        // Recurring Check for Toggle
+        if (newStatus === 'done' && task.recurrence && shouldRecur(task)) {
+            // We need to calculate based on the just-set completion time (now)
+            const nextDueDate = calculateNextDueDate(task.recurrence, task.dueDate, Date.now());
+            await state.addTask({
+                title: task.title,
+                description: task.description,
+                priority: task.priority,
+                projectId: task.projectId,
+                tags: task.tags,
+                assigneeIds: task.assigneeIds,
+                estimatedMinutes: task.estimatedMinutes,
+                source: 'system',
+                visibility: task.visibility,
+                recurrence: task.recurrence,
+                originalTaskId: task.originalTaskId || task.id,
+                dueDate: nextDueDate,
+                status: 'todo'
+            });
+        }
 
         const completedAt = newStatus === 'done' ? Date.now() : null;
         const updatedAt = Date.now();

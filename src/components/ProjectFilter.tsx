@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { type Project, type EntityId } from '../core/types';
-import { Filter, X, Check, Search, Folder } from 'lucide-react';
+import { X, Check, Search, Folder } from 'lucide-react';
 import clsx from 'clsx';
 
 interface ProjectFilterProps {

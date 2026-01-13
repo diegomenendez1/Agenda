@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useStore } from '../../core/store';
 import type { Task, TaskStatus } from '../../core/types';
-import { Check, Calendar, Flag } from 'lucide-react';
+import { Check, Calendar, Flag, Repeat } from 'lucide-react';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 
@@ -99,6 +99,12 @@ export const TaskBoard = () => {
                             )}
 
 
+
+                            {task.recurrence && (
+                                <span className="flex items-center gap-1 text-slate-400" title={`Recurring: ${task.recurrence.frequency}`}>
+                                    <Repeat className="w-3 h-3" />
+                                </span>
+                            )}
 
                             <StatusBadge status={task.status} />
                             <PriorityIcon priority={task.priority} />

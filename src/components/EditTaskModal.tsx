@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Folder, Flag, Clock, Trash2, User, Lock, Sparkles, ArrowRight, Layout, AlertTriangle, Search, Loader2, Check, Eye, EyeOff, ListTodo, UserMinus } from 'lucide-react';
 import { useStore } from '../core/store';
 import { ActivityFeed } from './ActivityFeed';
-import type { Task, Priority, TaskStatus } from '../core/types';
+import type { Task, Priority, TaskStatus, RecurrenceConfig } from '../core/types';
 import { fetchWithRetry } from '../core/api';
 import clsx from 'clsx';
 import { format } from 'date-fns';
@@ -24,6 +24,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
     const [priority, setPriority] = useState<Priority>(task.priority);
     const [assigneeIds, setAssigneeIds] = useState<string[]>(task.assigneeIds || []);
     const [status, setStatus] = useState<TaskStatus>(task.status);
+    const [recurrence, setRecurrence] = useState<RecurrenceConfig | undefined>(task.recurrence);
     // Visibility is derived from assignees
 
     const initialDate = task.dueDate ? new Date(task.dueDate) : null;
@@ -175,7 +176,8 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
             projectId === (task.projectId || '') &&
             priority === task.priority &&
             dueDateStr === (task.dueDate ? format(new Date(task.dueDate), "yyyy-MM-dd'T'HH:mm") : '') &&
-            JSON.stringify(assigneeIds) === JSON.stringify(task.assigneeIds)
+            JSON.stringify(assigneeIds) === JSON.stringify(task.assigneeIds) &&
+            JSON.stringify(recurrence) === JSON.stringify(task.recurrence)
         ) {
             if (e && e.type === 'submit') onClose(); // If explicit submit, close
             return;
@@ -206,7 +208,8 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
             dueDate,
             assigneeIds,
             status,
-            visibility: derivedVisibility
+            visibility: derivedVisibility,
+            recurrence: recurrence // Add recurrence to update
         });
 
         if (e && e.type === 'submit') {
@@ -473,17 +476,56 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
 
 
                             <div className="grid grid-cols-2 gap-5 animate-in slide-in-from-top-2">
+
                                 <div className="col-span-2 md:col-span-1">
                                     <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
-                                        <Clock size={12} className="text-accent-secondary" /> Due Date
+                                        <Clock size={12} className="text-accent-secondary" /> Due Date & Repeat
                                     </label>
-                                    <input
-                                        disabled={!canEdit}
-                                        type="datetime-local"
-                                        value={dueDateStr}
-                                        onChange={e => setDueDateStr(e.target.value)}
-                                        className={clsx("input w-full", !canEdit && "opacity-70 cursor-not-allowed")}
-                                    />
+                                    <div className="flex gap-2">
+                                        <input
+                                            disabled={!canEdit}
+                                            type="datetime-local"
+                                            value={dueDateStr}
+                                            onChange={e => setDueDateStr(e.target.value)}
+                                            className={clsx("input w-full flex-1", !canEdit && "opacity-70 cursor-not-allowed")}
+                                        />
+                                        <select
+                                            disabled={!canEdit}
+                                            value={recurrence?.frequency || 'none'}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                if (val === 'none') {
+                                                    setRecurrence(undefined);
+                                                } else {
+                                                    setRecurrence({
+                                                        frequency: val as any,
+                                                        interval: 1,
+                                                        type: 'on_schedule' // Default
+                                                    });
+                                                }
+                                            }}
+                                            className={clsx("input w-[100px] text-xs font-semibold", !canEdit && "opacity-70 cursor-not-allowed")}
+                                        >
+                                            <option value="none">No Repeat</option>
+                                            <option value="daily">Daily</option>
+                                            <option value="weekly">Weekly</option>
+                                            <option value="monthly">Monthly</option>
+                                            <option value="yearly">Yearly</option>
+                                        </select>
+                                    </div>
+                                    {recurrence && (
+                                        <div className="mt-2 text-xs flex items-center gap-2 animate-in fade-in">
+                                            <select
+                                                value={recurrence.type}
+                                                onChange={e => setRecurrence({ ...recurrence, type: e.target.value as any })}
+                                                className="bg-bg-input border-none rounded px-2 py-1 text-[10px] font-bold uppercase text-accent-primary"
+                                            >
+                                                <option value="on_schedule">On Schedule</option>
+                                                <option value="on_completion">After Completion</option>
+                                            </select>
+                                            <span className="text-text-muted">Every {recurrence.interval} {recurrence.frequency}(s)</span>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="col-span-2 animate-in fade-in slide-in-from-top-2">
@@ -662,7 +704,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                         </div>
                     )}
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }

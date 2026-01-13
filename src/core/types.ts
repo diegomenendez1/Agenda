@@ -60,6 +60,18 @@ export interface InboxItem {
     createdAt: number;
 }
 
+// Recurring Tasks Support
+export interface RecurrenceConfig {
+    frequency: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+    interval: number; // e.g., 2 for "every 2 weeks"
+    daysOfWeek?: number[]; // [0, 1, ..., 6] for Sunday, Monday...
+    endCondition?: {
+        type: 'date' | 'count' | 'never';
+        value?: number; // timestamp or count
+    };
+    type: 'on_schedule' | 'on_completion';
+}
+
 export interface Task {
     id: EntityId;
     title: string;
@@ -81,6 +93,10 @@ export interface Task {
     source?: 'manual' | 'email' | 'voice' | 'system';
     estimatedMinutes?: number;
     acceptedAt?: number;
+
+    // Recurrence
+    recurrence?: RecurrenceConfig;
+    originalTaskId?: EntityId; // If this is a spawned instance
 }
 
 export interface Project {
