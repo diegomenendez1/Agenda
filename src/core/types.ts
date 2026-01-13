@@ -127,6 +127,7 @@ export interface AppState {
     habits: Record<EntityId, Habit>;
     activities: Record<EntityId, ActivityLog>;
     notifications: Record<EntityId, Notification>;
+    onlineUsers: EntityId[]; // List of user IDs currently online
 }
 
 export type ActivityType =

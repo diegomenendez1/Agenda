@@ -96,6 +96,7 @@ export const useStore = create<Store>((set, get) => ({
     habits: {},
     activities: {}, // Activity Logs
     notifications: {}, // Notifications
+    onlineUsers: [], // Real-time presence
 
     initialize: async () => {
         const { data: { user } } = await supabase.auth.getUser();
@@ -273,6 +274,44 @@ export const useStore = create<Store>((set, get) => ({
                 }
             })
             .subscribe();
+
+        // Presence Logic
+        const presenceChannel = supabase.channel('online-users');
+
+        presenceChannel
+            .on('presence', { event: 'sync' }, () => {
+                const newState = presenceChannel.presenceState();
+                const onlineIds = Object.keys(newState);
+                set({ onlineUsers: onlineIds });
+            })
+            .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+                // key is usually the userId if we set it as such, or a session ID.
+                // Supabase presence state uses optional 'user_id' in payload?
+                // Let's rely on syncing the full state for simplicity or tracking joins.
+                // Actually, 'sync' covers everything eventually, but 'join' is faster for instant feedback.
+                set((state) => {
+                    const newIds = newPresences.map((p: any) => p.user_id).filter(Boolean);
+                    // Avoid duplicates
+                    const updated = Array.from(new Set([...state.onlineUsers, ...newIds]));
+                    return { onlineUsers: updated };
+                });
+            })
+            .on('presence', { event: 'leave' }, ({ leftPresences }) => {
+                set((state) => {
+                    const leftIds = leftPresences.map((p: any) => p.user_id);
+                    const updated = state.onlineUsers.filter(id => !leftIds.includes(id));
+                    return { onlineUsers: updated };
+                });
+            })
+            .subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    // Track myself
+                    await presenceChannel.track({
+                        user_id: user.id,
+                        online_at: new Date().toISOString(),
+                    });
+                }
+            });
     },
 
     addInboxItem: async (text, source = 'manual') => {

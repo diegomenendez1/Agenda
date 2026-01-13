@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { PresenceIndicator } from '../components/PresenceIndicator';
 import { useStore } from '../core/store';
 import { Users, Filter, X } from 'lucide-react';
 import { KanbanBoard } from '../components/KanbanBoard';
@@ -71,13 +72,18 @@ export function TeamBoardView() {
                                         className={`relative group transition-all duration-300 rounded-full focus:outline-none focus:ring-2 focus:ring-accent-primary focus:ring-offset-2 ${isDimmed ? 'opacity-30 scale-90 grayscale' : 'opacity-100 scale-100 z-10'}`}
                                         title={`Filter by ${member.name}`}
                                     >
-                                        <img
-                                            src={member.avatar || `https://ui-avatars.com/api/?name=${member.name}`}
-                                            alt={member.name}
-                                            className={`w-8 h-8 rounded-full border-2 ${isSelected ? 'border-accent-primary ring-2 ring-accent-primary/30' : 'border-bg-card'}`}
-                                        />
+                                        <div className="relative">
+                                            <img
+                                                src={member.avatar || `https://ui-avatars.com/api/?name=${member.name}`}
+                                                alt={member.name}
+                                                className={`w-8 h-8 rounded-full border-2 ${isSelected ? 'border-accent-primary ring-2 ring-accent-primary/30' : 'border-bg-card'}`}
+                                            />
+                                            <div className="absolute bottom-0 right-0 z-10">
+                                                <PresenceIndicator userId={member.id} size="sm" />
+                                            </div>
+                                        </div>
                                         {isSelected && (
-                                            <div className="absolute -top-1 -right-1 bg-accent-primary text-white rounded-full p-0.5 shadow-sm">
+                                            <div className="absolute -top-1 -right-1 bg-accent-primary text-white rounded-full p-0.5 shadow-sm z-20">
                                                 <X size={8} />
                                             </div>
                                         )}

@@ -5,6 +5,7 @@ import { supabase } from '../core/supabase';
 import { NotificationCenter } from './NotificationCenter';
 import clsx from 'clsx';
 import { useState } from 'react';
+import { PresenceIndicator } from './PresenceIndicator';
 
 export function Sidebar() {
     const { user } = useStore();
@@ -141,7 +142,9 @@ export function Sidebar() {
                         <NavLink to="/settings" className={clsx("flex items-center gap-3 min-w-0 hover:bg-bg-card-hover rounded-lg transition-colors group p-2 flex-1 border border-transparent hover:border-border-subtle", !collapsed && "")}>
                             <div className="w-9 h-9 rounded-full bg-accent-secondary/20 p-[1px] shrink-0 relative overflow-hidden ring-2 ring-transparent group-hover:ring-border-subtle transition-all">
                                 <img src={user?.avatar || "https://ui-avatars.com/api/?name=User&background=random"} alt="User" className="rounded-full w-full h-full object-cover" />
-                                <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-success border-2 border-bg-card rounded-full" />
+                                <div className="absolute bottom-0 right-0 z-10">
+                                    <PresenceIndicator userId={user?.id || ''} size="sm" showOffline={false} />
+                                </div>
                             </div>
                             {!collapsed && (
                                 <div className="flex-1 min-w-0">
