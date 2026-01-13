@@ -57,7 +57,7 @@ export function TeamBoardView() {
 
     return (
         <div className="flex flex-col h-full bg-bg-app overflow-hidden p-6 md:p-8">
-            <header className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-enter">
+            <header className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-enter relative z-20">
                 <div>
                     <h1 className="text-3xl font-display font-bold flex items-center gap-3 tracking-tight text-text-primary">
                         <Users className="w-8 h-8 text-accent-primary" />
