@@ -594,7 +594,35 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                             </div>
 
                             <div className="sticky bottom-0 bg-bg-card border-t border-border-subtle pt-5 pb-2 mt-2 -mx-6 px-6 z-10">
-                                <div className="flex justify-end">
+                                <div className="flex justify-end gap-3">
+                                    {status === 'review' && isOwner && (
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                setStatus('done');
+                                                // Trigger explicit save with 'done' status
+                                                const date = dueDateStr ? new Date(dueDateStr) : null;
+                                                updateTask(task.id, {
+                                                    status: 'done',
+                                                    completedAt: Date.now(),
+                                                    title,
+                                                    description,
+                                                    projectId: projectId || undefined,
+                                                    priority,
+                                                    dueDate: date && !isNaN(date.getTime()) ? date.getTime() : undefined,
+                                                    assigneeIds,
+                                                    visibility: assigneeIds.length > 0 ? 'team' : 'private'
+                                                });
+                                                setIsSuccess(true);
+                                                setTimeout(onClose, 800);
+                                            }}
+                                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-500/20 flex items-center gap-2 transition-all"
+                                        >
+                                            <Check size={18} />
+                                            <span>Approve & Complete</span>
+                                        </button>
+                                    )}
+
                                     <button
                                         type="submit"
                                         disabled={isSuccess}
@@ -602,7 +630,9 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                             "text-white px-8 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2",
                                             isSuccess
                                                 ? "bg-green-500 shadow-green-500/30 scale-105"
-                                                : "bg-violet-600 hover:bg-violet-700 shadow-violet-500/20"
+                                                : status === 'done' && !isOwner
+                                                    ? "bg-amber-600 hover:bg-amber-700 shadow-amber-500/20" // Non-owner trying to 'done' -> will be 'review'
+                                                    : "bg-violet-600 hover:bg-violet-700 shadow-violet-500/20"
                                         )}
                                     >
                                         {isSuccess ? (
@@ -612,7 +642,10 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                             </>
                                         ) : (
                                             <>
-                                                <span>{isProcessing ? 'Confirm & To Do' : 'Save Changes'}</span>
+                                                <span>
+                                                    {isProcessing ? 'Confirm & To Do' :
+                                                        (status === 'done' && !isOwner) ? 'Submit for Review' : 'Save Changes'}
+                                                </span>
                                                 <ArrowRight size={16} />
                                             </>
                                         )}

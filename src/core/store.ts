@@ -436,11 +436,37 @@ export const useStore = create<Store>((set, get) => ({
 
     updateStatus: async (id, status) => {
         const state = get();
-        const oldStatus = state.tasks[id]?.status;
-        await state.updateTask(id, { status, completedAt: status === 'done' ? Date.now() : undefined });
+        const task = state.tasks[id];
+        if (!task) return;
 
-        if (oldStatus !== status) {
-            await state.logActivity(id, 'status_change', `Changed status to ${status.replace('_', ' ')}`, { old: oldStatus, new: status });
+        const oldStatus = task.status;
+        const currentUserId = state.user?.id;
+
+        // REFINEMENT: If a non-owner tries to move to 'done', force it to 'review' instead
+        let targetStatus = status;
+        if (status === 'done' && task.ownerId !== currentUserId) {
+            targetStatus = 'review';
+            console.log(`Forcing status to 'review' because user ${currentUserId} is not the owner ${task.ownerId}`);
+        }
+
+        await state.updateTask(id, {
+            status: targetStatus,
+            completedAt: targetStatus === 'done' ? Date.now() : undefined
+        });
+
+        if (oldStatus !== targetStatus) {
+            await state.logActivity(id, 'status_change', `Changed status to ${targetStatus.replace('_', ' ')}`, { old: oldStatus, new: targetStatus });
+
+            // Notify owner if moved to review
+            if (targetStatus === 'review' && task.ownerId !== currentUserId) {
+                state.sendNotification(
+                    task.ownerId,
+                    'status_change',
+                    'Task Ready for Review',
+                    `"${task.title}" is ready for your approval.`,
+                    `/tasks/${id}`
+                );
+            }
         }
     },
 
@@ -462,13 +488,26 @@ export const useStore = create<Store>((set, get) => ({
     toggleTaskStatus: async (id) => {
         const state = get();
         const task = state.tasks[id];
-        const newStatus = task.status === 'done' ? 'todo' : 'done';
+        if (!task) return;
+
+        const currentUserId = state.user?.id;
+        let newStatus: TaskStatus = task.status === 'done' ? 'todo' : 'done';
+
+        // REFINEMENT: If non-owner toggles, it goes to 'review' instead of 'done'
+        if (newStatus === 'done' && task.ownerId !== currentUserId) {
+            newStatus = 'review';
+        }
 
         // Optimistic
         set(state => ({
             tasks: {
                 ...state.tasks,
-                [id]: { ...task, status: newStatus as any, completedAt: newStatus === 'done' ? Date.now() : undefined, updatedAt: Date.now() }
+                [id]: {
+                    ...task,
+                    status: newStatus,
+                    completedAt: newStatus === 'done' ? Date.now() : undefined,
+                    updatedAt: Date.now()
+                }
             }
         }));
 
@@ -477,9 +516,20 @@ export const useStore = create<Store>((set, get) => ({
 
         await supabase.from('tasks').update({
             status: newStatus,
-            completed_at: completedAt, // BIGINT (Number)
-            updated_at: new Date(updatedAt).toISOString() // TIMESTAMPTZ (String)
+            completed_at: completedAt,
+            updated_at: new Date(updatedAt).toISOString()
         }).eq('id', id);
+
+        if (newStatus === 'review' && task.ownerId !== currentUserId) {
+            await state.logActivity(id, 'status_change', `Requested review (toggled from ${task.status})`);
+            state.sendNotification(
+                task.ownerId,
+                'status_change',
+                'Review Requested',
+                `"${task.title}" was marked for review.`,
+                `/tasks/${id}`
+            );
+        }
     },
 
     deleteTask: async (id) => {
