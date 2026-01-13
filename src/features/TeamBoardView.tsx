@@ -23,6 +23,11 @@ export function TeamBoardView() {
         // 1. Core Definition: What is a "Team Task"?
         // It must have 'team' visibility OR have assignees (which implies sharing)
         const isShared = t.visibility === 'team' || (t.assigneeIds && t.assigneeIds.length > 0);
+
+        // STRICT PRIVACY: If a task is private, ONLY the owner can see it.
+        // Even the system owner/admin cannot see other people's private tasks.
+        if (t.visibility === 'private' && t.ownerId !== user?.id) return false;
+
         if (!isShared) return false;
 
         // 2. Role-Based Access Control

@@ -691,12 +691,38 @@ export const useStore = create<Store>((set, get) => ({
 
     clearCompletedTasks: async () => {
         const state = get();
+        const currentUserId = state.user?.id;
+        const userRole = state.user?.role;
+        if (!currentUserId) {
+            console.error("clearCompletedTasks: No user logged in");
+            return;
+        }
+
+        const isAdmin = userRole === 'owner' || userRole === 'admin';
+        console.log(`clearCompletedTasks: Triggered for user ${currentUserId} (${userRole})`);
+
         const completedTaskIds = Object.values(state.tasks)
-            .filter(t => t.status === 'done' && (t.ownerId === state.user?.id)) // Only delete own completed tasks or generally all completed?
-            // Better safety: only delete tasks visible to the user that are done.
-            // Even safer: Only delete tasks owned by the user.
-            // Logic: Filter tasks that are completed.
+            .filter(t => {
+                if (t.status !== 'done') return false;
+
+                const isOwner = t.ownerId === currentUserId;
+                const isAssignee = t.assigneeIds && t.assigneeIds.includes(currentUserId);
+                const isTeamTask = t.visibility === 'team';
+
+                // Rule: You can clear a task if:
+                // 1. You own it.
+                // 2. It's a team task and you are an Admin/Owner.
+                // 3. It's a team task and you are an Assignee.
+                // Private tasks of others are NEVER cleared.
+
+                if (isOwner) return true;
+                if (isTeamTask && (isAdmin || isAssignee)) return true;
+
+                return false;
+            })
             .map(t => t.id);
+
+        console.log(`clearCompletedTasks: Found ${completedTaskIds.length} tasks to clear`, completedTaskIds);
 
         if (completedTaskIds.length === 0) return;
 
@@ -707,7 +733,14 @@ export const useStore = create<Store>((set, get) => ({
             return { tasks: newTasks };
         });
 
-        await supabase.from('tasks').delete().in('id', completedTaskIds);
+        const { error } = await supabase.from('tasks').delete().in('id', completedTaskIds);
+        if (error) {
+            console.error("clearCompletedTasks: Database failure", error);
+            // Re-fetch everything to sync state back if delete failed
+            get().initialize();
+        } else {
+            console.log("clearCompletedTasks: Successfully deleted tasks from DB");
+        }
     },
 
     addProject: async (name, goal, color = '#6366f1') => {

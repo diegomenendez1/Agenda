@@ -58,18 +58,18 @@ export function TaskListView() {
             const isAssignee = task.assigneeIds?.includes(user.id);
             const isShared = task.visibility === 'team';
             const isOwner = task.ownerId === user.id;
+            const isAdmin = user.role === 'owner' || user.role === 'admin';
 
             // View Rules:
-            // 1. Owner always sees their tasks (Private or Shared/Delegated)
-            // 2. Assignees see shared tasks
-            // 3. Team sees shared tasks (if Policy allows, but UI filters to 'My Tasks' usually. 
-            //    Here we want to ensure 'My Delegated Tasks' are visible too).
+            // 1. Owner/Admin roles see everything
+            // 2. Creator always sees their tasks
+            // 3. Assignees see shared tasks
 
             if (isShared) {
-                // Show if I am the assignee OR the owner
-                if (!isAssignee && !isOwner) return false;
+                // Team tasks: Creator, Assignees, and Admins/Owners
+                if (!isAdmin && !isAssignee && !isOwner) return false;
             } else {
-                // Private: Show only if Owner
+                // Private: ONLY the owner. Strict privacy as requested.
                 if (!isOwner) return false;
             }
 
@@ -169,18 +169,29 @@ export function TaskListView() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-3">
-                        {filteredTasks.some(t => t.status === 'done') && (
-                            <button
-                                onClick={() => {
-                                    if (confirm('Are you sure you want to delete all completed tasks? This cannot be undone.')) {
-                                        clearCompletedTasks();
-                                    }
-                                }}
-                                className="btn btn-ghost text-xs text-text-muted hover:text-red-500 hover:bg-red-500/10 px-3 py-2"
-                            >
-                                <Trash2 size={14} className="mr-1.5" /> Clear Completed
-                            </button>
-                        )}
+                        {(() => {
+                            if (!user) return null;
+                            const isAdmin = user.role === 'owner' || user.role === 'admin';
+                            const hasClearableTasks = Object.values(tasks).some(t => {
+                                if (t.status !== 'done') return false;
+                                if (t.visibility === 'private') return t.ownerId === user.id;
+                                return t.ownerId === user.id || isAdmin || (t.assigneeIds && t.assigneeIds.includes(user.id));
+                            });
+
+                            return hasClearableTasks && (
+                                <button
+                                    onClick={() => {
+                                        if (window.confirm('¿Estás seguro de que quieres eliminar todas las tareas completadas?')) {
+                                            clearCompletedTasks();
+                                        }
+                                    }}
+                                    className="btn btn-ghost text-xs text-accent-primary hover:bg-accent-primary/10 px-3 py-2 flex items-center gap-2"
+                                >
+                                    <Trash2 size={14} />
+                                    <span>Clear Completed</span>
+                                </button>
+                            );
+                        })()}
                         {viewMode === 'list' && (
                             <button
                                 className="btn btn-primary shadow-lg shadow-accent-primary/20"

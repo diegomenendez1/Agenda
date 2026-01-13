@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useStore } from '../core/store';
 import type { TaskStatus, Task } from '../core/types';
 import { clsx } from 'clsx';
-import { MoreHorizontal, Calendar, AlertCircle, CheckCircle2, Lock, Flag, Clock, X } from 'lucide-react';
+import { MoreHorizontal, Calendar, AlertCircle, CheckCircle2, Lock, Flag, Clock, X, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { EditTaskModal } from './EditTaskModal';
 
@@ -118,6 +118,22 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                 </span>
                             </div>
                         </div>
+
+                        {col.id === 'done' && tasksByStatus.done.length > 0 && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (window.confirm('¿Eliminar todas las tareas en "Done"?')) {
+                                        useStore.getState().clearCompletedTasks();
+                                    }
+                                }}
+                                className="mr-2 p-1.5 rounded-lg text-text-muted hover:text-red-500 hover:bg-red-50 transition-all flex items-center gap-1 text-[10px] font-bold uppercase"
+                                title="Clear Done Tasks"
+                            >
+                                <Trash2 size={12} />
+                                <span className="hidden sm:inline">Clear</span>
+                            </button>
+                        )}
                     </div>
 
                     {/* Drop Zone / List */}
@@ -201,21 +217,22 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                                     </button>
                                                 </div>
                                             ) : (
-                                                task.visibility === 'private' ? (
+                                                <div className="flex flex-col gap-2 w-full mb-3">
+                                                    {task.visibility === 'team' && (
+                                                        <div className="w-full py-2 bg-bg-input border border-border-subtle text-text-muted text-xs font-bold uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 cursor-default">
+                                                            <Clock size={14} /> Waiting for Team
+                                                        </div>
+                                                    )}
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             updateStatus(task.id, 'todo');
                                                         }}
-                                                        className="w-full mb-3 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2"
+                                                        className="w-full py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2"
                                                     >
                                                         <CheckCircle2 size={14} /> Start Task
                                                     </button>
-                                                ) : (
-                                                    <div className="w-full mb-3 py-2 bg-bg-input border border-border-subtle text-text-muted text-xs font-bold uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 cursor-default">
-                                                        <Clock size={14} /> Waiting for Team
-                                                    </div>
-                                                )
+                                                </div>
                                             )}
                                         </>
                                     )}
