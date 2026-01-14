@@ -101,6 +101,10 @@ interface Actions {
     // AI Context & Privacy - NEW
     fetchAIContext: (userId: EntityId) => Promise<string>;
     updateAIContext: (userId: EntityId, context: string) => Promise<void>;
+
+    // Member Management - NEW
+    updateMemberRole: (memberId: string, role: string) => Promise<void>;
+    removeTeamMember: (memberId: string) => Promise<void>;
 }
 
 type Store = AppState & Actions;
@@ -182,6 +186,40 @@ export const useStore = create<Store>((set, get) => ({
 
         // RPC call would go here
         // await supabase.rpc('leave_team', { user_id: user.id });
+    },
+
+    updateMemberRole: async (memberId, role) => {
+        // Optimistic update
+        set(state => ({
+            team: {
+                ...state.team,
+                [memberId]: { ...state.team[memberId], role }
+            }
+        }));
+
+        const { error } = await supabase.from('profiles').update({ role }).eq('id', memberId);
+        if (error) {
+            console.error("Failed to update role:", error);
+            // Revert would go here
+            throw error;
+        }
+    },
+
+    removeTeamMember: async (memberId) => {
+        // Optimistic update
+        set(state => {
+            const { [memberId]: _, ...rest } = state.team;
+            return { team: rest };
+        });
+
+        // Use the Admin RPC for safe deletion/removal
+        const { error } = await supabase.rpc('delete_user_by_admin', { target_user_id: memberId });
+        if (error) {
+            console.error("Failed to remove member:", error);
+            // Revert
+            // set(state => ({ team: { ...state.team, [memberId]: member } })); // Complex to revert without keeping ref
+            throw error;
+        }
     },
 
     initialize: async () => {

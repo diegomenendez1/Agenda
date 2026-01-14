@@ -2,12 +2,14 @@ import { useState, useMemo } from 'react';
 import { useStore } from '../core/store';
 import { Users, Mail, Clock, Shield, CheckCircle, XCircle, Plus } from 'lucide-react';
 import { InviteMemberModal } from './InviteMemberModal';
+import { MemberManagementModal } from './MemberManagementModal';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 
 export function MyTeamView() {
     const { user, tasks, activeInvitations, team, revokeInvitation, resendInvitation } = useStore();
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+    const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'members' | 'invitations'>('members');
 
     // Filter members that report to the current user (or all if admin/owner)
@@ -185,7 +187,10 @@ export function MyTeamView() {
                                                 <div className="text-xs text-text-muted uppercase font-bold tracking-wider mb-1">Completed</div>
                                                 <div className="font-mono text-sm text-green-500">{stats.done}</div>
                                             </div>
-                                            <button className="opacity-0 group-hover:opacity-100 p-2 hover:bg-bg-input rounded-lg transition-all text-text-muted hover:text-text-primary">
+                                            <button
+                                                onClick={() => setSelectedMemberId(member.id)}
+                                                className="opacity-0 group-hover:opacity-100 p-2 hover:bg-bg-input rounded-lg transition-all text-text-muted hover:text-text-primary"
+                                            >
                                                 Manage
                                             </button>
                                         </div>
@@ -259,6 +264,12 @@ export function MyTeamView() {
             <InviteMemberModal
                 isOpen={isInviteModalOpen}
                 onClose={() => setIsInviteModalOpen(false)}
+            />
+
+            <MemberManagementModal
+                isOpen={!!selectedMemberId}
+                onClose={() => setSelectedMemberId(null)}
+                memberId={selectedMemberId}
             />
         </div>
     );
