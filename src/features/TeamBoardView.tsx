@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import clsx from 'clsx';
 import { PresenceIndicator } from '../components/PresenceIndicator';
 import { WorkloadChart } from '../components/WorkloadChart';
@@ -9,10 +9,16 @@ import { ProjectFilter } from '../components/ProjectFilter';
 
 
 export function TeamBoardView() {
-    const { tasks, team, user, projects } = useStore();
+    const { tasks, team, user, projects, fetchInvitations, activeInvitations, sendInvitation, revokeInvitation } = useStore();
     const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
     const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
     const [showWorkload, setShowWorkload] = useState(false);
+    const [showInviteModal, setShowInviteModal] = useState(false);
+    const [inviteEmail, setInviteEmail] = useState('');
+
+    useEffect(() => {
+        fetchInvitations();
+    }, []);
 
     // Strict Filtering for "Selective Visibility"
     // The Team Board is NOT a public board. It only shows tasks that:
@@ -71,6 +77,16 @@ export function TeamBoardView() {
                     <p className="text-text-muted text-sm mt-1 ml-11">
                         Tasks shared with me or delegated by me.
                     </p>
+                </div>
+
+                <div className="flex gap-2 items-center">
+                    <button
+                        onClick={() => setShowInviteModal(true)}
+                        className="bg-accent-primary text-white text-sm font-bold px-4 py-2 rounded-xl shadow-lg shadow-accent-primary/20 hover:bg-accent-primary-hover transition-all flex items-center gap-2"
+                    >
+                        <Users size={16} />
+                        <span className="hidden sm:inline">Invite Member</span>
+                    </button>
                 </div>
 
                 <div className="flex items-center gap-4 bg-bg-card border border-border-subtle p-2 rounded-xl shadow-sm">
@@ -146,9 +162,78 @@ export function TeamBoardView() {
             )
             }
 
+
             <div className="flex-1 overflow-hidden -mx-2 px-2 pb-2">
                 <KanbanBoard tasks={taskList} />
             </div>
+
+            {showInviteModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-bg-card rounded-xl shadow-2xl w-full max-w-md border border-border-subtle animate-in fade-in zoom-in-95">
+                        <div className="flex items-center justify-between p-4 border-b border-border-subtle">
+                            <h3 className="font-bold text-lg">Manage Team</h3>
+                            <button onClick={() => setShowInviteModal(false)}><X size={20} className="text-text-muted hover:text-text-primary" /></button>
+                        </div>
+                        <div className="p-6 space-y-6">
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-text-muted mb-2">Invite New Member</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="email"
+                                        placeholder="colleague@example.com"
+                                        value={inviteEmail}
+                                        onChange={e => setInviteEmail(e.target.value)}
+                                        className="input flex-1"
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            if (!inviteEmail) return;
+                                            sendInvitation(inviteEmail, 'member');
+                                            setInviteEmail('');
+                                        }}
+                                        className="bg-accent-primary text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-accent-primary-hover"
+                                    >
+                                        Send
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold uppercase text-text-muted mb-2">Pending Invitations</label>
+                                {activeInvitations && activeInvitations.length > 0 ? (
+                                    <div className="space-y-2">
+                                        {activeInvitations.map((invite: any) => (
+                                            <div key={invite.id} className="flex items-center justify-between bg-bg-input p-3 rounded-lg text-sm">
+                                                <div>
+                                                    <div className="font-bold text-text-primary">{invite.member_email || invite.manager_name}</div>
+                                                    <div className="text-[10px] text-text-muted capitalize">
+                                                        {invite.direction === 'sent' ? 'Sent to' : 'From'} • {invite.status}
+                                                    </div>
+                                                </div>
+                                                {invite.direction === 'sent' && (
+                                                    <button
+                                                        onClick={() => revokeInvitation(invite.id)}
+                                                        className="text-red-500 text-xs hover:underline"
+                                                    >
+                                                        Revoke
+                                                    </button>
+                                                )}
+                                                {invite.direction === 'received' && (
+                                                    <div className="text-xs text-accent-primary font-bold">Check Inbox</div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center p-4 bg-bg-app rounded-lg text-text-muted text-sm italic">
+                                        No pending invitations.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div >
     );
 }

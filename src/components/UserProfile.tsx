@@ -57,8 +57,11 @@ export function UserProfile() {
                 </div>
 
                 <div className="p-8 space-y-8">
-                    {/* Team Invitations Section */}
+                    {/* Team Invitations Section (Recipient View) */}
                     <TeamInvitations />
+
+                    {/* Team Management Section (Manager View) */}
+                    {(user?.role === 'owner' || user?.role === 'admin') && <TeamManagement />}
 
                     {/* Identity Section */}
                     <div className="space-y-4">
@@ -239,6 +242,97 @@ function TeamInvitations() {
                     </div>
                 ))}
             </div>
+        </div>
+    );
+}
+
+function TeamManagement() {
+    const { user, team, removeTeamMember, sendInvitation } = useStore();
+    const [emailInput, setEmailInput] = useState('');
+    const [isInviting, setIsInviting] = useState(false);
+
+    const activeMembers = Object.values(team).filter(m => m.id !== user?.id);
+
+    const handleInvite = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!emailInput) return;
+        setIsInviting(true);
+        await sendInvitation(emailInput, 'member');
+        setEmailInput('');
+        setIsInviting(false);
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+                    <Users size={18} />
+                    My Team
+                </h3>
+                <span className="text-xs font-medium px-2 py-1 bg-bg-surface border border-border-subtle rounded text-text-muted">
+                    {activeMembers.length} Members
+                </span>
+            </div>
+
+            {/* Invite Form */}
+            <form onSubmit={handleInvite} className="flex gap-2">
+                <input
+                    type="email"
+                    placeholder="Enter teammate's email..."
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    className="input flex-1 text-sm h-10"
+                    required
+                />
+                <button
+                    type="submit"
+                    disabled={isInviting}
+                    className="btn btn-primary px-4 h-10 text-xs font-bold whitespace-nowrap"
+                >
+                    {isInviting ? 'Sending...' : 'Invite Person'}
+                </button>
+            </form>
+
+            <div className="grid grid-cols-1 gap-3">
+                {activeMembers.length === 0 ? (
+                    <div className="text-center py-6 border border-dashed border-border-subtle rounded-xl text-text-muted text-sm italic">
+                        No team members yet. Invite someone to start collaborating.
+                    </div>
+                ) : (
+                    activeMembers.map((member) => (
+                        <div key={member.id} className="flex items-center justify-between bg-bg-surface/50 p-4 rounded-xl border border-border-subtle hover:border-accent-primary/30 transition-all group">
+                            <div className="flex items-center gap-4">
+                                <div className="relative">
+                                    <img
+                                        src={member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}`}
+                                        className="w-10 h-10 rounded-full bg-bg-input"
+                                    />
+                                    <div className="absolute -bottom-1 -right-1">
+                                        <div className="w-3 h-3 bg-green-500 rounded-full border-2 border-bg-card" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-semibold text-text-primary">{member.name}</p>
+                                    <p className="text-xs text-text-muted">{member.email}</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    if (confirm(`Remove ${member.name} from your team? They will no longer see shared tasks.`)) {
+                                        removeTeamMember(member.id);
+                                    }
+                                }}
+                                className="p-2 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                title="Remove Member"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            <div className="h-px bg-border-subtle" />
         </div>
     );
 }

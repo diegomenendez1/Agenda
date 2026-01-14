@@ -96,6 +96,7 @@ interface Actions {
     sendInvitation: (email: string, role: string) => Promise<void>;
     revokeInvitation: (id: string) => Promise<void>;
     leaveTeam: () => Promise<void>;
+    removeTeamMember: (memberId: string) => Promise<void>;
 }
 
 type Store = AppState & Actions;
@@ -116,51 +117,127 @@ export const useStore = create<Store>((set, get) => ({
     // --- Actions ---
 
     fetchInvitations: async () => {
-        // Mock implementation for now as we don't have the table yet
-        // In a real scenario: const { data } = await supabase.from('team_invitations').select('*');
-        // if (data) set({ activeInvitations: data });
+        // Fetch SENT invitations (as Manager)
+        const { data: sent } = await supabase.rpc('get_sent_invitations');
+
+        // Fetch RECEIVED invitations (as Member)
+        const { data: received } = await supabase.rpc('get_my_invitations');
+
+        // Combine for state (simplification: just list them all, UI separates)
+        // Or better, store them in separate keys? 
+        // For now, let's put them in activeInvitations and add a 'direction' field?
+        // Actually, the Store interface has 'activeInvitations: []'. 
+        // Let's assume it holds both for now or just SENT ones if we are focusing on Manager.
+        // Recommendation A.2 says "List pending invitations".
+        // Let's map them to a common structure.
+
+        const combined = [
+            ...(sent || []).map((i: any) => ({ ...i, direction: 'sent' })),
+            ...(received || []).map((i: any) => ({ ...i, direction: 'received' }))
+        ];
+
+        set({ activeInvitations: combined });
     },
 
     sendInvitation: async (email, role) => {
         const { user } = get();
-        // Optimistic update
-        const newInvite: any = {
-            id: crypto.randomUUID(),
-            email,
-            role,
-            invitedBy: user?.id || 'system',
-            invitedByName: user?.name,
-            teamId: 'default-team',
-            status: 'pending',
-            createdAt: Date.now()
-        };
+        if (!user) return;
 
-        set(state => ({
-            activeInvitations: [...state.activeInvitations, newInvite]
-        }));
+        // Implementation Detail: We first try to find the user by email
+        const { data: profiles, error: profileError } = await supabase
+            .from('profiles')
+            .select('id, full_name')
+            .eq('email', email.toLowerCase().trim());
 
-        // Call RPC (simulated)
-        // const { error } = await supabase.rpc('invite_user_to_team', { email });
-        // For existing users, update their profile too?
-        // Implementation detail: for now we just track invites.
+        if (profileError || !profiles || profiles.length === 0) {
+            toast.error(`User with email ${email} not found.`);
+            return;
+        }
+
+        const targetUser = profiles[0];
+
+        // Prevent self-invite
+        if (targetUser.id === user.id) {
+            toast.error("You cannot invite yourself.");
+            return;
+        }
+
+        // Call RPC logic
+        const { error } = await supabase.rpc('invite_user_to_team', {
+            target_user_id: targetUser.id
+        });
+
+        if (error) {
+            console.error("Invite failed:", error);
+            toast.error("Failed to send invitation.");
+            return;
+        }
+
+        toast.success(`Invitation sent to ${targetUser.full_name}`);
+
+        // Refresh invitations list or local state if needed
+        get().fetchInvitations();
     },
 
     revokeInvitation: async (id) => {
+        // Technically 'respond_to_team_invite' with accept=false if you are the member
+        // but for revoking as manager, we just delete the membership.
+        const { error } = await supabase
+            .from('team_memberships')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            toast.error("Failed to revoke invitation.");
+            return;
+        }
+
         set(state => ({
             activeInvitations: state.activeInvitations.filter(i => i.id !== id)
         }));
-        // await supabase.from('team_invitations').delete().eq('id', id);
+        toast.success("Invitation revoked.");
     },
 
     leaveTeam: async () => {
         const { user } = get();
         if (!user) return;
 
-        // Clear local team state and tasks to simulate leaving
-        set({ team: {}, tasks: {} });
+        // Note: leave_team expects a manager_id. Since we might have multiple managers, 
+        // we'd need to know which one. For now, we'll assume we leave the primary one 
+        // or we fetch active memberships first.
+        const { data: memberships } = await supabase
+            .from('team_memberships')
+            .select('manager_id')
+            .eq('member_id', user.id)
+            .eq('status', 'active');
 
-        // RPC call would go here
-        // await supabase.rpc('leave_team', { user_id: user.id });
+        if (memberships && memberships.length > 0) {
+            for (const m of memberships) {
+                await supabase.rpc('leave_team', { p_manager_id: m.manager_id });
+            }
+        }
+
+        // Clear local team state and reload to reset data visibility
+        set({ team: {}, tasks: {} });
+        window.location.reload();
+    },
+
+    removeTeamMember: async (memberId) => {
+        const { error } = await supabase.rpc('remove_team_member', {
+            p_member_id: memberId
+        });
+
+        if (error) {
+            toast.error("Failed to remove member.");
+            return;
+        }
+
+        set(state => {
+            const newTeam = { ...state.team };
+            delete newTeam[memberId];
+            return { team: newTeam };
+        });
+        toast.success("Member removed from team.");
     },
 
     initialize: async () => {

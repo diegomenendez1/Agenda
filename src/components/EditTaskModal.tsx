@@ -23,9 +23,11 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
     const [projectId, setProjectId] = useState<string>(task.projectId || '');
     const [priority, setPriority] = useState<Priority>(task.priority);
     const [assigneeIds, setAssigneeIds] = useState<string[]>(task.assigneeIds || []);
+
     const [status, setStatus] = useState<TaskStatus>(task.status);
     const [recurrence, setRecurrence] = useState<RecurrenceConfig | undefined>(task.recurrence);
-    // Visibility is derived from assignees
+    // Visibility
+    const [visibility, setVisibility] = useState<'private' | 'team'>(task.visibility || 'private');
 
     const initialDate = task.dueDate ? new Date(task.dueDate) : null;
     const [dueDateStr, setDueDateStr] = useState(initialDate ? format(initialDate, "yyyy-MM-dd'T'HH:mm") : '');
@@ -43,6 +45,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
         setAssigneeIds(task.assigneeIds || []);
         setStatus(task.status);
         setRecurrence(task.recurrence);
+        setVisibility(task.visibility || 'private');
         const d = task.dueDate ? new Date(task.dueDate) : null;
         setDueDateStr(d ? format(d, "yyyy-MM-dd'T'HH:mm") : '');
     }, [task]);
@@ -212,8 +215,18 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
             }
         }
 
-        // Derived visibility: only 'team' if someone else is assigned
-        const derivedVisibility = assigneeIds.filter(uid => uid !== user?.id).length > 0 ? 'team' : 'private';
+
+        // Derived visibility: only 'team' if someone else is assigned, UNLESS explicitly set to team
+        // Logic: If I have assignees, it MUST be team (usually). But we can allow "Private" if shared? No, shared private is contradictory.
+        // If shared, forced Team. If not shared, can be Team or Private.
+        const hasEvaluatedAssignees = assigneeIds.filter(uid => uid !== user?.id).length > 0;
+        let finalVisibility = visibility;
+
+        if (hasEvaluatedAssignees) {
+            finalVisibility = 'team'; // Enforce team if shared
+        }
+
+        // If manually set to team but no assignees, we respect it (Team Bulletin).
 
         updateTask(task.id, {
             title,
@@ -223,8 +236,8 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
             dueDate,
             assigneeIds,
             status,
-            visibility: derivedVisibility,
-            recurrence: recurrence // Add recurrence to update
+            visibility: finalVisibility, // Use explicit
+            recurrence: recurrence
         });
 
         if (e && e.type === 'submit') {
@@ -549,10 +562,20 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                             <User size={12} className="text-accent-secondary" /> Share / Delegate
                                         </label>
                                         <div className="flex items-center gap-2">
-                                            <div className="text-[10px] text-text-muted italic">
-                                                {assigneeIds.length > 0
-                                                    ? <span className="text-accent-primary font-bold flex items-center gap-1"><Eye size={10} /> Shared with Team</span>
-                                                    : <span className="flex items-center gap-1"><EyeOff size={10} /> Private Task</span>}
+
+                                            <div className="text-[10px] text-text-muted italic flex items-center gap-2">
+                                                <select
+                                                    disabled={!canEdit || assigneeIds.filter(uid => uid !== user?.id).length > 0} // Disable if shared (forced team)
+                                                    value={assigneeIds.filter(uid => uid !== user?.id).length > 0 ? 'team' : visibility}
+                                                    onChange={e => setVisibility(e.target.value as 'private' | 'team')}
+                                                    className={clsx(
+                                                        "bg-transparent border-none text-[10px] font-bold uppercase focus:ring-0 cursor-pointer pl-0 pr-6",
+                                                        visibility === 'team' || assigneeIds.filter(uid => uid !== user?.id).length > 0 ? "text-accent-primary" : "text-text-muted"
+                                                    )}
+                                                >
+                                                    <option value="private">Private Task</option>
+                                                    <option value="team">Team Visible</option>
+                                                </select>
                                             </div>
                                             <div className="relative group/search">
                                                 <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
