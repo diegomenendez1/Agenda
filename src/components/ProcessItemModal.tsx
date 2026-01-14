@@ -84,7 +84,19 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                         .filter(m => m.id !== user?.id)
                         .map(m => ({ id: m.id, name: m.name })),
                     // Context injection for better AI decision making
-                    team_context: user?.preferences?.aiContext || "CRITICAL RULE: If a task mentions 'Urgent', 'Critical', or 'ASAP', assign HIGH or CRITICAL priority even if the due date is in the future. Do not downgrade priority based on scheduling."
+                    team_context: (() => {
+                        // Dynamic Context Injection based on Source
+                        const baseContext = user?.preferences?.aiContext || "CRITICAL RULE: If a task mentions 'Urgent', 'Critical', or 'ASAP', assign HIGH or CRITICAL priority even if the due date is in the future.";
+
+                        if (item.source === 'email') {
+                            return `${baseContext}\n\n[MODE: EMAIL PROCESSING]\nIdentify the core request. Summarize context but keep technical details specific. Infer priority from sender tone.`;
+                        } else if (item.source === 'meeting' || item.source === 'voice') {
+                            return `${baseContext}\n\n[MODE: MEETING TRANSCRIPT ANALYSIS]\nExtract actionable tasks from this meeting transcript. Identify who said what if relevant. Ignore small talk. Group related points.`;
+                        } else {
+                            // Manual / System
+                            return `${baseContext}\n\n[MODE: STRICT MANUAL INPUT]\nDO NOT INVENT CONTEXT. The user input is the exact task. Only fix grammar and formatting. Do not hallucinate meetings or emails if not explicitly mentioned. Keep it clean and direct.`;
+                        }
+                    })()
                 }),
                 timeout: 60000 // Correctly placed inside the options object
             });

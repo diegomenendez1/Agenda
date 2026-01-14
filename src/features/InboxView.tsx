@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../core/store';
-import { Inbox, Mail, User, CheckCircle2, Trash2, Pencil, CheckSquare, Square, X } from 'lucide-react';
+import { Inbox, Mail, User, CheckCircle2, Trash2, Pencil, CheckSquare, Square, X, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import { ProcessItemModal } from '../components/ProcessItemModal';
 import { SmartInput } from '../components/SmartInput';
@@ -160,9 +160,14 @@ export function InboxView() {
                                             "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors",
                                             item.source === 'email'
                                                 ? "bg-blue-500/10 text-blue-500"
-                                                : "bg-emerald-500/10 text-emerald-500"
+                                                : item.source === 'meeting'
+                                                    ? "bg-purple-500/10 text-purple-500"
+                                                    : "bg-emerald-500/10 text-emerald-500"
                                         )}>
-                                            {item.source === 'email' ? <Mail size={20} /> : <User size={20} />}
+                                            {item.source === 'email' ? <Mail size={20} /> :
+                                                item.source === 'meeting' ? <MessageSquare size={20} /> :
+                                                    item.source === 'voice' ? <User size={20} /> :
+                                                        <User size={20} />}
                                         </div>
                                     )}
 

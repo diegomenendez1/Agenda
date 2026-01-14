@@ -56,7 +56,7 @@ export interface SmartAnalysis {
 export interface InboxItem {
     id: EntityId;
     text: string;
-    source: 'manual' | 'email' | 'system' | 'voice';
+    source: 'manual' | 'email' | 'system' | 'voice' | 'meeting';
     processed: boolean;
     createdAt: number;
 }
@@ -91,7 +91,7 @@ export interface Task {
     ownerId: EntityId; // The creator of the task
     visibility: 'private' | 'team'; // Segmentation logic
     smartAnalysis?: SmartAnalysis;
-    source?: 'manual' | 'email' | 'voice' | 'system';
+    source?: 'manual' | 'email' | 'voice' | 'system' | 'meeting';
     estimatedMinutes?: number;
     acceptedAt?: number;
 
