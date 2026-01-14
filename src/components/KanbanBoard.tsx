@@ -152,11 +152,12 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                     className={clsx(
                                         "glass-panel p-4 rounded-xl transition-all duration-200",
                                         "shadow-sm hover:shadow-lg hover:shadow-accent-primary/5 active:scale-[0.98]",
-                                        "border border-border-subtle hover:border-accent-primary/30 group relative bg-bg-card",
+                                        "border border-border-subtle hover:border-accent-primary/30 group relative bg-bg-card cursor-pointer",
                                         getPriorityBorder(task.priority),
                                         task.status === 'done' && "opacity-60 grayscale-[0.5]",
                                         task.status === 'backlog' && "cursor-default"
                                     )}
+                                    onClick={() => setEditingTask(task)}
                                 >
                                     <div className="flex justify-between items-start mb-3">
                                         <div className="flex flex-col gap-1 pr-6 w-full">

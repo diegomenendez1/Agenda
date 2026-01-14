@@ -363,393 +363,395 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
 
                 <div className="flex flex-1 overflow-hidden">
                     {/* Left Column: Form */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                        {/* Original Item context */}
-                        {isProcessing && (
-                            <div className="bg-bg-app/50 p-4 rounded-xl border border-border-subtle/50">
-                                <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 block">
-                                    Original Input
-                                </label>
-                                <p className="text-text-primary text-sm leading-relaxed">{task.title}</p>
-                                <div className="mt-2 text-[10px] text-text-muted flex gap-3 font-medium">
-                                    <span>Source: {task.source || 'Manual'}</span>
-                                    {task.createdAt && <span>Added {format(task.createdAt, 'MMM d, HH:mm')}</span>}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* AI Process Button */}
-                        {isProcessing && !task.title && (
-                            <div className="flex justify-center py-4">
-                                <button
-                                    type="button"
-                                    onClick={handleAutoProcess}
-                                    disabled={aiLoading}
-                                    className={clsx(
-                                        "group relative inline-flex items-center justify-center gap-3 px-8 py-4 w-full",
-                                        "bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-2xl",
-                                        "shadow-lg shadow-violet-500/20 hover:shadow-violet-500/40 transition-all duration-300",
-                                        "disabled:opacity-70 disabled:cursor-not-allowed"
-                                    )}
-                                >
-                                    {aiLoading ? (
-                                        <>
-                                            <Loader2 className="w-5 h-5 animate-spin text-white/80" />
-                                            <span className="tracking-wide font-display">{loadingText}</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Sparkles className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                                            <span className="tracking-wide font-display">Auto-Process with AI</span>
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        )}
-
-                        {/* Form Content */}
-                        <form onSubmit={handleSave} className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
-                            {!canEdit && (
-                                <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-600 px-4 py-3 rounded-xl flex items-center gap-3 text-sm">
-                                    <Lock size={16} />
-                                    <span>view only mode • Only the task owner or admins can edit details.</span>
+                    <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                            {/* Original Item context */}
+                            {isProcessing && (
+                                <div className="bg-bg-app/50 p-4 rounded-xl border border-border-subtle/50">
+                                    <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 block">
+                                        Original Input
+                                    </label>
+                                    <p className="text-text-primary text-sm leading-relaxed">{task.title}</p>
+                                    <div className="mt-2 text-[10px] text-text-muted flex gap-3 font-medium">
+                                        <span>Source: {task.source || 'Manual'}</span>
+                                        {task.createdAt && <span>Added {format(task.createdAt, 'MMM d, HH:mm')}</span>}
+                                    </div>
                                 </div>
                             )}
 
-                            <div>
-                                <div className="flex items-center justify-between mb-2">
-                                    <label className="block text-xs uppercase text-text-muted font-bold tracking-wider">Title</label>
-                                    {canEdit && title !== originalTitle && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setTitle(originalTitle)}
-                                            className="text-[10px] text-accent-primary hover:underline flex items-center gap-1 font-bold"
-                                        >
-                                            <X size={10} /> Use Original
-                                        </button>
-                                    )}
-                                </div>
-                                <input
-                                    autoFocus={canEdit}
-                                    disabled={!canEdit}
-                                    type="text"
-                                    value={title}
-                                    onChange={e => setTitle(e.target.value)}
-                                    onBlur={handleSave}
-                                    className={clsx(
-                                        "input w-full text-lg font-medium transition-all bg-transparent border-transparent px-0 hover:bg-bg-input hover:px-3 focus:bg-bg-input focus:px-3 focus:border-accent-primary",
-                                        title !== originalTitle && "ring-2 ring-violet-500/20 border-violet-500/30",
-                                        !canEdit && "opacity-70 cursor-not-allowed"
-                                    )}
-                                    placeholder="Task Title"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2">Description / Context</label>
-                                <textarea
-                                    disabled={!canEdit}
-                                    value={description}
-                                    onChange={e => setDescription(e.target.value)}
-                                    onBlur={handleSave}
-                                    className={clsx(
-                                        "input w-full min-h-[120px] text-sm resize-y leading-relaxed",
-                                        !canEdit && "opacity-70 cursor-not-allowed bg-transparent border-transparent px-0 resize-none"
-                                    )}
-                                    placeholder={canEdit ? "Add details, context or instructions..." : "No description provided."}
-                                />
-                            </div>
-
-                            {/* Status & Project (No explicit Visibility selector) */}
-                            <div className="grid grid-cols-2 gap-5 animate-in slide-in-from-top-2">
-                                <div className="col-span-2 md:col-span-1">
-                                    <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
-                                        <ListTodo size={12} className="text-accent-secondary" /> Status
-                                    </label>
-                                    <select
-                                        disabled={!canEdit}
-                                        value={status}
-                                        onChange={e => setStatus(e.target.value as TaskStatus)}
-                                        className={clsx("input w-full appearance-none bg-bg-input", !canEdit && "opacity-70 cursor-not-allowed")}
-                                    >
-                                        <option value="backlog">Backlog / Incoming</option>
-                                        <option value="todo">To Do</option>
-                                        <option value="in_progress">In Progress</option>
-                                        <option value="review">Review</option>
-                                        <option value="done">Done</option>
-                                    </select>
-                                </div>
-                                <div className="col-span-2 md:col-span-1">
-                                    <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
-                                        <Folder size={12} className="text-accent-secondary" /> Project
-                                    </label>
-                                    <div className="relative">
-                                        <select
-                                            disabled={!canEdit}
-                                            value={projectId}
-                                            onChange={e => setProjectId(e.target.value)}
-                                            className={clsx("input w-full appearance-none bg-bg-input", !canEdit && "opacity-70 cursor-not-allowed")}
-                                        >
-                                            <option value="">No Project</option>
-                                            {Object.values(projects).map(p => (
-                                                <option key={p.id} value={p.id}>{p.name}</option>
-                                            ))}
-                                        </select>
-                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
-                                            <Folder size={14} />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-
-                            <div className="grid grid-cols-2 gap-5 animate-in slide-in-from-top-2">
-
-                                <div className="col-span-2 md:col-span-1">
-                                    <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
-                                        <Clock size={12} className="text-accent-secondary" /> Due Date & Repeat
-                                    </label>
-                                    <div className="flex gap-2">
-                                        <input
-                                            disabled={!canEdit}
-                                            type="datetime-local"
-                                            value={dueDateStr}
-                                            onChange={e => setDueDateStr(e.target.value)}
-                                            className={clsx("input w-full flex-1", !canEdit && "opacity-70 cursor-not-allowed")}
-                                        />
-                                        <select
-                                            disabled={!canEdit}
-                                            value={recurrence?.frequency || 'none'}
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                if (val === 'none') {
-                                                    setRecurrence(undefined);
-                                                } else {
-                                                    setRecurrence({
-                                                        frequency: val as any,
-                                                        interval: 1,
-                                                        type: 'on_schedule' // Default
-                                                    });
-                                                }
-                                            }}
-                                            className={clsx("input w-[100px] text-xs font-semibold", !canEdit && "opacity-70 cursor-not-allowed")}
-                                        >
-                                            <option value="none">No Repeat</option>
-                                            <option value="daily">Daily</option>
-                                            <option value="weekly">Weekly</option>
-                                            <option value="monthly">Monthly</option>
-                                            <option value="yearly">Yearly</option>
-                                        </select>
-                                    </div>
-                                    {recurrence && (
-                                        <div className="mt-2 text-xs flex items-center gap-2 animate-in fade-in">
-                                            <select
-                                                value={recurrence.type}
-                                                onChange={e => setRecurrence({ ...recurrence, type: e.target.value as any })}
-                                                className="bg-bg-input border-none rounded px-2 py-1 text-[10px] font-bold uppercase text-accent-primary"
-                                            >
-                                                <option value="on_schedule">On Schedule</option>
-                                                <option value="on_completion">After Completion</option>
-                                            </select>
-                                            <span className="text-text-muted">Every {recurrence.interval} {recurrence.frequency}(s)</span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="col-span-2 animate-in fade-in slide-in-from-top-2">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <label className="block text-xs uppercase text-text-muted font-bold tracking-wider flex items-center gap-2">
-                                            <User size={12} className="text-accent-secondary" /> Share / Delegate
-                                        </label>
-                                        <div className="flex items-center gap-2">
-
-                                            <div className="text-[10px] text-text-muted italic flex items-center gap-2">
-                                                <select
-                                                    disabled={!canEdit || assigneeIds.filter(uid => uid !== user?.id).length > 0} // Disable if shared (forced team)
-                                                    value={assigneeIds.filter(uid => uid !== user?.id).length > 0 ? 'team' : visibility}
-                                                    onChange={e => setVisibility(e.target.value as 'private' | 'team')}
-                                                    className={clsx(
-                                                        "bg-transparent border-none text-[10px] font-bold uppercase focus:ring-0 cursor-pointer pl-0 pr-6",
-                                                        visibility === 'team' || assigneeIds.filter(uid => uid !== user?.id).length > 0 ? "text-accent-primary" : "text-text-muted"
-                                                    )}
-                                                >
-                                                    <option value="private">Private Task</option>
-                                                    <option value="team">Team Visible</option>
-                                                </select>
-                                            </div>
-                                            <div className="relative group/search">
-                                                <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
-                                                <input
-                                                    type="text"
-                                                    placeholder="Find member..."
-                                                    value={assigneeSearch}
-                                                    onChange={e => setAssigneeSearch(e.target.value)}
-                                                    className="pl-7 pr-2 py-1 bg-bg-surface border border-transparent hover:border-border-subtle rounded-full text-xs w-[120px] focus:w-[150px] transition-all focus:border-accent-primary focus:outline-none"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
-                                        {Object.values(team)
-                                            .filter(member => member.id !== user?.id)
-                                            .filter(member => member.name.toLowerCase().includes(assigneeSearch.toLowerCase()))
-                                            .map(member => {
-                                                const isSelected = assigneeIds.includes(member.id);
-                                                // Cascade Logic:
-                                                // - Anyone can add/remove members (open collaboration)
-                                                // - BUT you cannot remove the Owner (integrity protection)
-                                                const isOwnerOfTask = member.id === task.ownerId;
-                                                const isLocked = isOwnerOfTask;
-
-                                                return (
-                                                    <button
-                                                        key={member.id}
-                                                        type="button"
-                                                        disabled={isLocked && isSelected} // Can't untoggle owner
-                                                        onClick={() => {
-                                                            if (isLocked && isSelected) return; // Prevention
-                                                            setAssigneeIds(prev =>
-                                                                isSelected
-                                                                    ? prev.filter(id => id !== member.id)
-                                                                    : [...prev, member.id]
-                                                            );
-                                                        }}
-                                                        className={clsx(
-                                                            "flex items-center gap-3 p-2 rounded-lg border transition-all text-left group",
-                                                            isSelected
-                                                                ? "bg-accent-primary/5 border-accent-primary/30 shadow-inner"
-                                                                : "bg-bg-input border-transparent text-text-muted hover:bg-bg-card-hover hover:border-border-subtle",
-                                                            (isLocked && isSelected) ? "opacity-100 cursor-not-allowed" : "cursor-pointer"
-                                                        )}
-                                                    >
-                                                        {member.avatar ? (
-                                                            <img src={member.avatar} alt={member.name} className="w-8 h-8 rounded-full border border-border-subtle" />
-                                                        ) : (
-                                                            <div className="w-8 h-8 rounded-full bg-accent-secondary/20 flex items-center justify-center text-xs font-bold uppercase text-accent-primary">
-                                                                {member.name.charAt(0)}
-                                                            </div>
-                                                        )}
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className={clsx("text-sm font-medium truncate", isSelected ? "text-accent-primary" : "text-text-primary")}>
-                                                                {member.name}
-                                                            </div>
-                                                            <div className="text-[10px] opacity-70 truncate text-text-muted">{member.email}</div>
-                                                        </div>
-                                                        {isSelected && !isOwnerOfTask && <div className="w-2 h-2 rounded-full bg-accent-primary shadow-sm shadow-accent-primary/50" />}
-                                                    </button>
-                                                );
-                                            })}
-                                    </div>
-                                </div>
-
-                                <div className="col-span-2">
-                                    <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
-                                        <Flag size={12} className="text-accent-secondary" /> Priority
-                                    </label>
-                                    <div className="flex gap-2">
-                                        {(['critical', 'high', 'medium', 'low'] as Priority[]).map((p) => (
-                                            <button
-                                                key={p}
-                                                type="button"
-                                                disabled={!canEdit}
-                                                onClick={() => setPriority(p)}
-                                                className={clsx(
-                                                    "flex-1 py-2 rounded-lg border text-xs font-bold uppercase tracking-wider transition-all shadow-sm",
-                                                    priority === p
-                                                        ? p === 'critical' ? "bg-red-600 text-white border-red-700 shadow-red-600/20" :
-                                                            p === 'high' ? "bg-orange-500 text-white border-orange-600 shadow-orange-500/20" :
-                                                                p === 'medium' ? "bg-yellow-500 text-white border-yellow-600 shadow-yellow-500/20" :
-                                                                    "bg-blue-500 text-white border-blue-600 shadow-blue-500/20"
-                                                        : "bg-bg-input border-transparent text-text-muted hover:bg-bg-card-hover hover:text-text-primary",
-                                                    !canEdit && priority !== p && "opacity-30",
-                                                    !canEdit && "cursor-default group-hover:bg-transparent"
-                                                )}
-                                            >
-                                                {p}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="sticky bottom-0 bg-bg-card border-t border-border-subtle pt-5 pb-2 mt-2 -mx-6 px-6 z-10">
-                                <div className="flex justify-end gap-3">
-                                    {status === 'review' && isOwner && (
-                                        <>
-                                            <button
-                                                type="button"
-                                                onClick={async () => {
-                                                    // REJECTION FLOW
-                                                    // Trigger notification via store
-                                                    await updateStatus(task.id, 'in_progress');
-                                                    setIsSuccess(true);
-                                                    setTimeout(onClose, 800);
-                                                }}
-                                                className="bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 px-4 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2"
-                                            >
-                                                <X size={18} />
-                                                <span>Return for Revision</span>
-                                            </button>
-                                        </>
-                                    )}
-                                    {status === 'review' && isOwner && (
-                                        <button
-                                            type="button"
-                                            onClick={async () => {
-                                                setStatus('done');
-                                                // Trigger explicit save with 'done' status
-                                                const date = dueDateStr ? new Date(dueDateStr) : null;
-                                                updateTask(task.id, {
-                                                    status: 'done',
-                                                    completedAt: Date.now(),
-                                                    title,
-                                                    description,
-                                                    projectId: projectId || undefined,
-                                                    priority,
-                                                    dueDate: date && !isNaN(date.getTime()) ? date.getTime() : undefined,
-                                                    assigneeIds,
-                                                    visibility: assigneeIds.filter(uid => uid !== user?.id).length > 0 ? 'team' : 'private'
-                                                });
-                                                setIsSuccess(true);
-                                                setTimeout(onClose, 800);
-                                            }}
-                                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-500/20 flex items-center gap-2 transition-all"
-                                        >
-                                            <Check size={18} />
-                                            <span>Approve & Complete</span>
-                                        </button>
-                                    )}
-
+                            {/* AI Process Button */}
+                            {isProcessing && !task.title && (
+                                <div className="flex justify-center py-4">
                                     <button
-                                        type="submit"
-                                        disabled={isSuccess}
+                                        type="button"
+                                        onClick={handleAutoProcess}
+                                        disabled={aiLoading}
                                         className={clsx(
-                                            "text-white px-8 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2",
-                                            isSuccess
-                                                ? "bg-green-500 shadow-green-500/30 scale-105"
-                                                : status === 'done' && !isOwner
-                                                    ? "bg-amber-600 hover:bg-amber-700 shadow-amber-500/20" // Non-owner trying to 'done' -> will be 'review'
-                                                    : "bg-violet-600 hover:bg-violet-700 shadow-violet-500/20"
+                                            "group relative inline-flex items-center justify-center gap-3 px-8 py-4 w-full",
+                                            "bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-2xl",
+                                            "shadow-lg shadow-violet-500/20 hover:shadow-violet-500/40 transition-all duration-300",
+                                            "disabled:opacity-70 disabled:cursor-not-allowed"
                                         )}
                                     >
-                                        {isSuccess ? (
+                                        {aiLoading ? (
                                             <>
-                                                <Check size={18} className="animate-bounce" />
-                                                <span>Saved!</span>
+                                                <Loader2 className="w-5 h-5 animate-spin text-white/80" />
+                                                <span className="tracking-wide font-display">{loadingText}</span>
                                             </>
                                         ) : (
                                             <>
-                                                <span>
-                                                    {isProcessing ? 'Confirm & To Do' :
-                                                        (status === 'done' && !isOwner) ? 'Submit for Review' : 'Save Changes'}
-                                                </span>
-                                                <ArrowRight size={16} />
+                                                <Sparkles className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                                <span className="tracking-wide font-display">Auto-Process with AI</span>
                                             </>
                                         )}
                                     </button>
                                 </div>
+                            )}
+
+                            {/* Form Content */}
+                            <form onSubmit={handleSave} className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+                                {!canEdit && (
+                                    <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-600 px-4 py-3 rounded-xl flex items-center gap-3 text-sm">
+                                        <Lock size={16} />
+                                        <span>view only mode • Only the task owner or admins can edit details.</span>
+                                    </div>
+                                )}
+
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="block text-xs uppercase text-text-muted font-bold tracking-wider">Title</label>
+                                        {canEdit && title !== originalTitle && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setTitle(originalTitle)}
+                                                className="text-[10px] text-accent-primary hover:underline flex items-center gap-1 font-bold"
+                                            >
+                                                <X size={10} /> Use Original
+                                            </button>
+                                        )}
+                                    </div>
+                                    <input
+                                        autoFocus={canEdit}
+                                        disabled={!canEdit}
+                                        type="text"
+                                        value={title}
+                                        onChange={e => setTitle(e.target.value)}
+                                        onBlur={handleSave}
+                                        className={clsx(
+                                            "input w-full text-lg font-medium transition-all bg-transparent border-transparent px-0 hover:bg-bg-input hover:px-3 focus:bg-bg-input focus:px-3 focus:border-accent-primary",
+                                            title !== originalTitle && "ring-2 ring-violet-500/20 border-violet-500/30",
+                                            !canEdit && "opacity-70 cursor-not-allowed"
+                                        )}
+                                        placeholder="Task Title"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2">Description / Context</label>
+                                    <textarea
+                                        disabled={!canEdit}
+                                        value={description}
+                                        onChange={e => setDescription(e.target.value)}
+                                        onBlur={handleSave}
+                                        className={clsx(
+                                            "input w-full min-h-[120px] text-sm resize-y leading-relaxed",
+                                            !canEdit && "opacity-70 cursor-not-allowed bg-transparent border-transparent px-0 resize-none"
+                                        )}
+                                        placeholder={canEdit ? "Add details, context or instructions..." : "No description provided."}
+                                    />
+                                </div>
+
+                                {/* Status & Project (No explicit Visibility selector) */}
+                                <div className="grid grid-cols-2 gap-5 animate-in slide-in-from-top-2">
+                                    <div className="col-span-2 md:col-span-1">
+                                        <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
+                                            <ListTodo size={12} className="text-accent-secondary" /> Status
+                                        </label>
+                                        <select
+                                            disabled={!canEdit}
+                                            value={status}
+                                            onChange={e => setStatus(e.target.value as TaskStatus)}
+                                            className={clsx("input w-full appearance-none bg-bg-input", !canEdit && "opacity-70 cursor-not-allowed")}
+                                        >
+                                            <option value="backlog">Backlog / Incoming</option>
+                                            <option value="todo">To Do</option>
+                                            <option value="in_progress">In Progress</option>
+                                            <option value="review">Review</option>
+                                            <option value="done">Done</option>
+                                        </select>
+                                    </div>
+                                    <div className="col-span-2 md:col-span-1">
+                                        <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
+                                            <Folder size={12} className="text-accent-secondary" /> Project
+                                        </label>
+                                        <div className="relative">
+                                            <select
+                                                disabled={!canEdit}
+                                                value={projectId}
+                                                onChange={e => setProjectId(e.target.value)}
+                                                className={clsx("input w-full appearance-none bg-bg-input", !canEdit && "opacity-70 cursor-not-allowed")}
+                                            >
+                                                <option value="">No Project</option>
+                                                {Object.values(projects).map(p => (
+                                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
+                                                <Folder size={14} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                                <div className="grid grid-cols-2 gap-5 animate-in slide-in-from-top-2">
+
+                                    <div className="col-span-2 md:col-span-1">
+                                        <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
+                                            <Clock size={12} className="text-accent-secondary" /> Due Date & Repeat
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                disabled={!canEdit}
+                                                type="datetime-local"
+                                                value={dueDateStr}
+                                                onChange={e => setDueDateStr(e.target.value)}
+                                                className={clsx("input w-full flex-1", !canEdit && "opacity-70 cursor-not-allowed")}
+                                            />
+                                            <select
+                                                disabled={!canEdit}
+                                                value={recurrence?.frequency || 'none'}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    if (val === 'none') {
+                                                        setRecurrence(undefined);
+                                                    } else {
+                                                        setRecurrence({
+                                                            frequency: val as any,
+                                                            interval: 1,
+                                                            type: 'on_schedule' // Default
+                                                        });
+                                                    }
+                                                }}
+                                                className={clsx("input w-[100px] text-xs font-semibold", !canEdit && "opacity-70 cursor-not-allowed")}
+                                            >
+                                                <option value="none">No Repeat</option>
+                                                <option value="daily">Daily</option>
+                                                <option value="weekly">Weekly</option>
+                                                <option value="monthly">Monthly</option>
+                                                <option value="yearly">Yearly</option>
+                                            </select>
+                                        </div>
+                                        {recurrence && (
+                                            <div className="mt-2 text-xs flex items-center gap-2 animate-in fade-in">
+                                                <select
+                                                    value={recurrence.type}
+                                                    onChange={e => setRecurrence({ ...recurrence, type: e.target.value as any })}
+                                                    className="bg-bg-input border-none rounded px-2 py-1 text-[10px] font-bold uppercase text-accent-primary"
+                                                >
+                                                    <option value="on_schedule">On Schedule</option>
+                                                    <option value="on_completion">After Completion</option>
+                                                </select>
+                                                <span className="text-text-muted">Every {recurrence.interval} {recurrence.frequency}(s)</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="col-span-2 animate-in fade-in slide-in-from-top-2">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="block text-xs uppercase text-text-muted font-bold tracking-wider flex items-center gap-2">
+                                                <User size={12} className="text-accent-secondary" /> Share / Delegate
+                                            </label>
+                                            <div className="flex items-center gap-2">
+
+                                                <div className="text-[10px] text-text-muted italic flex items-center gap-2">
+                                                    <select
+                                                        disabled={!canEdit || assigneeIds.filter(uid => uid !== user?.id).length > 0} // Disable if shared (forced team)
+                                                        value={assigneeIds.filter(uid => uid !== user?.id).length > 0 ? 'team' : visibility}
+                                                        onChange={e => setVisibility(e.target.value as 'private' | 'team')}
+                                                        className={clsx(
+                                                            "bg-transparent border-none text-[10px] font-bold uppercase focus:ring-0 cursor-pointer pl-0 pr-6",
+                                                            visibility === 'team' || assigneeIds.filter(uid => uid !== user?.id).length > 0 ? "text-accent-primary" : "text-text-muted"
+                                                        )}
+                                                    >
+                                                        <option value="private">Private Task</option>
+                                                        <option value="team">Team Visible</option>
+                                                    </select>
+                                                </div>
+                                                <div className="relative group/search">
+                                                    <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Find member..."
+                                                        value={assigneeSearch}
+                                                        onChange={e => setAssigneeSearch(e.target.value)}
+                                                        className="pl-7 pr-2 py-1 bg-bg-surface border border-transparent hover:border-border-subtle rounded-full text-xs w-[120px] focus:w-[150px] transition-all focus:border-accent-primary focus:outline-none"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
+                                            {Object.values(team)
+                                                .filter(member => member.id !== user?.id)
+                                                .filter(member => member.name.toLowerCase().includes(assigneeSearch.toLowerCase()))
+                                                .map(member => {
+                                                    const isSelected = assigneeIds.includes(member.id);
+                                                    // Cascade Logic:
+                                                    // - Anyone can add/remove members (open collaboration)
+                                                    // - BUT you cannot remove the Owner (integrity protection)
+                                                    const isOwnerOfTask = member.id === task.ownerId;
+                                                    const isLocked = isOwnerOfTask;
+
+                                                    return (
+                                                        <button
+                                                            key={member.id}
+                                                            type="button"
+                                                            disabled={isLocked && isSelected} // Can't untoggle owner
+                                                            onClick={() => {
+                                                                if (isLocked && isSelected) return; // Prevention
+                                                                setAssigneeIds(prev =>
+                                                                    isSelected
+                                                                        ? prev.filter(id => id !== member.id)
+                                                                        : [...prev, member.id]
+                                                                );
+                                                            }}
+                                                            className={clsx(
+                                                                "flex items-center gap-3 p-2 rounded-lg border transition-all text-left group",
+                                                                isSelected
+                                                                    ? "bg-accent-primary/5 border-accent-primary/30 shadow-inner"
+                                                                    : "bg-bg-input border-transparent text-text-muted hover:bg-bg-card-hover hover:border-border-subtle",
+                                                                (isLocked && isSelected) ? "opacity-100 cursor-not-allowed" : "cursor-pointer"
+                                                            )}
+                                                        >
+                                                            {member.avatar ? (
+                                                                <img src={member.avatar} alt={member.name} className="w-8 h-8 rounded-full border border-border-subtle" />
+                                                            ) : (
+                                                                <div className="w-8 h-8 rounded-full bg-accent-secondary/20 flex items-center justify-center text-xs font-bold uppercase text-accent-primary">
+                                                                    {member.name.charAt(0)}
+                                                                </div>
+                                                            )}
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className={clsx("text-sm font-medium truncate", isSelected ? "text-accent-primary" : "text-text-primary")}>
+                                                                    {member.name}
+                                                                </div>
+                                                                <div className="text-[10px] opacity-70 truncate text-text-muted">{member.email}</div>
+                                                            </div>
+                                                            {isSelected && !isOwnerOfTask && <div className="w-2 h-2 rounded-full bg-accent-primary shadow-sm shadow-accent-primary/50" />}
+                                                        </button>
+                                                    );
+                                                })}
+                                        </div>
+                                    </div>
+
+                                    <div className="col-span-2">
+                                        <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
+                                            <Flag size={12} className="text-accent-secondary" /> Priority
+                                        </label>
+                                        <div className="flex gap-2">
+                                            {(['critical', 'high', 'medium', 'low'] as Priority[]).map((p) => (
+                                                <button
+                                                    key={p}
+                                                    type="button"
+                                                    disabled={!canEdit}
+                                                    onClick={() => setPriority(p)}
+                                                    className={clsx(
+                                                        "flex-1 py-2 rounded-lg border text-xs font-bold uppercase tracking-wider transition-all shadow-sm",
+                                                        priority === p
+                                                            ? p === 'critical' ? "bg-red-600 text-white border-red-700 shadow-red-600/20" :
+                                                                p === 'high' ? "bg-orange-500 text-white border-orange-600 shadow-orange-500/20" :
+                                                                    p === 'medium' ? "bg-yellow-500 text-white border-yellow-600 shadow-yellow-500/20" :
+                                                                        "bg-blue-500 text-white border-blue-600 shadow-blue-500/20"
+                                                            : "bg-bg-input border-transparent text-text-muted hover:bg-bg-card-hover hover:text-text-primary",
+                                                        !canEdit && priority !== p && "opacity-30",
+                                                        !canEdit && "cursor-default group-hover:bg-transparent"
+                                                    )}
+                                                >
+                                                    {p}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                            </form>
+                        </div>
+                        <div className="p-4 border-t border-border-subtle bg-bg-card z-10 shrink-0">
+                            <div className="flex justify-end gap-3">
+                                {status === 'review' && isOwner && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                // REJECTION FLOW
+                                                await updateStatus(task.id, 'in_progress');
+                                                setIsSuccess(true);
+                                                setTimeout(onClose, 800);
+                                            }}
+                                            className="bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 px-4 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2"
+                                        >
+                                            <X size={18} />
+                                            <span>Return for Revision</span>
+                                        </button>
+                                    </>
+                                )}
+                                {status === 'review' && isOwner && (
+                                    <button
+                                        type="button"
+                                        onClick={async () => {
+                                            setStatus('done');
+                                            const date = dueDateStr ? new Date(dueDateStr) : null;
+                                            updateTask(task.id, {
+                                                status: 'done',
+                                                completedAt: Date.now(),
+                                                title,
+                                                description,
+                                                projectId: projectId || undefined,
+                                                priority,
+                                                dueDate: date && !isNaN(date.getTime()) ? date.getTime() : undefined,
+                                                assigneeIds,
+                                                visibility: assigneeIds.filter(uid => uid !== user?.id).length > 0 ? 'team' : 'private'
+                                            });
+                                            setIsSuccess(true);
+                                            setTimeout(onClose, 800);
+                                        }}
+                                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-500/20 flex items-center gap-2 transition-all"
+                                    >
+                                        <Check size={18} />
+                                        <span>Approve & Complete</span>
+                                    </button>
+                                )}
+
+                                <button
+                                    type="button"
+                                    onClick={() => handleSave()}
+                                    disabled={isSuccess}
+                                    className={clsx(
+                                        "text-white px-8 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2",
+                                        isSuccess
+                                            ? "bg-green-500 shadow-green-500/30 scale-105"
+                                            : status === 'done' && !isOwner
+                                                ? "bg-amber-600 hover:bg-amber-700 shadow-amber-500/20"
+                                                : "bg-violet-600 hover:bg-violet-700 shadow-violet-500/20"
+                                    )}
+                                >
+                                    {isSuccess ? (
+                                        <>
+                                            <Check size={18} className="animate-bounce" />
+                                            <span>Saved!</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>
+                                                {isProcessing ? 'Confirm & To Do' :
+                                                    (status === 'done' && !isOwner) ? 'Submit for Review' : 'Save Changes'}
+                                            </span>
+                                            <ArrowRight size={16} />
+                                        </>
+                                    )}
+                                </button>
                             </div>
-                        </form>
+                        </div>
                     </div>
 
                     {/* Right Column: Activity Feed */}
