@@ -8,6 +8,10 @@ const toSeconds = (ms?: number) => ms ? Math.round(ms / 1000) : null;
 const fromSeconds = (s?: any) => {
     if (!s) return undefined;
     const num = Number(s);
+    if (isNaN(num)) {
+        // Handle ISO strings from Supabase (timestamptz)
+        return new Date(s).getTime();
+    }
     // Safety check: if it looks like MS (year > 3000), treat as MS, else Seconds
     return num > 100000000000 ? num : num * 1000;
 };
@@ -950,10 +954,17 @@ export const useStore = create<Store>((set, get) => ({
     markAllNotificationsRead: async () => {
         set(state => {
             const updated = { ...state.notifications };
-            Object.keys(updated).forEach(k => updated[k].read = true);
+            Object.keys(updated).forEach(k => {
+                if (updated[k].type !== 'rejection') {
+                    updated[k].read = true;
+                }
+            });
             return { notifications: updated };
         });
-        await supabase.from('notifications').update({ read: true }).eq('user_id', get().user?.id);
+        await supabase.from('notifications')
+            .update({ read: true })
+            .eq('user_id', get().user?.id)
+            .neq('type', 'rejection');
     },
 
     deleteNotification: async (id) => {

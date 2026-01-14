@@ -139,7 +139,7 @@ export interface Habit {
 export interface Notification {
     id: EntityId;
     userId: EntityId; // Recipient
-    type: 'mention' | 'assignment' | 'status_change' | 'system';
+    type: 'mention' | 'assignment' | 'status_change' | 'system' | 'rejection';
     title: string;
     message: string;
     link?: string; // /tasks/:id
