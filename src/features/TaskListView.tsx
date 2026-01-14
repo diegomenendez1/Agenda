@@ -42,7 +42,7 @@ export function TaskListView() {
 
         const priorityScore: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
         const allTasks = Object.values(tasks).sort((a, b) => {
-            // Sort by status, priority, creation
+            // Sort by status (Done at bottom), then Priority, then Creation
             if (a.status !== b.status) return a.status === 'done' ? 1 : -1;
 
             const pA = priorityScore[a.priority] || 0;
@@ -74,13 +74,21 @@ export function TaskListView() {
             }
 
             if (filter === 'all') return true;
-            if (!task.dueDate) return false;
 
-            const taskDate = new Date(task.dueDate);
-            if (filter === 'today') return isSameDay(taskDate, today);
+            // FIX: Handle "No Date" tasks. 
+            // In 'today', strict match. In 'upcoming', include future dates OR no date (Someday).
+
+            if (filter === 'today') {
+                if (!task.dueDate) return false;
+                return isSameDay(new Date(task.dueDate), today);
+            }
+
             if (filter === 'upcoming') {
+                if (!task.dueDate) return true; // Include "No Date" in Upcoming/Backlog bucket
+                const taskDate = new Date(task.dueDate);
                 return isFuture(taskDate) && !isSameDay(taskDate, today);
             }
+
             return true;
         });
     }, [tasks, filter, user]);
@@ -204,16 +212,12 @@ export function TaskListView() {
                                         priority: 'medium',
                                         visibility: 'private'
                                     });
-                                    // Open modal for the new task
-                                    // We need to fetch the task from store to setEditingTask. 
-                                    // Since state update might be async/batched, we construct the object or wait.
-                                    // However, addTask is async string return.
 
-                                    // Quick hack: read strictly from state after await
-                                    const newTask = useStore.getState().tasks[newId];
-                                    if (newTask) {
-                                        setEditingTask(newTask);
-                                    }
+                                    // Hack: Small delay or direct read to ensure we get the task
+                                    setTimeout(() => {
+                                        const newTask = useStore.getState().tasks[newId];
+                                        if (newTask) setEditingTask(newTask);
+                                    }, 50);
                                 }}
                             >
                                 <Plus size={18} /> New Task

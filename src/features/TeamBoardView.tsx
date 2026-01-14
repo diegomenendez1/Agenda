@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import clsx from 'clsx';
 import { PresenceIndicator } from '../components/PresenceIndicator';
 import { WorkloadChart } from '../components/WorkloadChart';
@@ -25,46 +25,48 @@ export function TeamBoardView() {
     // 1. Are marked as 'team' visibility
     // 2. HAVE assignees (shared with someone)
     // 3. The current user is involved in (either as the owner who shared it, or as an assignee)
-    const taskList = Object.values(tasks).filter(t => {
-        // 1. Core Definition: What is a "Team Task"?
-        // It must have 'team' visibility OR have assignees (which implies sharing)
-        const isShared = t.visibility === 'team' || (t.assigneeIds && t.assigneeIds.length > 0);
+    const taskList = useMemo(() => {
+        return Object.values(tasks).filter(t => {
+            // 1. Core Definition: What is a "Team Task"?
+            // It must have 'team' visibility OR have assignees (which implies sharing)
+            const isShared = t.visibility === 'team' || (t.assigneeIds && t.assigneeIds.length > 0);
 
-        // STRICT PRIVACY: If a task is private, ONLY the owner can see it.
-        // Even the system owner/admin cannot see other people's private tasks.
-        if (t.visibility === 'private' && t.ownerId !== user?.id) return false;
+            // STRICT PRIVACY: If a task is private, ONLY the owner can see it.
+            // Even the system owner/admin cannot see other people's private tasks.
+            if (t.visibility === 'private' && t.ownerId !== user?.id) return false;
 
-        if (!isShared) return false;
+            if (!isShared) return false;
 
-        // 2. Role-Based Access Control
-        // OWNER: Sees ALL shared tasks (God Mode for Team Board)
-        if (user?.role === 'owner') return true;
+            // 2. Role-Based Access Control
+            // OWNER: Sees ALL shared tasks (God Mode for Team Board)
+            if (user?.role === 'owner') return true;
 
-        // ADMIN: Should see tasks from their specific team.
-        // TODO: Once 'team_members' relationship is loaded in store, enable this:
-        // if (user?.role === 'admin' && (isMyTeam(t.ownerId) || hasMyTeamMember(t.assigneeIds))) return true;
+            // ADMIN: Should see tasks from their specific team.
+            // TODO: Once 'team_members' relationship is loaded in store, enable this:
+            // if (user?.role === 'admin' && (isMyTeam(t.ownerId) || hasMyTeamMember(t.assigneeIds))) return true;
 
-        // USER / DEFAULT ADMIN: strict "Involved" filter
-        const isOwner = t.ownerId === user?.id;
-        const isAssigned = t.assigneeIds?.includes(user?.id || '');
+            // USER / DEFAULT ADMIN: strict "Involved" filter
+            const isOwner = t.ownerId === user?.id;
+            const isAssigned = t.assigneeIds?.includes(user?.id || '');
 
-        // Must be involved to see it
-        if (!isOwner && !isAssigned) return false;
+            // Must be involved to see it
+            if (!isOwner && !isAssigned) return false;
 
-        // 3. UI Filters (Selected Member)
-        if (selectedMemberId) {
-            const isMemberAssigned = t.assigneeIds?.includes(selectedMemberId);
-            const isMemberOwner = t.ownerId === selectedMemberId;
-            if (!isMemberAssigned && !isMemberOwner) return false;
-        }
+            // 3. UI Filters (Selected Member)
+            if (selectedMemberId) {
+                const isMemberAssigned = t.assigneeIds?.includes(selectedMemberId);
+                const isMemberOwner = t.ownerId === selectedMemberId;
+                if (!isMemberAssigned && !isMemberOwner) return false;
+            }
 
-        // 4. Project Filter
-        if (selectedProjectIds.length > 0) {
-            if (!t.projectId || !selectedProjectIds.includes(t.projectId)) return false;
-        }
+            // 4. Project Filter
+            if (selectedProjectIds.length > 0) {
+                if (!t.projectId || !selectedProjectIds.includes(t.projectId)) return false;
+            }
 
-        return true;
-    });
+            return true;
+        });
+    }, [tasks, user, selectedMemberId, selectedProjectIds]);
 
     return (
         <div className="flex flex-col h-full bg-bg-app overflow-hidden p-6 md:p-8">
