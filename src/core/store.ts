@@ -105,6 +105,8 @@ interface Actions {
     // Member Management - NEW
     updateMemberRole: (memberId: string, role: string) => Promise<void>;
     removeTeamMember: (memberId: string) => Promise<void>;
+    validateInvitation: (token: string) => Promise<any>;
+    acceptInvitation: (token: string, userId: string) => Promise<void>;
 }
 
 type Store = AppState & Actions;
@@ -135,6 +137,7 @@ export const useStore = create<Store>((set, get) => ({
         // Optimistic update
         const newInvite: any = {
             id: crypto.randomUUID(),
+            token: crypto.randomUUID(), // Generate secure token
             email,
             role,
             invitedBy: user?.id || 'system',
@@ -220,6 +223,34 @@ export const useStore = create<Store>((set, get) => ({
             // set(state => ({ team: { ...state.team, [memberId]: member } })); // Complex to revert without keeping ref
             throw error;
         }
+    },
+
+    validateInvitation: async (token) => {
+        // 1. Check local state (optimistic)
+        const local = get().activeInvitations.find(i => (i as any).token === token);
+        if (local) return local;
+
+        // 2. Check DB
+        const { data } = await supabase.from('team_invitations').select('*').eq('token', token).single();
+        return data;
+    },
+
+    acceptInvitation: async (token, userId) => {
+        // 1. Validate permissions/existence
+        const invite = await get().validateInvitation(token);
+        if (!invite) throw new Error("Invalid token");
+
+        // 2. RPC call to link user to team
+        const { error } = await supabase.rpc('accept_team_invitation', {
+            token,
+            user_id: userId
+        });
+
+        if (error) throw error;
+
+        // 3. Optimistic update: Update user role derived from invite? 
+        // Usually RPC handles profile update. We just refresh profile.
+        await get().initialize(); // Refresh user profile and team
     },
 
     initialize: async () => {

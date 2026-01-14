@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../core/store';
-import { Users, Mail, Clock, Shield, CheckCircle, XCircle, Plus } from 'lucide-react';
+import { Users, Mail, Clock, Shield, CheckCircle, XCircle, Plus, Search } from 'lucide-react';
 import { InviteMemberModal } from './InviteMemberModal';
 import { MemberManagementModal } from './MemberManagementModal';
 import clsx from 'clsx';
@@ -11,6 +11,7 @@ export function MyTeamView() {
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<'members' | 'invitations'>('members');
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Filter members that report to the current user (or all if admin/owner)
     const myTeamMembers = useMemo(() => {
@@ -29,6 +30,15 @@ export function MyTeamView() {
         // For now, let's show everyone to establish the UI structure.
         return allMembers;
     }, [team, user]);
+
+    const filteredMembers = useMemo(() => {
+        if (!searchQuery) return myTeamMembers;
+        const lowerQuery = searchQuery.toLowerCase();
+        return myTeamMembers.filter(m =>
+            m.name.toLowerCase().includes(lowerQuery) ||
+            m.email.toLowerCase().includes(lowerQuery)
+        );
+    }, [myTeamMembers, searchQuery]);
 
     // Calculate workload stats per member
     const memberStats = useMemo(() => {
@@ -60,18 +70,31 @@ export function MyTeamView() {
         <div className="space-y-6 animate-in fade-in duration-300">
 
             {/* Header Actions */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold font-display text-text-primary">My Team</h1>
                     <p className="text-text-muted">The central hub for team composition, invitations, and performance.</p>
                 </div>
-                <button
-                    onClick={() => setIsInviteModalOpen(true)}
-                    className="btn btn-primary flex items-center gap-2"
-                >
-                    <Plus size={18} />
-                    <span>Invite Member</span>
-                </button>
+
+                <div className="flex items-center gap-3">
+                    <div className="relative">
+                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+                        <input
+                            type="text"
+                            placeholder="Search members..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9 pr-4 py-2 bg-bg-card border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/20 w-64"
+                        />
+                    </div>
+                    <button
+                        onClick={() => setIsInviteModalOpen(true)}
+                        className="btn btn-primary flex items-center gap-2"
+                    >
+                        <Plus size={18} />
+                        <span>Invite Member</span>
+                    </button>
+                </div>
             </div>
 
             {/* Stats Cards */}
@@ -150,13 +173,13 @@ export function MyTeamView() {
             <div className="bg-bg-card border border-border-subtle rounded-xl min-h-[400px]">
                 {activeTab === 'members' ? (
                     <div className="divide-y divide-border-subtle">
-                        {myTeamMembers.length === 0 ? (
+                        {filteredMembers.length === 0 ? (
                             <div className="p-12 text-center text-text-muted">
                                 <Users size={48} className="mx-auto mb-4 opacity-20" />
-                                <p>No team members found.</p>
+                                <p>No team members found matching "{searchQuery}".</p>
                             </div>
                         ) : (
-                            myTeamMembers.map((member) => {
+                            filteredMembers.map((member) => {
                                 const stats = memberStats[member.id] || { total: 0, pending: 0, done: 0 };
 
                                 return (

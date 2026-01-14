@@ -95,30 +95,7 @@ export function Sidebar() {
                         <div className="h-px bg-border-subtle/60 w-full" />
                     </div>
 
-                    {(user?.role === 'owner' || user?.role === 'admin') && (
-                        <NavLink
-                            to="/admin"
-                            className={({ isActive }) => clsx(
-                                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative mx-1",
-                                isActive
-                                    ? "bg-amber-500/10 text-amber-600 font-medium ring-1 ring-amber-500/20"
-                                    : "text-text-muted hover:text-amber-600 hover:bg-amber-500/5",
-                                collapsed && "justify-center px-0 w-11 h-11 mx-auto"
-                            )}
-                        >
-                            {({ isActive }) => (
-                                <>
-                                    <Shield size={20} strokeWidth={isActive ? 2.5 : 2} className={clsx("transition-transform duration-300", isActive ? "text-amber-600" : "text-text-muted group-hover:text-amber-600")} />
-                                    {!collapsed && <span className="text-[14px]">Admin</span>}
-                                    {collapsed && (
-                                        <div className="absolute left-[calc(100%+8px)] px-3 py-1.5 bg-text-primary text-bg-app border border-border-subtle text-xs rounded-md opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-[60] transition-opacity shadow-lg">
-                                            Admin
-                                        </div>
-                                    )}
-                                </>
-                            )}
-                        </NavLink>
-                    )}
+                    {/* Admin Link Removed */}
                 </nav>
 
                 {/* Footer Area */}

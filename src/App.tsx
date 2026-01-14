@@ -10,7 +10,6 @@ import { NotesView } from './features/NotesView';
 import { TeamBoardView } from './features/TeamBoardView';
 import { MyTeamView } from './components/MyTeamView';
 import { AuthView } from './features/AuthView';
-import { AdminView } from './features/AdminView';
 import { SettingsView } from './features/SettingsView';
 import { KPIView } from './features/KPIView';
 import { CommandPalette } from './components/CommandPalette';
@@ -117,7 +116,6 @@ export default function App() {
                         <Route path="/notes" element={<NotesView />} />
                         <Route path="/notes/:noteId" element={<NotesView />} />
                         <Route path="/kpis" element={<KPIView />} />
-                        <Route path="/admin" element={<AdminView />} />
                         <Route path="/settings" element={<SettingsView />} />
                       </Routes>
                     </ErrorBoundary>

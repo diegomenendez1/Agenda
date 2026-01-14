@@ -3,7 +3,7 @@ import { useStore } from '../core/store';
 import {
     X, Shield, Mail, Calendar, CheckCircle, Clock,
     BarChart2, Zap, AlertTriangle, Trash2, Save,
-    User, ChevronRight, Briefcase
+    User, ChevronRight, Briefcase, Lock
 } from 'lucide-react';
 import clsx from 'clsx';
 import { format } from 'date-fns';
@@ -111,6 +111,24 @@ export function MemberManagementModal({ isOpen, onClose, memberId }: MemberManag
         } catch (error) {
             toast.error('Failed to remove member');
             console.error(error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleSendPasswordReset = async () => {
+        if (!member || !member.email) return;
+        if (!confirm(`Send password reset email to ${member.email}?`)) return;
+
+        setIsSaving(true);
+        try {
+            const { error } = await supabase.auth.resetPasswordForEmail(member.email, {
+                redirectTo: `${window.location.origin}/auth?reset=true`
+            });
+            if (error) throw error;
+            toast.success(`Password reset email sent to ${member.email}`);
+        } catch (error: any) {
+            toast.error('Failed to send reset email: ' + error.message);
         } finally {
             setIsSaving(false);
         }
@@ -301,6 +319,30 @@ export function MemberManagementModal({ isOpen, onClose, memberId }: MemberManag
                                         className="input w-full min-h-[120px] resize-y text-sm font-mono leading-relaxed"
                                         placeholder={isLoadingContext ? "Loading context..." : "e.g., 'This user focuses on Graphic Design and prefers tasks with clear deadlines...'"}
                                     />
+                                </div>
+                            </div>
+
+                            {/* Security Section (NEW) */}
+                            <div className="bg-bg-card rounded-xl border border-border-subtle shadow-sm overflow-hidden">
+                                <div className="p-4 border-b border-border-subtle bg-bg-input/30 flex justify-between items-center">
+                                    <h3 className="font-bold text-text-primary flex items-center gap-2">
+                                        <Lock size={16} className="text-blue-500" /> Security
+                                    </h3>
+                                </div>
+                                <div className="p-6 flex items-center justify-between">
+                                    <div>
+                                        <h4 className="font-bold text-text-primary text-sm">Password Reset</h4>
+                                        <p className="text-xs text-text-muted mt-1">
+                                            Send an email to {member.email} with instructions to reset their password.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={handleSendPasswordReset}
+                                        disabled={isSaving}
+                                        className="btn bg-white border border-border-subtle text-text-primary hover:bg-bg-input hover:border-border-strong shadow-sm text-xs font-semibold px-3 py-2"
+                                    >
+                                        Send Reset Email
+                                    </button>
                                 </div>
                             </div>
 
