@@ -1,3 +1,4 @@
+
 import { addDays, addWeeks, addMonths, addYears, getDay } from 'date-fns';
 import type { RecurrenceConfig, Task } from './types';
 
@@ -6,78 +7,109 @@ export const calculateNextDueDate = (
     lastDueDate?: number,
     completionDate: number = Date.now()
 ): number => {
-    // If no last due date, assume "now" or "creation" was the start. 
-    // For 'on_schedule', we strictly need a basis. If missing, use completionDate (fallback)
-    const baseDate = config.type === 'on_completion'
-        ? completionDate
-        : (lastDueDate || completionDate);
+    // Strategy:
+    // 'on_schedule': Strictly Calendar-based. We assume dates are stored as UTC Midnight or we treat them as "Events on a Day".
+    // To ensure stability, we perform all math on UTC components and return UTC Midnight.
+    // 'on_completion': Time-based. We preserve the "Time of Day" of completion (Local).
 
-    const dateObj = new Date(baseDate);
+    // Determine Mode
+    // Fallback: If 'on_schedule' but missing lastDueDate, we treat completionDate as the "anchor" 
+    // but should we standardize it to Midnight next time? 
+    // Usually 'on_schedule' implies "Due Date". Due Dates are usually Days. So we snap to Midnight UTC.
+
+    const isScheduleMode = config.type !== 'on_completion';
     const interval = config.interval || 1;
 
-    let nextDate: Date;
+    if (isScheduleMode) {
+        // --- ON SCHEDULE (UTC Logic) ---
+        // Basis: lastDueDate (preferred) or completionDate (fallback)
+        const baseTimestamp = lastDueDate || completionDate;
+        const d = new Date(baseTimestamp);
 
-    switch (config.frequency) {
-        case 'daily':
-            nextDate = addDays(dateObj, interval);
-            break;
-        case 'weekly':
-            if (config.daysOfWeek && config.daysOfWeek.length > 0) {
-                // Logic for specific days (e.g., Mon, Wed)
-                // This is complex: need to find the *next* valid day in the sequence
-                // relative to baseDate.
+        // Extract UTC components (Floating Date interpretation)
+        let year = d.getUTCFullYear();
+        let month = d.getUTCMonth();
+        let day = d.getUTCDate();
 
-                // 1. Sort daysOfWeek (0=Sun, 1=Mon...)
-                const sortedDays = [...config.daysOfWeek].sort((a, b) => a - b);
-                const currentDay = getDay(dateObj);
+        // Perform calculation manually or via lightweight logic to avoid date-fns Local conversion issues
+        // OR: Construct a "UTC Date" object, use date-fns (which uses setMonth/getDate), then read back?
+        // date-fns addMonths works on local.
+        // TRICK: Construct a "Fake Local" date that matches the UTC components. 
+        // e.g. 2024-01-31 00:00 UTC -> 2024-01-31 00:00 Local (Safe Fake).
+        // Apply math. 
+        // Convert resultant Local Y/M/D back to UTC.
 
-                // 2. Find next day in current week
-                const nextDayInWeek = sortedDays.find(d => d > currentDay);
+        // Using "Noon" is safer for the "Fake Local" to avoid day-boundary-drift during addMonths (DST).
+        const fakeLocal = new Date(year, month, day, 12, 0, 0);
 
-                if (nextDayInWeek !== undefined) {
-                    // Jump to that day in CURRENT week
-                    const diff = nextDayInWeek - currentDay;
-                    nextDate = addDays(dateObj, diff);
+        // Apply Math
+        let nextFake: Date;
+        switch (config.frequency) {
+            case 'daily': nextFake = addDays(fakeLocal, interval); break;
+            case 'weekly':
+                if (config.daysOfWeek && config.daysOfWeek.length > 0) {
+                    const sortedDays = [...config.daysOfWeek].sort((a, b) => a - b);
+                    const currentDay = fakeLocal.getDay(); // 0-6 matches standard
+                    const nextDayInWeek = sortedDays.find(d => d > currentDay);
+                    if (nextDayInWeek !== undefined) {
+                        nextFake = addDays(fakeLocal, nextDayInWeek - currentDay);
+                    } else {
+                        const firstDay = sortedDays[0];
+                        const diff = (7 - currentDay) + firstDay + ((interval - 1) * 7);
+                        nextFake = addDays(fakeLocal, diff);
+                    }
                 } else {
-                    // 3. Jump to first valid day in NEXT week (plus interval weeks logic?)
-                    // Usually "Every MWF" implies interval 1 week. 
-                    // But "Every 2 weeks on MWF" means if we finish Fri, we might skip a week?
-                    // Let's assume standard "Weekly" rotation.
-                    const firstDay = sortedDays[0];
-                    const daysUntilSunday = 7 - currentDay;
-                    const diff = daysUntilSunday + firstDay + ((interval - 1) * 7);
-                    nextDate = addDays(dateObj, diff);
+                    nextFake = addWeeks(fakeLocal, interval);
                 }
-            } else {
-                nextDate = addWeeks(dateObj, interval);
-            }
-            break;
-        case 'monthly':
-            nextDate = addMonths(dateObj, interval);
-            break;
-        case 'yearly':
-            nextDate = addYears(dateObj, interval);
-            break;
-        default:
-            nextDate = addDays(dateObj, interval); // Fallback custom
-    }
+                break;
+            case 'monthly': nextFake = addMonths(fakeLocal, interval); break;
+            case 'yearly': nextFake = addYears(fakeLocal, interval); break;
+            default: nextFake = addDays(fakeLocal, interval);
+        }
 
-    // Keep the same time of day as the original due date (if it existed)
-    // or set to default time?
-    // Current tasks seem to use timestamps.
-    return nextDate.getTime();
+        // Convert back to UTC Midnight
+        // nextFake is e.g. Feb 29 12:00 Local
+        return Date.UTC(nextFake.getFullYear(), nextFake.getMonth(), nextFake.getDate());
+    }
+    else {
+        // --- ON COMPLETION (Local Logic) ---
+        // Basis: completionDate
+        const baseDate = new Date(completionDate);
+
+        let nextDate: Date;
+        switch (config.frequency) {
+            case 'daily': nextDate = addDays(baseDate, interval); break;
+            case 'weekly':
+                if (config.daysOfWeek && config.daysOfWeek.length > 0) {
+                    // Same logic, but on real Local date
+                    const sortedDays = [...config.daysOfWeek].sort((a, b) => a - b);
+                    const currentDay = getDay(baseDate);
+                    const nextDayInWeek = sortedDays.find(d => d > currentDay);
+                    if (nextDayInWeek !== undefined) {
+                        nextDate = addDays(baseDate, nextDayInWeek - currentDay);
+                    } else {
+                        const firstDay = sortedDays[0];
+                        const diff = (7 - currentDay) + firstDay + ((interval - 1) * 7);
+                        nextDate = addDays(baseDate, diff);
+                    }
+                } else {
+                    nextDate = addWeeks(baseDate, interval);
+                }
+                break;
+            case 'monthly': nextDate = addMonths(baseDate, interval); break;
+            case 'yearly': nextDate = addYears(baseDate, interval); break;
+            default: nextDate = addDays(baseDate, interval);
+        }
+
+        return nextDate.getTime();
+    }
 };
 
 export const shouldRecur = (task: Task): boolean => {
     if (!task.recurrence) return false;
-
-    // Check end condition
     if (task.recurrence.endCondition) {
         const { type, value } = task.recurrence.endCondition;
         if (type === 'date' && value && Date.now() > value) return false;
-        // 'count' logic requires us to know how many times it occurred.
-        // We might need to store `recurrenceCount` on the task chain or check parent.
-        // For MVP, we'll skip 'count' or implement it if we track history.
     }
     return true;
 };

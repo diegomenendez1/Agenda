@@ -4,6 +4,8 @@ import type { AppState, Task, EntityId, Note, UserProfile, TaskStatus, Habit } f
 import { v4 as uuidv4 } from 'uuid';
 import { calculateNextDueDate, shouldRecur } from './recurrenceUtils';
 
+const activeToggles = new Set<string>();
+
 const toSeconds = (ms?: number) => ms ? Math.round(ms / 1000) : null;
 const fromSeconds = (s?: any) => {
     if (!s) return undefined;
@@ -618,69 +620,99 @@ export const useStore = create<Store>((set, get) => ({
 
     toggleTaskStatus: async (id) => {
         const state = get();
-        const task = state.tasks[id];
-        if (!task) return;
 
-        const currentUserId = state.user?.id;
-        let newStatus: TaskStatus = task.status === 'done' ? 'todo' : 'done';
+        // IDEMPOTENCY CHECK:
+        // Use a transient Set in memory if possible. Since Zustand store is client-side state, 
+        // we can add a private property to the store or just check if it's already in the target state we expect?
+        // Better: Check if we are already processing this ID.
+        // Since we don't have a `processingIds` set in the defined 'Store' interface yet,
+        // we will do a logical check: If the user spams "toggle", the first one flips it. 
+        // The second one flips it BACK if we are not careful.
+        // We want to prevent rapid re-entry.
+        // Ideally we'd add `processingRecurrence: Set<string>` to the store.
+        // For now, let's use a simpler heuristic or just accept that "toggle" means toggle.
+        // RECOMMENDATION implementation: Add locking.
+        // We will add a temporary lock property to the Task object itself in memory? No, that triggers re-renders.
+        // Let's assume we can add a hidden property to the store or just rely on status check.
 
-        // REFINEMENT: If non-owner toggles, it goes to 'review' instead of 'done'
-        if (newStatus === 'done' && task.ownerId !== currentUserId) {
-            newStatus = 'review';
+        // Critical Fix: check if the task is already in a transition state?
+        // Real-world fix: Add `processingTasks: Set<string>` to Store interface.
+        // Since I cannot change the Store interface easily without breaking types across files,
+        // I will use a module-level variable for locking *within this file's scope*.
+        // This works because the store singleton is defined here.
+        if (activeToggles.has(id)) {
+            console.warn(`Duplicate toggle blocked for task ${id}`);
+            return;
         }
+        activeToggles.add(id);
 
-        // Optimistic
-        set(state => ({
-            tasks: {
-                ...state.tasks,
-                [id]: {
-                    ...task,
-                    status: newStatus,
-                    completedAt: newStatus === 'done' ? Date.now() : undefined,
-                    updatedAt: Date.now()
-                }
+        try {
+            const task = state.tasks[id];
+            if (!task) return; // allows finally to run
+
+            const currentUserId = state.user?.id;
+            // ... (rest of logic) ...
+            let newStatus: TaskStatus = task.status === 'done' ? 'todo' : 'done';
+
+            // REFINEMENT: If non-owner toggles, it goes to 'review' instead of 'done'
+            if (newStatus === 'done' && task.ownerId !== currentUserId) {
+                newStatus = 'review';
             }
-        }));
 
-        // Recurring Check for Toggle
-        if (newStatus === 'done' && task.recurrence && shouldRecur(task)) {
-            // We need to calculate based on the just-set completion time (now)
-            const nextDueDate = calculateNextDueDate(task.recurrence, task.dueDate, Date.now());
-            await state.addTask({
-                title: task.title,
-                description: task.description,
-                priority: task.priority,
-                projectId: task.projectId,
-                tags: task.tags,
-                assigneeIds: task.assigneeIds,
-                estimatedMinutes: task.estimatedMinutes,
-                source: 'system',
-                visibility: task.visibility,
-                recurrence: task.recurrence,
-                originalTaskId: task.originalTaskId || task.id,
-                dueDate: nextDueDate,
-                status: 'todo'
-            });
-        }
+            // Optimistic
+            set(state => ({
+                tasks: {
+                    ...state.tasks,
+                    [id]: {
+                        ...task,
+                        status: newStatus,
+                        completedAt: newStatus === 'done' ? Date.now() : undefined,
+                        updatedAt: Date.now()
+                    }
+                }
+            }));
 
-        const completedAt = newStatus === 'done' ? Date.now() : null;
-        const updatedAt = Date.now();
+            // Recurring Check for Toggle
+            if (newStatus === 'done' && task.recurrence && shouldRecur(task)) {
+                const nextDueDate = calculateNextDueDate(task.recurrence, task.dueDate, Date.now());
+                await state.addTask({
+                    title: task.title,
+                    description: task.description,
+                    priority: task.priority,
+                    projectId: task.projectId,
+                    tags: task.tags,
+                    assigneeIds: task.assigneeIds,
+                    estimatedMinutes: task.estimatedMinutes,
+                    source: 'system',
+                    visibility: task.visibility,
+                    recurrence: task.recurrence,
+                    originalTaskId: task.originalTaskId || task.id,
+                    dueDate: nextDueDate,
+                    status: 'todo'
+                });
+            }
 
-        await supabase.from('tasks').update({
-            status: newStatus,
-            completed_at: completedAt,
-            updated_at: new Date(updatedAt).toISOString()
-        }).eq('id', id);
+            const completedAt = newStatus === 'done' ? Date.now() : null;
+            const updatedAt = Date.now();
 
-        if (newStatus === 'review' && task.ownerId !== currentUserId) {
-            await state.logActivity(id, 'status_change', `Requested review (toggled from ${task.status})`);
-            state.sendNotification(
-                task.ownerId,
-                'status_change',
-                'Review Requested',
-                `"${task.title}" was marked for review.`,
-                `/tasks?taskId=${id}`
-            );
+            await supabase.from('tasks').update({
+                status: newStatus,
+                completed_at: completedAt,
+                updated_at: new Date(updatedAt).toISOString()
+            }).eq('id', id);
+
+            if (newStatus === 'review' && task.ownerId !== currentUserId) {
+                await state.logActivity(id, 'status_change', `Requested review (toggled from ${task.status})`);
+                state.sendNotification(
+                    task.ownerId,
+                    'status_change',
+                    'Review Requested',
+                    `"${task.title}" was marked for review.`,
+                    `/tasks?taskId=${id}`
+                );
+            }
+        } finally {
+            activeToggles.delete(id);
         }
     },
 
@@ -697,53 +729,45 @@ export const useStore = create<Store>((set, get) => ({
         const state = get();
         const currentUserId = state.user?.id;
         const userRole = state.user?.role;
-        if (!currentUserId) {
-            console.error("clearCompletedTasks: No user logged in");
-            return;
-        }
+        if (!currentUserId) return;
 
         const isAdmin = userRole === 'owner' || userRole === 'admin';
-        console.log(`clearCompletedTasks: Triggered for user ${currentUserId} (${userRole})`);
 
+        // 1. Identification (Logic remains the same)
         const completedTaskIds = Object.values(state.tasks)
             .filter(t => {
                 if (t.status !== 'done') return false;
-
                 const isOwner = t.ownerId === currentUserId;
                 const isAssignee = t.assigneeIds && t.assigneeIds.includes(currentUserId);
                 const isTeamTask = t.visibility === 'team';
 
-                // Rule: You can clear a task if:
-                // 1. You own it.
-                // 2. It's a team task and you are an Admin/Owner.
-                // 3. It's a team task and you are an Assignee.
-                // Private tasks of others are NEVER cleared.
-
                 if (isOwner) return true;
                 if (isTeamTask && (isAdmin || isAssignee)) return true;
-
                 return false;
             })
             .map(t => t.id);
 
-        console.log(`clearCompletedTasks: Found ${completedTaskIds.length} tasks to clear`, completedTaskIds);
-
         if (completedTaskIds.length === 0) return;
 
-        // Optimistic
+        // 2. Snapshot for Safe Rollback
+        const previousTasksFn = state.tasks; // Reference to old state object
+
+        // 3. Optimistic Update
         set(state => {
             const newTasks = { ...state.tasks };
             completedTaskIds.forEach(id => delete newTasks[id]);
             return { tasks: newTasks };
         });
 
+        // 4. Persistence with Safe Rollback
         const { error } = await supabase.from('tasks').delete().in('id', completedTaskIds);
+
         if (error) {
-            console.error("clearCompletedTasks: Database failure", error);
-            // Re-fetch everything to sync state back if delete failed
-            get().initialize();
-        } else {
-            console.log("clearCompletedTasks: Successfully deleted tasks from DB");
+            console.error("clearCompletedTasks: Failed to delete, rolling back.", error);
+            // CRITICAL FIX: Restore local state instantly instead of relying on initialize()
+            set({ tasks: previousTasksFn });
+
+            // Optional: We could throw or notify UI here, but for now we ensure state consistency.
         }
     },
 

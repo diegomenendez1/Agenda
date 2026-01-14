@@ -195,7 +195,26 @@ export function TaskListView() {
                         {viewMode === 'list' && (
                             <button
                                 className="btn btn-primary shadow-lg shadow-accent-primary/20"
-                                onClick={() => window.dispatchEvent(new CustomEvent('open-task-modal'))}
+                                onClick={async () => {
+                                    // Create a draft task
+                                    const { addTask } = useStore.getState();
+                                    const newId = await addTask({
+                                        title: '',
+                                        status: 'todo',
+                                        priority: 'medium',
+                                        visibility: 'private'
+                                    });
+                                    // Open modal for the new task
+                                    // We need to fetch the task from store to setEditingTask. 
+                                    // Since state update might be async/batched, we construct the object or wait.
+                                    // However, addTask is async string return.
+
+                                    // Quick hack: read strictly from state after await
+                                    const newTask = useStore.getState().tasks[newId];
+                                    if (newTask) {
+                                        setEditingTask(newTask);
+                                    }
+                                }}
                             >
                                 <Plus size={18} /> New Task
                             </button>
