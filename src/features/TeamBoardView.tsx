@@ -33,29 +33,15 @@ export function TeamBoardView() {
             if (user?.role === 'owner' || user?.role === 'admin') return true;
             if (isOwner || isAssigned) return true;
 
-            // 2. Ghost Visibility (Manager seeing Private work as "Busy")
+            // 2. Strict Privacy (REVERTED Ghost logic)
             if (t.visibility === 'private') {
-                // If I am the manager of the owner, I see a "Ghost" entry
-                const owner = team[t.ownerId];
-                if (owner && owner.reportsTo === user?.id) {
-                    return true; // Handled in render/Kanban as masked task
-                }
+                // Only visible if I'm owner or assigned (already checked above)
                 return false;
             }
 
             if (!isShared) return false;
 
-            // 3. Hierarchy Check
-            const taskOwner = team[t.ownerId];
-            if (!taskOwner) return isShared;
-
-            // Recurse hierarchy via directReports pre-processing in store?
-            // Actually, we already have the recursive SQL, but for frontend
-            // immediate feedback we check if they are in my direct reports tree.
-            const isMyDirectReport = taskOwner.reportsTo === user?.id;
-
-            if (isMyDirectReport) return true;
-
+            // 3. Shared visibility check
             if (isShared) return true;
 
             return false;
