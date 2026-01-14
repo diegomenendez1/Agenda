@@ -600,6 +600,24 @@ export const useStore = create<Store>((set, get) => ({
                     `/tasks?taskId=${id}`
                 );
             }
+
+            // NEW: Notify Assignee if returned from Review to In Progress (Rejection)
+            // We assume 'oldStatus' was 'review' and 'targetStatus' is 'in_progress' or 'todo'.
+            if (oldStatus === 'review' && (targetStatus === 'in_progress' || targetStatus === 'todo')) {
+                // Notify all assignees except the one who rejected (owner)
+                // Usually the owner rejects.
+                task.assigneeIds?.forEach(uid => {
+                    if (uid !== currentUserId) {
+                        state.sendNotification(
+                            uid,
+                            'status_change',
+                            'Task Returned for Revision',
+                            `"${task.title}" was returned by the owner.`,
+                            `/tasks?taskId=${id}`
+                        );
+                    }
+                });
+            }
         }
     },
 

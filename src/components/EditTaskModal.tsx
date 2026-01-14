@@ -14,7 +14,7 @@ interface EditTaskModalProps {
 }
 
 export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskModalProps) {
-    const { updateTask, projects, deleteTask, unassignTask, team, user } = useStore();
+    const { updateTask, updateStatus, projects, deleteTask, unassignTask, team, user } = useStore();
     const [showActivity, setShowActivity] = useState(true);
 
     const [title, setTitle] = useState(task.title);
@@ -33,6 +33,19 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
     const [aiLoading, setAiLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("Analyzing...");
     const [assigneeSearch, setAssigneeSearch] = useState('');
+
+    // Fix: Stale Data - Sync state with task prop when it updates
+    useEffect(() => {
+        setTitle(task.title);
+        setDescription(task.description || '');
+        setProjectId(task.projectId || '');
+        setPriority(task.priority);
+        setAssigneeIds(task.assigneeIds || []);
+        setStatus(task.status);
+        setRecurrence(task.recurrence);
+        const d = task.dueDate ? new Date(task.dueDate) : null;
+        setDueDateStr(d ? format(d, "yyyy-MM-dd'T'HH:mm") : '');
+    }, [task]);
 
     // Narrative Loading Effect
     useEffect(() => {
@@ -638,6 +651,24 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
 
                             <div className="sticky bottom-0 bg-bg-card border-t border-border-subtle pt-5 pb-2 mt-2 -mx-6 px-6 z-10">
                                 <div className="flex justify-end gap-3">
+                                    {status === 'review' && isOwner && (
+                                        <>
+                                            <button
+                                                type="button"
+                                                onClick={async () => {
+                                                    // REJECTION FLOW
+                                                    // Trigger notification via store
+                                                    await updateStatus(task.id, 'in_progress');
+                                                    setIsSuccess(true);
+                                                    setTimeout(onClose, 800);
+                                                }}
+                                                className="bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 px-4 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2"
+                                            >
+                                                <X size={18} />
+                                                <span>Return for Revision</span>
+                                            </button>
+                                        </>
+                                    )}
                                     {status === 'review' && isOwner && (
                                         <button
                                             type="button"
