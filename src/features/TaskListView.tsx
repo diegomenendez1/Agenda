@@ -5,7 +5,7 @@ import { TaskItem } from '../components/TaskItem';
 import { KanbanBoard } from '../components/KanbanBoard';
 import { EditTaskModal } from '../components/EditTaskModal';
 import { ProjectFilter } from '../components/ProjectFilter';
-import { MemberFilter } from '../components/MemberFilter';
+import { AvatarMemberFilter } from '../components/AvatarMemberFilter';
 import { isSameDay, isFuture } from 'date-fns';
 import { useSearchParams, useParams } from 'react-router-dom';
 import clsx from 'clsx';
@@ -202,8 +202,8 @@ export function TaskListView() {
 
                     <div className="h-6 w-px bg-border-subtle" />
 
-                    {/* Member Filter - NEW (Talent) */}
-                    <MemberFilter
+                    {/* Member Filter - Refactored to match TeamBoard */}
+                    <AvatarMemberFilter
                         members={Object.values(team)}
                         selectedMemberId={selectedMemberId}
                         onSelectionChange={setSelectedMemberId}
