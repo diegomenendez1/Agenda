@@ -94,7 +94,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                             return `${baseContext}\n\n[MODE: MEETING TRANSCRIPT ANALYSIS]\nExtract actionable tasks from this meeting transcript. Identify who said what if relevant. Ignore small talk. Group related points.`;
                         } else {
                             // Manual / System
-                            return `${baseContext}\n\n[MODE: STRICT MANUAL INPUT]\nDO NOT INVENT CONTEXT. The user input is the exact task. Only fix grammar and formatting. Do not hallucinate meetings or emails if not explicitly mentioned. Keep it clean and direct.`;
+                            return `${baseContext}\n\n[MODE: STRICT MANUAL INPUT]\n1. TITLE: Keep it simple. Use the user's keywords. Do not start with "Gestionar" or "Tarea" if not present.\n2. DESCRIPTION/CONTEXT: Return an EMPTY STRING ("") if the input is short. DO NOT explain what the task is (e.g., do not say "Tarea sobre activos").\n3. NO ADDED VALUE: Your job is only to fix typos and format. Do not add metadata, projects, or categories to the text field.\n4. ABSOLUTE RULE: If the user wrote "A, B y C", and you return "Gestionar A, B y C", that is acceptable but "Tarea administrativa sobre los activos de..." is FORBIDDEN.`;
                         }
                     })()
                 }),
