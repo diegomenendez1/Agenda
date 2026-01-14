@@ -188,10 +188,16 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
     const [isSuccess, setIsSuccess] = useState(false);
 
     const handleSave = async (e?: React.FormEvent | React.FocusEvent) => {
-        if (e) e.preventDefault();
+        // Prevent default form submission
+        if (e && e.preventDefault) e.preventDefault();
 
-        // Don't save if nothing changed (only in edit mode)
-        if (mode === 'edit' &&
+        // Detect if this is an explicit user action (Click or Enter)
+        // Note: We are removing onBlur, so e will be Submit(Enter) or Undefined(Click)
+        const isExplicitAction = !e || e.type === 'submit' || e.type === 'click';
+
+        // Check if anything changed
+        const hasChanges = !(
+            mode === 'edit' &&
             title === task.title &&
             description === (task.description || '') &&
             status === task.status &&
@@ -200,10 +206,16 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
             dueDateStr === (task.dueDate && isValid(new Date(task.dueDate)) ? format(new Date(task.dueDate), "yyyy-MM-dd'T'HH:mm") : '') &&
             JSON.stringify(assigneeIds) === JSON.stringify(task.assigneeIds) &&
             JSON.stringify(recurrence) === JSON.stringify(task.recurrence)
-        ) {
-            if (e && e.type === 'submit') onClose(); // If explicit submit, close
+        );
+
+        // If no changes and explicit action, just close
+        if (!hasChanges && isExplicitAction) {
+            onClose();
             return;
         }
+
+        // If no changes and NOT explicit (e.g. if we kept onBlur), return
+        if (!hasChanges) return;
 
         if (!title.trim()) {
             setErrorMsg("Task title is required");
@@ -211,10 +223,9 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
         }
 
         setIsSuccess(true);
-        // Micro-interaction delay only on explicit submit
-        if (e && e.type === 'submit') {
-            await new Promise(resolve => setTimeout(resolve, 600));
-        }
+
+        // Wait for animation
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         let dueDate: number | undefined;
         if (dueDateStr) {
@@ -223,7 +234,6 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                 dueDate = date.getTime();
             }
         }
-
 
         // Derived visibility logic
         const hasEvaluatedAssignees = assigneeIds.filter(uid => uid !== user?.id).length > 0;
@@ -253,9 +263,9 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                 await updateTask(task.id, commonData);
             }
 
-            if (e && e.type === 'submit') {
-                onClose();
-            }
+            // Always close after success
+            onClose();
+
         } catch (err) {
             console.error(err);
             setErrorMsg("Failed to save task.");
@@ -456,7 +466,6 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                         type="text"
                                         value={title}
                                         onChange={e => setTitle(e.target.value)}
-                                        onBlur={handleSave}
                                         className={clsx(
                                             "input w-full text-lg font-medium transition-all bg-transparent border-transparent px-0 hover:bg-bg-input hover:px-3 focus:bg-bg-input focus:px-3 focus:border-accent-primary",
                                             title !== originalTitle && "ring-2 ring-violet-500/20 border-violet-500/30",
@@ -472,7 +481,6 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                         disabled={!canEdit}
                                         value={description}
                                         onChange={e => setDescription(e.target.value)}
-                                        onBlur={handleSave}
                                         className={clsx(
                                             "input w-full min-h-[120px] text-sm resize-y leading-relaxed",
                                             !canEdit && "opacity-70 cursor-not-allowed bg-transparent border-transparent px-0 resize-none"

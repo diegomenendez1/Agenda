@@ -54,7 +54,7 @@ export function CalendarView() {
 }
 
 function CalendarContent() {
-    const { tasks, updateTask } = useStore();
+    const { tasks, updateTask, team } = useStore();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [creationDate, setCreationDate] = useState<Date | null>(null);
@@ -238,29 +238,87 @@ function CalendarContent() {
                                 {/* Tasks Overlay */}
                                 {weekTasks
                                     .filter(t => isSameDay(new Date(t.dueDate!), day))
-                                    .map(task => (
-                                        <div
-                                            key={task.id}
-                                            draggable
-                                            onDragStart={(e) => handleDragStart(e, task)}
-                                            onDoubleClick={(e) => handleTaskDoubleClick(task, e)}
-                                            className={clsx(
-                                                "rounded-lg p-2 text-xs border cursor-pointer hover:z-30 transition-all shadow-sm hover:shadow-md group/card select-none overflow-hidden flex flex-col",
-                                                task.status === 'done' ? "bg-bg-input opacity-60 border-border-subtle" :
-                                                    task.priority === 'critical' ? "bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-300 left-[2px] right-[2px]" :
-                                                        task.priority === 'high' ? "bg-orange-500/10 border-orange-500/30 text-orange-700 dark:text-orange-300 left-[2px] right-[2px]" :
-                                                            "bg-bg-card border-border-subtle text-text-primary left-[2px] right-[2px]"
-                                            )}
-                                            style={getTaskStyle(task)}
-                                            title={task.title}
-                                        >
-                                            <div className="font-semibold truncate w-full">{task.title}</div>
-                                            <div className="flex items-center gap-1 opacity-70 scale-90 origin-left mt-0.5">
-                                                <div className="shrink-0"><Clock size={10} /></div>
-                                                {format(new Date(task.dueDate!), 'HH:mm')}
+                                    .map(task => {
+                                        // Prepare data for rendering
+                                        const assigneeIds = task.assigneeIds || [];
+                                        const members = assigneeIds.map(id => team[id]).filter(Boolean);
+                                        const isDone = task.status === 'done';
+
+                                        // Determine styles
+                                        let cardStyle = "bg-bg-card border-border-subtle text-text-primary";
+                                        if (isDone) {
+                                            cardStyle = "bg-bg-input/50 dashed border-border-subtle text-text-muted decoration-slate-400";
+                                        } else if (task.priority === 'critical') {
+                                            cardStyle = "bg-red-500/20 border-red-500/50 text-red-700 dark:text-red-200 shadow-sm shadow-red-900/5 backdrop-blur-sm hover:bg-red-500/30";
+                                        } else if (task.priority === 'high') {
+                                            cardStyle = "bg-orange-500/20 border-orange-500/50 text-orange-700 dark:text-orange-200 shadow-sm shadow-orange-900/5 backdrop-blur-sm hover:bg-orange-500/30";
+                                        } else if (task.priority === 'medium') {
+                                            cardStyle = "bg-blue-500/20 border-blue-500/50 text-blue-700 dark:text-blue-200 shadow-sm shadow-blue-900/5 backdrop-blur-sm hover:bg-blue-500/30";
+                                        }
+
+                                        return (
+                                            <div
+                                                key={task.id}
+                                                draggable
+                                                onDragStart={(e) => handleDragStart(e, task)}
+                                                onDoubleClick={(e) => handleTaskDoubleClick(task, e)}
+                                                className={clsx(
+                                                    "rounded-md p-1.5 text-xs border cursor-pointer hover:z-30 transition-all group/card select-none overflow-hidden flex flex-col gap-0.5",
+                                                    "hover:shadow-lg hover:scale-[1.02]",
+                                                    cardStyle,
+                                                    "left-[2px] right-[2px]"
+                                                )}
+                                                style={getTaskStyle(task)}
+                                                title={`${task.title} - ${task.status}`}
+                                            >
+                                                {/* Title & Status */}
+                                                <div className="flex items-start justify-between gap-1">
+                                                    <div className={clsx("font-semibold truncate leading-tight", isDone && "line-through")}>
+                                                        {task.title}
+                                                    </div>
+                                                </div>
+
+                                                {/* Metadata Row (Time, Status, Avatars) */}
+                                                <div className="flex items-center justify-between mt-auto pt-1">
+                                                    {/* Time & Status */}
+                                                    <div className="flex items-center gap-1.5 opacity-90 scale-95 origin-left">
+                                                        <div className="flex items-center gap-0.5">
+                                                            <Clock size={10} />
+                                                            <span className="text-[10px] font-medium leading-none">
+                                                                {format(new Date(task.dueDate!), 'HH:mm')}
+                                                            </span>
+                                                        </div>
+                                                        {/* Tiny Status indicator if not implicit by color */}
+                                                        {!isDone && (
+                                                            <span className="text-[9px] uppercase font-bold opacity-80 tracking-tighter border border-white/20 px-0.5 rounded">
+                                                                {task.status.replace('_', ' ')}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Avatars */}
+                                                    {members.length > 0 && (
+                                                        <div className="flex -space-x-1.5 shrink-0">
+                                                            {members.slice(0, 3).map((member) => (
+                                                                <div key={member.id} className="w-4 h-4 rounded-full border border-white/30 bg-bg-card relative z-10" title={member.name}>
+                                                                    <img
+                                                                        src={member.avatar || `https://ui-avatars.com/api/?name=${member.name}&background=random`}
+                                                                        alt={member.name}
+                                                                        className="w-full h-full rounded-full object-cover"
+                                                                    />
+                                                                </div>
+                                                            ))}
+                                                            {members.length > 3 && (
+                                                                <div className="w-4 h-4 rounded-full bg-white/20 border border-white/30 flex items-center justify-center text-[8px] font-bold text-white z-0">
+                                                                    +{members.length - 3}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
 
                                 {/* Current Time Indicator */}
                                 {isSameDay(day, today) && (
