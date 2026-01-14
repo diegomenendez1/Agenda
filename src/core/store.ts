@@ -3,6 +3,7 @@ import { supabase } from './supabase';
 import type { AppState, Task, EntityId, Note, UserProfile, TaskStatus, Habit } from './types';
 import { v4 as uuidv4 } from 'uuid';
 import { calculateNextDueDate, shouldRecur } from './recurrenceUtils';
+import { toast } from 'sonner';
 
 const activeToggles = new Set<string>();
 
@@ -181,14 +182,24 @@ export const useStore = create<Store>((set, get) => ({
             });
         }
 
-        // Fetch All Data (Realtime initial load)
+        // Fetch All Data (Optimized with Time-Window Sync)
+        const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+
         const [inboxRes, tasksRes, projectsRes, notesRes, teamRes, notificationsRes] = await Promise.all([
-            supabase.from('inbox_items').select('*'),
-            supabase.from('tasks').select('*'),
-            supabase.from('projects').select('*'),
-            supabase.from('notes').select('*'),
+            // Inbox: Active or created recently
+            supabase.from('inbox_items').select('*').or(`processed.eq.false,created_at.gt.${thirtyDaysAgo}`),
+
+            // Tasks: Active (not done) OR Done recently (last 30 days)
+            // Note: DB stores timestamps as BIGINT or TIMESTAMPTZ. 
+            // In Store hydration, we see: due_date is BIGINT, created_at is BIGINT, updated_at is TIMESTAMPTZ.
+            // We need to be careful with the query syntax.
+            // Using a filter for status OR updated_at.
+            supabase.from('tasks').select('*').or(`status.neq.done,updated_at.gt.${new Date(thirtyDaysAgo).toISOString()}`),
+
+            supabase.from('projects').select('*').eq('status', 'active'),
+            supabase.from('notes').select('*'), // Notes are usually fewer, but can optimize later
             supabase.from('profiles').select('*'),
-            supabase.from('notifications').select('*').eq('user_id', user.id) // Only own notifications
+            supabase.from('notifications').select('*').eq('user_id', user.id).limit(100) // Paging: limit to last 100
         ]);
 
         const inbox: Record<string, any> = {};
@@ -683,33 +694,59 @@ export const useStore = create<Store>((set, get) => ({
             }));
 
             // Recurring Check for Toggle
-            if (newStatus === 'done' && task.recurrence && shouldRecur(task)) {
-                const nextDueDate = calculateNextDueDate(task.recurrence, task.dueDate, Date.now());
-                await state.addTask({
-                    title: task.title,
-                    description: task.description,
-                    priority: task.priority,
-                    projectId: task.projectId,
-                    tags: task.tags,
-                    assigneeIds: task.assigneeIds,
-                    estimatedMinutes: task.estimatedMinutes,
-                    source: 'system',
-                    visibility: task.visibility,
-                    recurrence: task.recurrence,
-                    originalTaskId: task.originalTaskId || task.id,
-                    dueDate: nextDueDate,
-                    status: 'todo'
+            if (newStatus === 'done') {
+                // ATOMIC RPC CALL to prevent Race Conditions (Audit Rec #2)
+                const { data: wasUpdated, error: rpcError } = await supabase.rpc('complete_task_atomic', {
+                    target_task_id: id
                 });
+
+                if (rpcError) {
+                    console.error("Atomic toggle failed:", rpcError);
+                    toast.error("Failed to sync status. Please check connection.");
+                    // Revert optimistic
+                    set(state => ({
+                        tasks: { ...state.tasks, [id]: { ...task } }
+                    }));
+                    return;
+                }
+
+                if (!wasUpdated) {
+                    console.warn("Task was already completed by another session. Skipping recurrence.");
+                    return; // Stop. Do NOT create recurrence.
+                }
+
+                // If we are here, WE won the race. Create next task.
+                if (task.recurrence && shouldRecur(task)) {
+                    const nextDueDate = calculateNextDueDate(task.recurrence, task.dueDate, Date.now());
+                    try {
+                        await state.addTask({
+                            title: task.title,
+                            description: task.description,
+                            priority: task.priority,
+                            projectId: task.projectId,
+                            tags: task.tags,
+                            assigneeIds: task.assigneeIds,
+                            estimatedMinutes: task.estimatedMinutes,
+                            source: 'system',
+                            visibility: task.visibility,
+                            recurrence: task.recurrence,
+                            originalTaskId: task.originalTaskId || task.id,
+                            dueDate: nextDueDate,
+                            status: 'todo'
+                        });
+                        toast.success("Recurrence created for next cycle.");
+                    } catch (e) {
+                        toast.error("Failed to create recurring task.");
+                    }
+                }
+            } else {
+                // Normal update for un-checking (undo)
+                await supabase.from('tasks').update({
+                    status: newStatus,
+                    completed_at: null,
+                    updated_at: new Date().toISOString()
+                }).eq('id', id);
             }
-
-            const completedAt = newStatus === 'done' ? Date.now() : null;
-            const updatedAt = Date.now();
-
-            await supabase.from('tasks').update({
-                status: newStatus,
-                completed_at: completedAt,
-                updated_at: new Date(updatedAt).toISOString()
-            }).eq('id', id);
 
             if (newStatus === 'review' && task.ownerId !== currentUserId) {
                 await state.logActivity(id, 'status_change', `Requested review (toggled from ${task.status})`);
@@ -720,7 +757,11 @@ export const useStore = create<Store>((set, get) => ({
                     `"${task.title}" was marked for review.`,
                     `/tasks?taskId=${id}`
                 );
+                toast.success("Sent for review.");
             }
+        } catch (e) {
+            console.error(e);
+            toast.error("An unexpected error occurred.");
         } finally {
             activeToggles.delete(id);
         }

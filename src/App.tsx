@@ -18,6 +18,7 @@ import { DailyDigestModal } from './components/DailyDigestModal';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useStore } from './core/store';
 import { supabase } from './core/supabase';
+import { Toaster } from 'sonner';
 
 export default function App() {
   const { user, initialize } = useStore();
@@ -83,6 +84,7 @@ export default function App() {
 
   return (
     <Router>
+      <Toaster position="bottom-right" richColors theme={user?.preferences?.theme === 'dark' ? 'dark' : 'light'} />
       <Routes>
         <Route path="/auth" element={!user ? <AuthView /> : <Navigate to="/" />} />
 
