@@ -1,16 +1,21 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useStore } from '../core/store';
-import { CheckCircle2, Calendar, ClipboardList, LayoutList, KanbanSquare, Trash2, Plus } from 'lucide-react';
+import { CheckCircle2, Calendar, ClipboardList, LayoutList, KanbanSquare, Trash2, Plus, CheckSquare, X } from 'lucide-react';
 import { TaskItem } from '../components/TaskItem';
 import { KanbanBoard } from '../components/KanbanBoard';
 import { EditTaskModal } from '../components/EditTaskModal';
+import { ProjectFilter } from '../components/ProjectFilter';
+import { MemberFilter } from '../components/MemberFilter';
 import { isSameDay, isFuture } from 'date-fns';
 import { useSearchParams, useParams } from 'react-router-dom';
 import clsx from 'clsx';
+import type { EntityId } from '../core/types';
 
 export function TaskListView() {
-    const { tasks, user, updateUserProfile, clearCompletedTasks } = useStore();
+    const { tasks, user, updateUserProfile, clearCompletedTasks, projects, team } = useStore();
     const [filter, setFilter] = useState<'all' | 'today' | 'upcoming'>('all');
+    const [selectedProjectIds, setSelectedProjectIds] = useState<EntityId[]>([]);
+    const [selectedMemberId, setSelectedMemberId] = useState<EntityId | null>(null);
     const [searchParams, setSearchParams] = useSearchParams();
     const { taskId: pathTaskId } = useParams();
     const [editingTask, setEditingTask] = useState<any>(null);
@@ -73,9 +78,25 @@ export function TaskListView() {
                 if (!isOwner) return false;
             }
 
+            // Project Filter
+            if (selectedProjectIds.length > 0) {
+                if (!task.projectId || !selectedProjectIds.includes(task.projectId)) return false;
+            }
+
+            // Member Filter (Talent Filter)
+            if (selectedMemberId) {
+                // Determine if selected member is involved
+                const isMemberAssigned = task.assigneeIds?.includes(selectedMemberId);
+                const isMemberOwner = task.ownerId === selectedMemberId;
+
+                // If I'm filtering by "Person X", I expect to see tasks assigned to them
+                // OR tasks they own (if shared with me or if I'm admin).
+                if (!isMemberAssigned && !isMemberOwner) return false;
+            }
+
             if (filter === 'all') return true;
 
-            // FIX: Handle "No Date" tasks. 
+            // FIX: Handle "No Date" tasks.
             // In 'today', strict match. In 'upcoming', include future dates OR no date (Someday).
 
             if (filter === 'today') {
@@ -91,139 +112,192 @@ export function TaskListView() {
 
             return true;
         });
-    }, [tasks, filter, user]);
+    }, [tasks, filter, user, selectedProjectIds, selectedMemberId]);
 
     return (
         <div className={clsx(
-            "flex flex-col h-full p-6 md:p-10 w-full mx-auto transition-all duration-300",
-            viewMode === 'list' ? "max-w-5xl" : "max-w-full"
+            "flex flex-col h-full bg-bg-app overflow-hidden p-6 md:p-8 transition-all duration-300",
+            viewMode === 'list' && "max-w-5xl mx-auto w-full"
         )}>
             {/* Header Section */}
-            <header className="mb-10 flex flex-col gap-6 animate-enter">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-3xl font-display font-bold text-text-primary tracking-tight mb-1">My Tasks</h1>
-                        <p className="text-text-muted text-sm">Manage your personal tasks and assignments.</p>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                        {/* View Toggles */}
-                        <div className="flex p-1 bg-bg-input rounded-lg border border-border-subtle/50">
-                            <button
-                                onClick={() => handleSetViewMode('list')}
-                                className={clsx(
-                                    "p-2 rounded-md transition-all duration-200",
-                                    viewMode === 'list'
-                                        ? "bg-bg-card text-accent-primary shadow-sm ring-1 ring-border-subtle"
-                                        : "text-text-muted hover:text-text-secondary hover:bg-black/5"
-                                )}
-                                title="List View"
-                            >
-                                <LayoutList size={18} />
-                            </button>
-                            <button
-                                onClick={() => handleSetViewMode('board')}
-                                className={clsx(
-                                    "p-2 rounded-md transition-all duration-200",
-                                    viewMode === 'board'
-                                        ? "bg-bg-card text-accent-primary shadow-sm ring-1 ring-border-subtle"
-                                        : "text-text-muted hover:text-text-secondary hover:bg-black/5"
-                                )}
-                                title="Kanban Board"
-                            >
-                                <KanbanSquare size={18} />
-                            </button>
-                        </div>
-                    </div>
+            <header className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-enter relative z-20">
+                <div>
+                    <h1 className="text-3xl font-display font-bold flex items-center gap-3 tracking-tight text-text-primary">
+                        <CheckSquare className="w-8 h-8 text-accent-primary" />
+                        My Tasks
+                    </h1>
+                    <p className="text-text-muted text-sm mt-1 ml-11">Manage your personal tasks and assignments.</p>
                 </div>
 
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-border-subtle pb-6">
-                    {/* Filter Tabs - Segmented Style */}
-                    <div className="flex gap-1 p-1 bg-bg-input/50 rounded-xl border border-border-subtle/30">
+                <div className="flex gap-2 items-center">
+                    {viewMode === 'list' && (
+                        <button
+                            className="btn-primary shadow-lg shadow-accent-primary/20 flex items-center gap-2"
+                            onClick={async () => {
+                                // Create a draft task
+                                const { addTask } = useStore.getState();
+                                const newId = await addTask({
+                                    title: '',
+                                    status: 'todo',
+                                    priority: 'medium',
+                                    visibility: 'private'
+                                });
+
+                                // Hack: Small delay or direct read to ensure we get the task
+                                setTimeout(() => {
+                                    const newTask = useStore.getState().tasks[newId];
+                                    if (newTask) setEditingTask(newTask);
+                                }, 50);
+                            }}
+                        >
+                            <Plus size={18} />
+                            <span className="hidden sm:inline">New Task</span>
+                        </button>
+                    )}
+                </div>
+
+                <div className="flex items-center gap-4 bg-bg-card border border-border-subtle p-2 rounded-xl shadow-sm overflow-x-auto">
+                    {/* Filter Tabs - Unified Style with ProjectFilter */}
+                    <div className="flex gap-1">
                         <button
                             onClick={() => setFilter('all')}
                             className={clsx(
-                                "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 relative",
+                                "px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 relative border",
                                 filter === 'all'
-                                    ? "bg-bg-card text-text-primary shadow-sm ring-1 ring-border-subtle"
-                                    : "text-text-muted hover:text-text-primary hover:bg-bg-card/50"
+                                    ? "bg-text-primary text-bg-card border-text-primary shadow-sm"
+                                    : "text-text-muted hover:text-text-primary hover:bg-bg-input border-transparent hover:border-border-subtle"
                             )}
+                            title="All Tasks"
                         >
-                            <ClipboardList size={16} className={filter === 'all' ? "text-accent-primary" : ""} /> All Tasks
+                            <ClipboardList size={14} />
+                            <span className="hidden sm:inline">All</span>
                         </button>
                         <button
                             onClick={() => setFilter('today')}
                             className={clsx(
-                                "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 relative",
+                                "px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 relative border",
                                 filter === 'today'
-                                    ? "bg-bg-card text-text-primary shadow-sm ring-1 ring-border-subtle"
-                                    : "text-text-muted hover:text-text-primary hover:bg-bg-card/50"
+                                    ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                                    : "text-text-muted hover:text-text-primary hover:bg-bg-input border-transparent hover:border-border-subtle"
                             )}
+                            title="Due Today"
                         >
-                            <CheckCircle2 size={16} className={filter === 'today' ? "text-emerald-500" : ""} /> Today
+                            <CheckCircle2 size={14} />
+                            <span className="hidden sm:inline">Today</span>
                         </button>
                         <button
                             onClick={() => setFilter('upcoming')}
                             className={clsx(
-                                "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 relative",
+                                "px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 relative border",
                                 filter === 'upcoming'
-                                    ? "bg-bg-card text-text-primary shadow-sm ring-1 ring-border-subtle"
-                                    : "text-text-muted hover:text-text-primary hover:bg-bg-card/50"
+                                    ? "bg-blue-500/10 text-blue-600 border-blue-500/20"
+                                    : "text-text-muted hover:text-text-primary hover:bg-bg-input border-transparent hover:border-border-subtle"
                             )}
+                            title="Upcoming Tasks"
                         >
-                            <Calendar size={16} className={filter === 'upcoming' ? "text-blue-500" : ""} /> Upcoming
+                            <Calendar size={14} />
+                            <span className="hidden sm:inline">Upcoming</span>
                         </button>
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-3">
-                        {(() => {
-                            if (!user) return null;
-                            const isAdmin = user.role === 'owner' || user.role === 'admin';
-                            const hasClearableTasks = Object.values(tasks).some(t => {
-                                if (t.status !== 'done') return false;
-                                if (t.visibility === 'private') return t.ownerId === user.id;
-                                return t.ownerId === user.id || isAdmin || (t.assigneeIds && t.assigneeIds.includes(user.id));
-                            });
+                    <div className="h-6 w-px bg-border-subtle" />
 
-                            return hasClearableTasks && (
-                                <button
-                                    onClick={() => {
-                                        if (window.confirm('¿Estás seguro de que quieres eliminar todas las tareas completadas?')) {
-                                            clearCompletedTasks();
-                                        }
-                                    }}
-                                    className="btn btn-ghost text-xs text-accent-primary hover:bg-accent-primary/10 px-3 py-2 flex items-center gap-2"
-                                >
-                                    <Trash2 size={14} />
-                                    <span>Clear Completed</span>
-                                </button>
-                            );
-                        })()}
-                        {viewMode === 'list' && (
-                            <button
-                                className="btn btn-primary shadow-lg shadow-accent-primary/20"
-                                onClick={async () => {
-                                    // Create a draft task
-                                    const { addTask } = useStore.getState();
-                                    const newId = await addTask({
-                                        title: '',
-                                        status: 'todo',
-                                        priority: 'medium',
-                                        visibility: 'private'
-                                    });
+                    {/* Member Filter - NEW (Talent) */}
+                    <MemberFilter
+                        members={Object.values(team)}
+                        selectedMemberId={selectedMemberId}
+                        onSelectionChange={setSelectedMemberId}
+                    />
 
-                                    // Hack: Small delay or direct read to ensure we get the task
-                                    setTimeout(() => {
-                                        const newTask = useStore.getState().tasks[newId];
-                                        if (newTask) setEditingTask(newTask);
-                                    }, 50);
-                                }}
-                            >
-                                <Plus size={18} /> New Task
-                            </button>
-                        )}
+                    <div className="h-6 w-px bg-border-subtle" />
+
+                    {/* Project Filter */}
+                    <ProjectFilter
+                        projects={Object.values(projects)}
+                        selectedProjectIds={selectedProjectIds}
+                        onSelectionChange={setSelectedProjectIds}
+                    />
+
+                    <div className="h-6 w-px bg-border-subtle" />
+
+                    {/* View Toggles */}
+                    <div className="flex gap-1">
+                        <button
+                            onClick={() => handleSetViewMode('list')}
+                            className={clsx(
+                                "p-1.5 rounded-lg transition-all duration-200",
+                                viewMode === 'list'
+                                    ? "bg-accent-primary text-white shadow-sm"
+                                    : "text-text-muted hover:text-text-secondary hover:bg-bg-input"
+                            )}
+                            title="List View"
+                        >
+                            <LayoutList size={18} />
+                        </button>
+                        <button
+                            onClick={() => handleSetViewMode('board')}
+                            className={clsx(
+                                "p-1.5 rounded-lg transition-all duration-200",
+                                viewMode === 'board'
+                                    ? "bg-accent-primary text-white shadow-sm"
+                                    : "text-text-muted hover:text-text-secondary hover:bg-bg-input"
+                            )}
+                            title="Kanban Board"
+                        >
+                            <KanbanSquare size={18} />
+                        </button>
                     </div>
+
+                    {/* Clear Completed Action */}
+                    {(() => {
+                        if (!user) return null;
+                        const isAdmin = user.role === 'owner' || user.role === 'admin';
+                        const hasClearableTasks = Object.values(tasks).some(t => {
+                            if (t.status !== 'done') return false;
+                            if (t.visibility === 'private') return t.ownerId === user.id;
+                            return t.ownerId === user.id || isAdmin || (t.assigneeIds && t.assigneeIds.includes(user.id));
+                        });
+
+                        // Also show 'Clear' if filters are active, consistent with TeamBoard
+                        const hasActiveFilters = filter !== 'all' || selectedProjectIds.length > 0 || selectedMemberId !== null;
+
+                        return (hasClearableTasks || hasActiveFilters) && (
+                            <>
+                                <div className="h-6 w-px bg-border-subtle" />
+                                <div className="flex items-center gap-1">
+                                    {hasActiveFilters && (
+                                        <button
+                                            onClick={() => {
+                                                setFilter('all');
+                                                setSelectedProjectIds([]);
+                                                setSelectedMemberId(null);
+                                            }}
+                                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors text-red-500 hover:bg-red-50 hover:text-red-600"
+                                            title="Clear Filters"
+                                        >
+                                            <X size={16} />
+                                            <span className="hidden md:inline">Clear</span>
+                                        </button>
+                                    )}
+
+                                    {hasClearableTasks && !hasActiveFilters && (
+                                        <button
+                                            onClick={() => {
+                                                if (window.confirm('¿Estás seguro de que quieres eliminar todas las tareas completadas?')) {
+                                                    clearCompletedTasks();
+                                                }
+                                            }}
+                                            className="p-1.5 rounded-lg text-text-muted hover:text-red-500 hover:bg-red-50 transition-all flex items-center gap-1"
+                                            title="Clear Completed Tasks"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    )}
+                                </div>
+                            </>
+                        );
+                    })()}
+
                 </div>
             </header>
 
