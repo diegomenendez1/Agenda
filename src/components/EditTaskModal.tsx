@@ -1,36 +1,38 @@
 import { useState, useEffect } from 'react';
-import { X, Folder, Flag, Clock, Trash2, User, Lock, Sparkles, ArrowRight, Layout, AlertTriangle, Search, Loader2, Check, Eye, EyeOff, ListTodo, UserMinus } from 'lucide-react';
+import { X, Folder, Flag, Clock, Trash2, User, Lock, Sparkles, ArrowRight, Layout, AlertTriangle, Search, Loader2, Check, Eye, EyeOff, ListTodo } from 'lucide-react';
 import { useStore } from '../core/store';
-import { ActivityFeed } from './ActivityFeed';
+// import { ActivityFeed } from './ActivityFeed'; // Temporarily disabled to rule out circular dep
 import type { Task, Priority, TaskStatus, RecurrenceConfig } from '../core/types';
 import { fetchWithRetry } from '../core/api';
 import clsx from 'clsx';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 
 interface EditTaskModalProps {
-    task: Task;
+    task: Partial<Task> | Task; // Allow partial for creation
     onClose: () => void;
     isProcessing?: boolean;
+    mode?: 'edit' | 'create'; // NEW
 }
 
-export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskModalProps) {
-    const { updateTask, updateStatus, projects, deleteTask, unassignTask, team, user } = useStore();
-    const [showActivity, setShowActivity] = useState(true);
+export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edit' }: EditTaskModalProps) {
+    const { updateTask, addTask, updateStatus, projects, deleteTask, unassignTask, team, user } = useStore();
+    const [showActivity, setShowActivity] = useState(false); // Default hidden
 
-    const [title, setTitle] = useState(task.title);
-    const [originalTitle] = useState(task.title);
+    // For creation mode, we might only have partial data
+    const [title, setTitle] = useState(task.title || '');
+    const [originalTitle] = useState(task.title || '');
     const [description, setDescription] = useState(task.description || '');
     const [projectId, setProjectId] = useState<string>(task.projectId || '');
-    const [priority, setPriority] = useState<Priority>(task.priority);
+    const [priority, setPriority] = useState<Priority>(task.priority || 'medium');
     const [assigneeIds, setAssigneeIds] = useState<string[]>(task.assigneeIds || []);
 
-    const [status, setStatus] = useState<TaskStatus>(task.status);
+    const [status, setStatus] = useState<TaskStatus>(task.status || 'todo');
     const [recurrence, setRecurrence] = useState<RecurrenceConfig | undefined>(task.recurrence);
     // Visibility
     const [visibility, setVisibility] = useState<'private' | 'team'>(task.visibility || 'private');
 
     const initialDate = task.dueDate ? new Date(task.dueDate) : null;
-    const [dueDateStr, setDueDateStr] = useState(initialDate ? format(initialDate, "yyyy-MM-dd'T'HH:mm") : '');
+    const [dueDateStr, setDueDateStr] = useState((initialDate && isValid(initialDate)) ? format(initialDate, "yyyy-MM-dd'T'HH:mm") : '');
 
     const [aiLoading, setAiLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("Analyzing...");
@@ -38,16 +40,16 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
 
     // Fix: Stale Data - Sync state with task prop when it updates
     useEffect(() => {
-        setTitle(task.title);
+        setTitle(task.title || '');
         setDescription(task.description || '');
         setProjectId(task.projectId || '');
-        setPriority(task.priority);
+        setPriority(task.priority || 'medium');
         setAssigneeIds(task.assigneeIds || []);
-        setStatus(task.status);
+        setStatus(task.status || 'todo');
         setRecurrence(task.recurrence);
         setVisibility(task.visibility || 'private');
         const d = task.dueDate ? new Date(task.dueDate) : null;
-        setDueDateStr(d ? format(d, "yyyy-MM-dd'T'HH:mm") : '');
+        setDueDateStr((d && isValid(d)) ? format(d, "yyyy-MM-dd'T'HH:mm") : '');
     }, [task]);
 
     // Narrative Loading Effect
@@ -64,6 +66,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
     }, [aiLoading]);
 
     const handleAutoProcess = async () => {
+        if (!task.id) return; // Cannot process without ID
         setAiLoading(true);
         try {
             const webhookUrl = import.meta.env.DEV
@@ -153,7 +156,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
         }
     };
     // Permission Logic
-    const isOwner = user?.id === task.ownerId;
+    const isOwner = user?.id === task.ownerId || mode === 'create'; // Creator is owner
     const isAdmin = user?.role === 'admin' || user?.role === 'owner'; // Global admin privileges
     const canEdit = isOwner || isAdmin;
 
@@ -187,17 +190,23 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
     const handleSave = async (e?: React.FormEvent | React.FocusEvent) => {
         if (e) e.preventDefault();
 
-        // Don't save if nothing changed (optional optimization, but good for onBlur)
-        if (title === task.title &&
+        // Don't save if nothing changed (only in edit mode)
+        if (mode === 'edit' &&
+            title === task.title &&
             description === (task.description || '') &&
             status === task.status &&
             projectId === (task.projectId || '') &&
             priority === task.priority &&
-            dueDateStr === (task.dueDate ? format(new Date(task.dueDate), "yyyy-MM-dd'T'HH:mm") : '') &&
+            dueDateStr === (task.dueDate && isValid(new Date(task.dueDate)) ? format(new Date(task.dueDate), "yyyy-MM-dd'T'HH:mm") : '') &&
             JSON.stringify(assigneeIds) === JSON.stringify(task.assigneeIds) &&
             JSON.stringify(recurrence) === JSON.stringify(task.recurrence)
         ) {
             if (e && e.type === 'submit') onClose(); // If explicit submit, close
+            return;
+        }
+
+        if (!title.trim()) {
+            setErrorMsg("Task title is required");
             return;
         }
 
@@ -216,9 +225,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
         }
 
 
-        // Derived visibility: only 'team' if someone else is assigned, UNLESS explicitly set to team
-        // Logic: If I have assignees, it MUST be team (usually). But we can allow "Private" if shared? No, shared private is contradictory.
-        // If shared, forced Team. If not shared, can be Team or Private.
+        // Derived visibility logic
         const hasEvaluatedAssignees = assigneeIds.filter(uid => uid !== user?.id).length > 0;
         let finalVisibility = visibility;
 
@@ -226,9 +233,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
             finalVisibility = 'team'; // Enforce team if shared
         }
 
-        // If manually set to team but no assignees, we respect it (Team Bulletin).
-
-        updateTask(task.id, {
+        const commonData = {
             title,
             description,
             projectId: projectId || undefined,
@@ -236,18 +241,33 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
             dueDate,
             assigneeIds,
             status,
-            visibility: finalVisibility, // Use explicit
+            visibility: finalVisibility,
             recurrence: recurrence
-        });
+        };
 
-        if (e && e.type === 'submit') {
-            onClose();
+        try {
+            if (mode === 'create') {
+                await addTask(commonData);
+            } else {
+                if (!task.id) return;
+                await updateTask(task.id, commonData);
+            }
+
+            if (e && e.type === 'submit') {
+                onClose();
+            }
+        } catch (err) {
+            console.error(err);
+            setErrorMsg("Failed to save task.");
+            setIsSuccess(false);
         }
     };
 
     const handleDelete = () => {
-        deleteTask(task.id);
-        onClose();
+        if (task.id) {
+            deleteTask(task.id);
+            onClose();
+        }
     }
 
     return (
@@ -260,7 +280,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                 <div className="flex items-center justify-between p-5 border-b border-border-subtle bg-bg-app/50 shrink-0">
                     <div className="flex items-center gap-3">
                         <h2 className="font-display font-semibold text-lg text-text-primary">
-                            {isProcessing ? 'Accept & Process Item' : 'Edit Task'}
+                            {isProcessing ? 'Accept & Process Item' : mode === 'create' ? 'Create New Task' : 'Edit Task'}
                         </h2>
                     </div>
                     <div className="flex items-center gap-2">
@@ -285,7 +305,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                             {showActivity ? "Hide Activity" : "Show Activity"}
                         </button>
 
-                        {isOwner && (
+                        {isOwner && mode === 'edit' && (
                             <div className="relative">
                                 {showDeleteConfirm ? (
                                     <div className="absolute top-full right-0 mt-2 bg-bg-card border border-border-subtle shadow-xl rounded-xl p-3 z-[60] min-w-[200px] animate-in slide-in-from-top-2">
@@ -350,7 +370,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                         className="text-text-muted hover:text-orange-500 hover:bg-orange-500/10 transition-colors p-2 rounded-lg"
                                         title="Leave Task (Unassign me)"
                                     >
-                                        <UserMinus size={18} />
+                                        <User size={18} className="rotate-45" />
                                     </button>
                                 )}
                             </div>
@@ -744,7 +764,8 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                         <>
                                             <span>
                                                 {isProcessing ? 'Confirm & To Do' :
-                                                    (status === 'done' && !isOwner) ? 'Submit for Review' : 'Save Changes'}
+                                                    mode === 'create' ? 'Create Task' :
+                                                        (status === 'done' && !isOwner) ? 'Submit for Review' : 'Save Changes'}
                                             </span>
                                             <ArrowRight size={16} />
                                         </>
@@ -757,7 +778,9 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                     {/* Right Column: Activity Feed */}
                     {showActivity && (
                         <div className="w-[350px] border-l border-border-subtle bg-bg-app/20 p-4 shrink-0 overflow-hidden">
-                            <ActivityFeed taskId={task.id} />
+                            <div className="w-[350px] border-l border-border-subtle bg-bg-app/20 p-4 shrink-0 overflow-hidden flex items-center justify-center text-text-muted text-sm">
+                                Activity Feed Unavailable
+                            </div>
                         </div>
                     )}
                 </div>

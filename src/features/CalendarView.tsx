@@ -1,40 +1,127 @@
-import { useState, useMemo } from 'react';
-import { startOfWeek, addDays, format, isSameDay, getHours, addWeeks, subWeeks } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, Component, ErrorInfo, ReactNode, useMemo, lazy, Suspense } from 'react';
+import { startOfWeek, addDays, format, isSameDay, addWeeks, subWeeks, setHours, isValid } from 'date-fns';
+import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, AlertCircle } from 'lucide-react';
 import clsx from 'clsx';
 import { useStore } from '../core/store';
+import type { Task } from '../core/types';
+
+// Lazy load to prevent circular dependency crashes
+const EditTaskModal = lazy(() => import('../components/EditTaskModal').then(m => ({ default: m.EditTaskModal })));
+
+// Safety: Error Boundary to catch crashes within the Calendar only
+class LocalErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean, error: Error | null }> {
+    constructor(props: { children: ReactNode }) {
+        super(props);
+        this.state = { hasError: false, error: null };
+    }
+
+    static getDerivedStateFromError(error: Error) {
+        return { hasError: true, error };
+    }
+
+    componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+        console.error("CalendarView Crash:", error, errorInfo);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="flex flex-col items-center justify-center h-full p-10 text-red-600 bg-red-50/50">
+                    <AlertCircle size={48} className="mb-4 text-red-500" />
+                    <h2 className="font-bold text-lg mb-2">Calendar Error</h2>
+                    <p className="text-sm text-text-muted mb-4 text-center max-w-md">
+                        {this.state.error?.message || "Unknown error occurred"}
+                    </p>
+                    <button
+                        onClick={() => this.setState({ hasError: false })}
+                        className="px-4 py-2 bg-white border border-red-200 rounded shadow-sm hover:bg-red-50 text-sm font-medium"
+                    >
+                        Try Again
+                    </button>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
 
 export function CalendarView() {
-    const [currentDate, setCurrentDate] = useState(new Date());
-    const weekStart = useMemo(() => startOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate]);
-    const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart]);
-    const hours = Array.from({ length: 16 }, (_, i) => i + 6); // 6 AM to 9 PM
+    return (
+        <LocalErrorBoundary>
+            <CalendarContent />
+        </LocalErrorBoundary>
+    );
+}
 
-    const { tasks, updateTask, user } = useStore();
+function CalendarContent() {
+    const { tasks, updateTask } = useStore();
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [editingTask, setEditingTask] = useState<Task | null>(null);
+    const [creationDate, setCreationDate] = useState<Date | null>(null);
+
+    const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday start
+    const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+    const hours = Array.from({ length: 24 }, (_, i) => i);
     const today = new Date();
 
-    const nextWeek = () => setCurrentDate(d => addWeeks(d, 1));
-    const prevWeek = () => setCurrentDate(d => subWeeks(d, 1));
-    const goToToday = () => setCurrentDate(new Date());
-
-    // Mapping tasks to calendar grid
-    const tasksOnCalendar = useMemo(() => {
-        if (!user) return [];
+    // --- Safety: Safe Task Filtering ---
+    const weekTasks = useMemo(() => {
+        if (!tasks) return [];
+        const weekEnd = addDays(weekStart, 7);
         return Object.values(tasks).filter(task => {
-            if (!task.dueDate || task.status === 'done') return false;
-
-            // Visibility Check
-            const isOwner = task.ownerId === user.id;
-            const isAssignee = task.assigneeIds?.includes(user.id);
-            if (!isOwner && !isAssignee) return false;
-
-            const hour = getHours(task.dueDate);
-            return hour >= 6 && hour <= 21;
+            if (!task.dueDate) return false;
+            try {
+                const taskDate = new Date(task.dueDate);
+                return isValid(taskDate) && taskDate >= weekStart && taskDate < weekEnd;
+            } catch {
+                return false;
+            }
         });
-    }, [tasks, user]);
+    }, [tasks, weekStart]);
 
-    const handleDragStart = (e: React.DragEvent, taskId: string) => {
-        e.dataTransfer.setData('taskId', taskId);
+    // --- Logic: Positioning ---
+    const getTaskStyle = (task: Task) => {
+        try {
+            if (!task.dueDate) return { display: 'none' };
+            const date = new Date(task.dueDate);
+            if (!isValid(date)) return { display: 'none' };
+
+            const startHour = date.getHours();
+            const startMin = date.getMinutes();
+            // Default duration 1h if not tracked
+            const durationMinutes = 60;
+
+            // Top: (Hour * 80px) + (Minutes / 60 * 80px)
+            const top = (startHour * 80) + ((startMin / 60) * 80);
+            // Height: (Duration / 60 * 80px)
+            const height = (durationMinutes / 60) * 80;
+
+            return {
+                top: `${top}px`,
+                height: `${height}px`,
+                left: '2px',
+                right: '2px',
+                position: 'absolute' as const
+            };
+        } catch (e) {
+            return { display: 'none' };
+        }
+    };
+
+    // --- Interactions ---
+    const handleSlotClick = (day: Date, hour: number) => {
+        const d = new Date(day);
+        d.setHours(hour, 0, 0, 0);
+        setCreationDate(d);
+    };
+
+    const handleTaskDoubleClick = (task: Task, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setEditingTask(task);
+    };
+
+    const handleDragStart = (e: React.DragEvent, task: Task) => {
+        e.dataTransfer.setData('taskId', task.id);
         e.dataTransfer.effectAllowed = 'move';
     };
 
@@ -43,164 +130,178 @@ export function CalendarView() {
         e.dataTransfer.dropEffect = 'move';
     };
 
-    const handleDrop = (e: React.DragEvent, day: Date, hour: number) => {
+    const handleDrop = async (e: React.DragEvent, day: Date, hour: number) => {
         e.preventDefault();
         const taskId = e.dataTransfer.getData('taskId');
-        if (!taskId) return;
-
-        const newDate = new Date(day);
-        newDate.setHours(hour, 0, 0, 0);
-
-        updateTask(taskId, { dueDate: newDate.getTime() });
+        const task = tasks[taskId];
+        if (task) {
+            try {
+                const newDate = new Date(day);
+                newDate.setHours(hour, 0, 0, 0);
+                await updateTask(task.id, { dueDate: newDate.getTime() });
+            } catch (err) {
+                console.error("Failed to move task", err);
+            }
+        }
     };
 
     return (
         <div className="flex flex-col h-full overflow-hidden bg-bg-app">
-
-            {/* Control Header */}
-            <div className="flex items-center justify-between px-6 py-4 bg-bg-card border-b border-border-subtle shrink-0">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-border-subtle bg-bg-card/50 backdrop-blur-sm shrink-0">
                 <div className="flex items-center gap-4">
-                    <h2 className="text-2xl font-display font-bold text-text-primary capitalize min-w-[200px]">
+                    <h2 className="text-xl font-display font-bold text-text-primary flex items-center gap-2">
+                        <CalendarIcon className="text-accent-primary" />
                         {format(currentDate, 'MMMM yyyy')}
                     </h2>
                     <div className="flex items-center gap-1 bg-bg-input rounded-lg p-1 border border-border-subtle">
-                        <button onClick={prevWeek} className="p-1 hover:bg-bg-card hover:text-accent-primary rounded-md transition-colors text-text-muted">
-                            <ChevronLeft size={20} />
+                        <button onClick={() => setCurrentDate(subWeeks(currentDate, 1))} className="p-1 hover:bg-bg-card rounded text-text-muted hover:text-text-primary transition-colors">
+                            <ChevronLeft size={18} />
                         </button>
-                        <button onClick={goToToday} className="px-3 py-1 text-sm font-bold text-text-secondary hover:text-text-primary transition-colors">
+                        <button onClick={() => setCurrentDate(new Date())} className="px-3 py-1 text-xs font-bold text-text-primary hover:bg-bg-card rounded transition-colors">
                             Today
                         </button>
-                        <button onClick={nextWeek} className="p-1 hover:bg-bg-card hover:text-accent-primary rounded-md transition-colors text-text-muted">
-                            <ChevronRight size={20} />
+                        <button onClick={() => setCurrentDate(addWeeks(currentDate, 1))} className="p-1 hover:bg-bg-card rounded text-text-muted hover:text-text-primary transition-colors">
+                            <ChevronRight size={18} />
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* Header - Days */}
-            <div className="grid grid-cols-8 border-b border-border-subtle bg-bg-card shadow-sm z-10 shrink-0">
-                <div className="p-4 border-r border-border-subtle text-[10px] font-bold tracking-widest text-text-muted uppercase text-center pt-8 bg-bg-sidebar/50">
-                    GMT-5
+            {/* Calendar Grid */}
+            <div className="flex-1 flex flex-col overflow-hidden relative">
+                {/* Days Header */}
+                <div className="grid grid-cols-8 border-b border-border-subtle bg-bg-card z-10 shadow-sm shrink-0">
+                    <div className="p-4 border-r border-border-subtle text-xs font-semibold text-text-muted uppercase tracking-wider text-center flex items-center justify-center bg-bg-app/50 relative">
+                        TIME
+                        <div className="absolute inset-x-0 bottom-0 h-0.5 bg-accent-primary/20"></div>
+                    </div>
+                    {weekDays.map((day, i) => {
+                        const isToday = isSameDay(day, today);
+                        return (
+                            <div key={i} className={clsx(
+                                "flex flex-col items-center justify-center py-3 border-r border-border-subtle transition-colors relative",
+                                isToday ? "bg-accent-primary/5" : ""
+                            )}>
+                                <span className={clsx("text-xs font-bold uppercase mb-1", isToday ? "text-accent-primary" : "text-text-muted")}>
+                                    {format(day, 'EEE')}
+                                </span>
+                                <div className={clsx(
+                                    "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all",
+                                    isToday ? "bg-accent-primary text-white shadow-lg shadow-accent-primary/30" : "text-text-primary group-hover:bg-bg-input"
+                                )}>
+                                    {format(day, 'd')}
+                                </div>
+                                {isToday && <div className="absolute inset-x-0 bottom-0 h-0.5 bg-accent-primary"></div>}
+                            </div>
+                        );
+                    })}
                 </div>
-                {weekDays.map(day => {
-                    const isToday = isSameDay(day, today);
-                    return (
-                        <div key={day.toString()} className={clsx("p-3 text-center border-r border-border-subtle last:border-r-0 min-w-[120px]", isToday ? "bg-accent-primary/5" : "bg-bg-card")}>
-                            <div className={clsx("text-xs font-bold uppercase mb-1.5 tracking-wider", isToday ? "text-accent-primary" : "text-text-muted")}>
-                                {format(day, 'EEE')}
-                            </div>
-                            <div className={clsx("text-xl font-display font-bold rounded-full w-10 h-10 flex items-center justify-center mx-auto transition-all", isToday ? "bg-accent-primary text-white shadow-lg shadow-accent-primary/30" : "text-text-primary")}>
-                                {format(day, 'd')}
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
 
-            {/* Grid - Scrollable */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
-                <div className="grid grid-cols-8 relative min-h-[1000px]">
-                    {/* Time labels */}
-                    <div className="border-r border-border-subtle bg-bg-sidebar/30">
-                        {hours.map(hour => (
-                            <div key={hour} className="h-20 border-b border-border-subtle text-xs font-medium text-text-muted text-right pr-3 -mt-2 uppercase tracking-wider relative group">
-                                <span className="relative z-10">{hour}:00</span>
+                {/* Scrollable Content */}
+                <div className="flex-1 overflow-y-auto custom-scrollbar relative bg-bg-app/30">
+                    <div className="grid grid-cols-8 min-h-[1920px]"> {/* 24h * 80px = 1920px */}
+
+                        {/* Time labels Column */}
+                        <div className="border-r border-border-subtle bg-bg-card/30 relative">
+                            {hours.map(hour => (
+                                <div key={`time-${hour}`} className="h-20 border-b border-border-subtle/50 relative">
+                                    <span className="absolute -top-3 right-2 text-xs font-mono text-text-muted/60">
+                                        {format(setHours(new Date(), hour), 'HH:00')}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Day Columns */}
+                        {weekDays.map((day, dayIdx) => (
+                            <div key={dayIdx} className="relative border-r border-border-subtle group/column bg-bg-app/10">
+                                {/* Hour Cells */}
+                                {hours.map(hour => (
+                                    <div
+                                        key={`slot-${dayIdx}-${hour}`}
+                                        className="h-20 border-b border-border-subtle/30 hover:bg-accent-primary/5 transition-colors group/cell relative"
+                                        onDragOver={handleDragOver}
+                                        onDrop={(e) => handleDrop(e, day, hour)}
+                                    >
+                                        {/* Hover Add Button */}
+                                        <button
+                                            onClick={() => handleSlotClick(day, hour)}
+                                            className="absolute top-1 right-1 p-1.5 rounded-lg text-accent-primary opacity-0 group-hover/cell:opacity-100 hover:bg-accent-primary/10 transition-all z-20 scale-90 hover:scale-100 cursor-pointer"
+                                            title="Add Task"
+                                        >
+                                            <Plus size={16} strokeWidth={3} />
+                                        </button>
+                                    </div>
+                                ))}
+
+                                {/* Tasks Overlay */}
+                                {weekTasks
+                                    .filter(t => isSameDay(new Date(t.dueDate!), day))
+                                    .map(task => (
+                                        <div
+                                            key={task.id}
+                                            draggable
+                                            onDragStart={(e) => handleDragStart(e, task)}
+                                            onDoubleClick={(e) => handleTaskDoubleClick(task, e)}
+                                            className={clsx(
+                                                "rounded-lg p-2 text-xs border cursor-pointer hover:z-30 transition-all shadow-sm hover:shadow-md group/card select-none overflow-hidden flex flex-col",
+                                                task.status === 'done' ? "bg-bg-input opacity-60 border-border-subtle" :
+                                                    task.priority === 'critical' ? "bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-300 left-[2px] right-[2px]" :
+                                                        task.priority === 'high' ? "bg-orange-500/10 border-orange-500/30 text-orange-700 dark:text-orange-300 left-[2px] right-[2px]" :
+                                                            "bg-bg-card border-border-subtle text-text-primary left-[2px] right-[2px]"
+                                            )}
+                                            style={getTaskStyle(task)}
+                                            title={task.title}
+                                        >
+                                            <div className="font-semibold truncate w-full">{task.title}</div>
+                                            <div className="flex items-center gap-1 opacity-70 scale-90 origin-left mt-0.5">
+                                                <div className="shrink-0"><Clock size={10} /></div>
+                                                {format(new Date(task.dueDate!), 'HH:mm')}
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                {/* Current Time Indicator */}
+                                {isSameDay(day, today) && (
+                                    <div
+                                        className="absolute w-full border-t-2 border-red-500 z-50 pointer-events-none shadow-[0_0_8px_rgba(239,68,68,0.6)]"
+                                        style={{
+                                            top: `${(today.getHours() * 80) + ((today.getMinutes() / 60) * 80)}px`
+                                        }}
+                                    >
+                                        <div className="absolute -left-1.5 -top-1.5 w-3 h-3 rounded-full bg-red-500 animate-pulse shadow-sm" />
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>
-
-                    {/* Days Columns */}
-                    {weekDays.map((day, dayIdx) => (
-                        <div key={day.toString()} className="border-r border-border-subtle bg-bg-app relative group">
-                            {/* Hour Cells */}
-                            {hours.map(hour => (
-                                <div
-                                    key={`${dayIdx}-${hour}`}
-                                    className="h-20 border-b border-border-subtle/40 hover:bg-accent-primary/5 transition-colors"
-                                    onDragOver={handleDragOver}
-                                    onDrop={(e) => handleDrop(e, day, hour)}
-                                >
-                                </div>
-                            ))}
-
-                            {/* Tasks overlapping the grid */}
-                            {(() => {
-                                const dayTasks = tasksOnCalendar
-                                    .filter(task => isSameDay(new Date(task.dueDate!), day))
-                                    .sort((a, b) => a.dueDate! - b.dueDate!);
-
-                                // Group tasks into overlapping bubbles
-                                const bubbles: any[][] = [];
-                                dayTasks.forEach(task => {
-                                    let placed = false;
-                                    for (const bubble of bubbles) {
-                                        // Simple overlap check: within 1 hour of any task in bubble
-                                        const overlaps = bubble.some(t => {
-                                            const start1 = t.dueDate!;
-                                            const end1 = t.dueDate! + (60 * 60 * 1000);
-                                            const start2 = task.dueDate!;
-                                            const end2 = task.dueDate! + (60 * 60 * 1000);
-                                            return start1 < end2 && start2 < end1;
-                                        });
-                                        if (overlaps) {
-                                            bubble.push(task);
-                                            placed = true;
-                                            break;
-                                        }
-                                    }
-                                    if (!placed) bubbles.push([task]);
-                                });
-
-                                return bubbles.flatMap(bubble => {
-                                    return bubble.map((task, idx) => {
-                                        const date = new Date(task.dueDate!);
-                                        const hour = date.getHours();
-                                        const minutes = date.getMinutes();
-                                        const topOffset = ((hour - 6) * 80) + ((minutes / 60) * 80);
-
-                                        const width = 100 / bubble.length;
-                                        const left = idx * width;
-
-                                        return (
-                                            <div
-                                                key={task.id}
-                                                draggable
-                                                onDragStart={(e) => handleDragStart(e, task.id)}
-                                                className={clsx(
-                                                    "absolute rounded-lg px-2.5 py-1.5 text-xs font-medium overflow-hidden hover:z-20 hover:scale-[1.02] transition-all cursor-grab active:cursor-grabbing shadow-sm border-l-[3px]",
-                                                    task.priority === 'critical' ? "bg-red-500/10 border-red-500 text-red-700 dark:text-red-300" :
-                                                        task.priority === 'high' ? "bg-orange-500/10 border-orange-500 text-orange-700 dark:text-orange-300" :
-                                                            "bg-accent-primary/10 border-accent-primary text-accent-primary"
-                                                )}
-                                                style={{
-                                                    top: `${topOffset}px`,
-                                                    height: '75px',
-                                                    left: `${left}%`,
-                                                    width: `${width}%`
-                                                }}
-                                                title={task.title}
-                                            >
-                                                <div className="font-bold truncate text-[13px]">{task.title}</div>
-                                                <div className="opacity-80 mt-0.5 font-medium">{format(date, 'h:mm a')}</div>
-                                            </div>
-                                        );
-                                    });
-                                });
-                            })()}
-
-                            {/* Current Time Indicator */}
-                            {isSameDay(day, today) && (
-                                <div
-                                    className="absolute z-10 w-full left-0 border-t-2 border-red-500 pointer-events-none shadow-[0_0_10px_rgba(239,68,68,0.5)]"
-                                    style={{ top: `${((today.getHours() - 6) * 80) + ((today.getMinutes() / 60) * 80)}px` }}
-                                >
-                                    <div className="absolute -left-1.5 -top-1.5 w-3 h-3 rounded-full bg-red-500 shadow-sm"></div>
-                                </div>
-                            )}
-                        </div>
-                    ))}
                 </div>
             </div>
+
+            {/* Modals - Lazy Loaded */}
+            <Suspense fallback={null}>
+                {editingTask && (
+                    <EditTaskModal
+                        task={editingTask}
+                        onClose={() => setEditingTask(null)}
+                        mode="edit"
+                    />
+                )}
+
+                {creationDate && (
+                    <EditTaskModal
+                        task={{
+                            title: '',
+                            dueDate: creationDate.getTime(),
+                            status: 'todo',
+                            priority: 'medium'
+                        } as any}
+                        onClose={() => setCreationDate(null)}
+                        mode="create"
+                    />
+                )}
+            </Suspense>
         </div>
     );
 }
