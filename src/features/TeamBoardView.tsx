@@ -23,6 +23,18 @@ export function TeamBoardView() {
     // Strict Filtering for "Selective Visibility"
     const taskList = useMemo(() => {
         return Object.values(tasks).filter(t => {
+            // 4. Feature: Team Member Filter (Moved to Top)
+            if (selectedMemberId) {
+                const isMemberOwner = t.ownerId === selectedMemberId;
+                const isMemberAssigned = t.assigneeIds?.includes(selectedMemberId);
+                if (!isMemberOwner && !isMemberAssigned) return false;
+            }
+
+            // 5. Feature: Project Filter (Moved to Top)
+            if (selectedProjectIds.length > 0) {
+                if (!t.projectId || !selectedProjectIds.includes(t.projectId)) return false;
+            }
+
             // 0. ABSOLUTE PRIVACY: If it's private and I'm not the owner or assignee, it's GONE.
             // No exceptions for admins in this view to keep it clean.
             const isOwner = t.ownerId === user?.id;
@@ -76,7 +88,19 @@ export function TeamBoardView() {
                 <div className="flex items-center gap-4 bg-bg-card border border-border-subtle p-2 rounded-xl shadow-sm">
                     <div className="flex items-center gap-2 px-2">
                         <span className="text-xs font-bold text-text-muted uppercase tracking-wider mr-2 hidden sm:block">Filter by:</span>
-                        <div className="flex -space-x-2 hover:space-x-1 transition-all duration-300">
+                        <div className="flex -space-x-2 hover:space-x-1 transition-all duration-300 items-center">
+                            <button
+                                onClick={() => setSelectedMemberId(null)}
+                                className={clsx(
+                                    "w-8 h-8 rounded-full border-2 flex items-center justify-center text-[10px] font-bold transition-all relative z-20 hover:scale-110 hover:z-30",
+                                    !selectedMemberId
+                                        ? "bg-text-primary text-bg-card border-text-primary ring-2 ring-text-primary/20"
+                                        : "bg-bg-card text-text-muted border-border-subtle hover:border-text-primary hover:text-text-primary"
+                                )}
+                                title="Show All Team Members"
+                            >
+                                ALL
+                            </button>
                             {Object.values(team).slice(0, 5).map(member => {
                                 const isSelected = selectedMemberId === member.id;
                                 const isDimmed = selectedMemberId && !isSelected;
@@ -125,16 +149,18 @@ export function TeamBoardView() {
                         onSelectionChange={setSelectedProjectIds}
                     />
                     <div className="h-6 w-px bg-border-subtle" />
-                    <button
-                        onClick={() => {
-                            setSelectedMemberId(null);
-                            setSelectedProjectIds([]);
-                        }}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${selectedMemberId || selectedProjectIds.length > 0 ? 'text-accent-primary bg-accent-primary/10' : 'text-text-muted hover:text-text-primary hover:bg-bg-input'}`}
-                    >
-                        <Filter size={16} />
-                        <span className="hidden md:inline">{selectedMemberId || selectedProjectIds.length > 0 ? 'Clear Filters' : 'Filter'}</span>
-                    </button>
+                    {(selectedMemberId || selectedProjectIds.length > 0) && (
+                        <button
+                            onClick={() => {
+                                setSelectedMemberId(null);
+                                setSelectedProjectIds([]);
+                            }}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors text-red-500 hover:bg-red-50 hover:text-red-600"
+                        >
+                            <X size={16} />
+                            <span className="hidden md:inline">Clear</span>
+                        </button>
+                    )}
                     <div className="h-6 w-px bg-border-subtle" />
                     <button
                         onClick={() => setShowWorkload(!showWorkload)}
