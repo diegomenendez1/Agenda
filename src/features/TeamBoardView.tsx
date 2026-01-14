@@ -23,28 +23,24 @@ export function TeamBoardView() {
     // Strict Filtering for "Selective Visibility"
     const taskList = useMemo(() => {
         return Object.values(tasks).filter(t => {
-            // 1. Core Definition
-            const isShared = t.visibility === 'team' || (t.assigneeIds && t.assigneeIds.length > 0);
-
-            // 0. ABSOLUTE ACCESS: Owner or Assignee or Admin
+            // 0. ABSOLUTE PRIVACY: If it's private and I'm not the owner or assignee, it's GONE.
+            // No exceptions for admins in this view to keep it clean.
             const isOwner = t.ownerId === user?.id;
             const isAssigned = t.assigneeIds?.includes(user?.id || '');
 
-            if (user?.role === 'owner' || user?.role === 'admin') return true;
-            if (isOwner || isAssigned) return true;
-
-            // 2. Strict Privacy (REVERTED Ghost logic)
-            if (t.visibility === 'private') {
-                // Only visible if I'm owner or assigned (already checked above)
+            if (t.visibility === 'private' && !isOwner && !isAssigned) {
                 return false;
             }
 
-            if (!isShared) return false;
+            // 1. Core Definition
+            const isShared = t.visibility === 'team' || (t.assigneeIds && t.assigneeIds.length > 0);
 
-            // 3. Shared visibility check
-            if (isShared) return true;
+            // 2. Access Logic
+            if (isOwner || isAssigned) return true;
+            if (user?.role === 'owner' || user?.role === 'admin') return true;
 
-            return false;
+            // 3. Final Fallback
+            return isShared;
         });
     }, [tasks, team, user, selectedMemberId, selectedProjectIds]);
 
