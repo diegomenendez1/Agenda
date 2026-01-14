@@ -8,6 +8,7 @@ import { ProjectsView } from './features/ProjectsView';
 import { ProjectDetailView } from './features/ProjectDetailView';
 import { NotesView } from './features/NotesView';
 import { TeamBoardView } from './features/TeamBoardView';
+import { MyTeamView } from './components/MyTeamView';
 import { AuthView } from './features/AuthView';
 import { AdminView } from './features/AdminView';
 import { SettingsView } from './features/SettingsView';
@@ -109,6 +110,7 @@ export default function App() {
                         <Route path="/tasks" element={<TaskListView />} />
                         <Route path="/tasks/:taskId" element={<TaskListView />} />
                         <Route path="/team" element={<TeamBoardView />} />
+                        <Route path="/my-team" element={<MyTeamView />} />
                         <Route path="/calendar" element={<CalendarView />} />
                         <Route path="/projects" element={<ProjectsView />} />
                         <Route path="/projects/:projectId" element={<ProjectDetailView />} />

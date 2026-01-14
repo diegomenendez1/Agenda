@@ -28,45 +28,51 @@ export function TeamBoardView() {
     const taskList = useMemo(() => {
         return Object.values(tasks).filter(t => {
             // 1. Core Definition: What is a "Team Task"?
-            // It must have 'team' visibility OR have assignees (which implies sharing)
             const isShared = t.visibility === 'team' || (t.assigneeIds && t.assigneeIds.length > 0);
 
-            // STRICT PRIVACY: If a task is private, ONLY the owner can see it.
-            // Even the system owner/admin cannot see other people's private tasks.
+            // STRICT PRIVACY
             if (t.visibility === 'private' && t.ownerId !== user?.id) return false;
 
             if (!isShared) return false;
 
             // 2. Role-Based Access Control
-            // OWNER: Sees ALL shared tasks (God Mode for Team Board)
-            if (user?.role === 'owner') return true;
+            if (user?.role === 'owner' || user?.role === 'admin') return true;
 
-            // ADMIN: Should see tasks from their specific team.
-            // TODO: Once 'team_members' relationship is loaded in store, enable this:
-            // if (user?.role === 'admin' && (isMyTeam(t.ownerId) || hasMyTeamMember(t.assigneeIds))) return true;
+            // 3. Hierarchy Check (Audit Recommendation)
+            // - Managers see their own tasks + tasks of people who report to them.
+            // - Members see their own tasks + tasks of their manager + tasks of peers (same manager).
+            // - Everyone sees tasks they are assigned to.
 
-            // USER / DEFAULT ADMIN: strict "Involved" filter
             const isOwner = t.ownerId === user?.id;
             const isAssigned = t.assigneeIds?.includes(user?.id || '');
 
-            // Must be involved to see it
-            if (!isOwner && !isAssigned) return false;
+            // Fast track
+            if (isOwner || isAssigned) return true;
 
-            // 3. UI Filters (Selected Member)
-            if (selectedMemberId) {
-                const isMemberAssigned = t.assigneeIds?.includes(selectedMemberId);
-                const isMemberOwner = t.ownerId === selectedMemberId;
-                if (!isMemberAssigned && !isMemberOwner) return false;
+            // Resolve Team Relationships
+            const taskOwner = team[t.ownerId];
+            if (!taskOwner) return false; // Can't verify hierarchy if profile missing
+
+            // If I am a Manager...
+            if (user?.role === 'manager') {
+                // I see tasks owned by my reports
+                const isMyReport = taskOwner.reportsTo === user.id;
+                return isMyReport;
             }
 
-            // 4. Project Filter
-            if (selectedProjectIds.length > 0) {
-                if (!t.projectId || !selectedProjectIds.includes(t.projectId)) return false;
-            }
+            // If I am a Member...
+            // I see tasks from my Manager
+            const isMyManager = user.reportsTo === t.ownerId;
+            if (isMyManager) return true;
 
-            return true;
+            // I see tasks from Peers (same reportsTo) - excluding orphans (null reportsTo) unless in same null group? 
+            // Better to be strict: Only if reportsTo is set and matches.
+            const isPeer = user.reportsTo && taskOwner.reportsTo === user.reportsTo;
+            if (isPeer) return true;
+
+            return false;
         });
-    }, [tasks, user, selectedMemberId, selectedProjectIds]);
+    }, [tasks, team, user, selectedMemberId, selectedProjectIds]);
 
     return (
         <div className="flex flex-col h-full bg-bg-app overflow-hidden p-6 md:p-8">

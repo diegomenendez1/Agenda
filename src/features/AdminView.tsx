@@ -13,14 +13,7 @@ export function AdminView() {
     const [searchTerm, setSearchTerm] = useState('');
     const [updating, setUpdating] = useState<string | null>(null);
 
-    // Create User Modal State
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [newUserEmail, setNewUserEmail] = useState('');
-    const [newUserPass, setNewUserPass] = useState('');
-    const [newName, setNewName] = useState('');
-    const [creatingUser, setCreatingUser] = useState(false);
-    const [createError, setCreateError] = useState<string | null>(null);
-    const [createSuccess, setCreateSuccess] = useState<string | null>(null);
+    // Create User Modal State Removed
 
     // Delete User State
     const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -175,57 +168,7 @@ export function AdminView() {
         }
     };
 
-    const handleCreateUser = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setCreatingUser(true);
-        setCreateError(null);
-        setCreateSuccess(null);
-
-        try {
-            const tempClient = createClient(
-                import.meta.env.VITE_SUPABASE_URL,
-                import.meta.env.VITE_SUPABASE_ANON_KEY,
-                {
-                    auth: {
-                        persistSession: false,
-                        autoRefreshToken: false,
-                        detectSessionInUrl: false
-                    }
-                }
-            );
-
-            const { data, error } = await tempClient.auth.signUp({
-                email: newUserEmail,
-                password: newUserPass,
-                options: {
-                    data: {
-                        full_name: newName,
-                        avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(newName)}&background=random`,
-                    }
-                }
-            });
-
-            if (error) throw error;
-
-            if (data.user) {
-                setCreateSuccess(`User created! ID: ${data.user.id}`);
-                setNewUserEmail('');
-                setNewUserPass('');
-                setNewName('');
-                fetchUsers();
-
-                setTimeout(() => {
-                    setIsCreateModalOpen(false);
-                    setCreateSuccess(null);
-                }, 1500);
-            }
-
-        } catch (err: any) {
-            setCreateError(err.message);
-        } finally {
-            setCreatingUser(false);
-        }
-    };
+    // handleCreateUser Removed
 
     const handleDeleteUser = async (targetId: string, targetName: string) => {
         if (!confirm(`Are you sure you want to delete user "${targetName}"? This action cannot be undone.`)) {
@@ -298,23 +241,7 @@ export function AdminView() {
                         />
                     </div>
                     <div className="flex items-center gap-4 w-full sm:w-auto justify-end">
-                        <button
-                            onClick={() => {
-                                const email = prompt("Enter email to invite:");
-                                if (email) useStore.getState().sendInvitation(email, 'user');
-                            }}
-                            className="btn btn-outline shadow-sm flex items-center gap-2"
-                        >
-                            <Mail size={18} />
-                            <span>Invite by Email</span>
-                        </button>
-                        <button
-                            onClick={() => setIsCreateModalOpen(true)}
-                            className="btn btn-primary shadow-lg shadow-accent-primary/20 flex items-center gap-2"
-                        >
-                            <UserPlus size={18} />
-                            <span>Add User</span>
-                        </button>
+                        {/* Legacy Invite Buttons Removed - Use My Team View */}
                     </div>
                 </div>
 
@@ -485,104 +412,7 @@ export function AdminView() {
                 </div>
             </div>
 
-            {/* Create User Modal */}
-            {
-                isCreateModalOpen && (
-                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-                        <div className="glass-panel w-full max-w-md rounded-2xl p-0 shadow-2xl border border-border-subtle overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-2 duration-300 bg-bg-card">
-                            <div className="p-6 border-b border-border-subtle bg-bg-input/30 flex justify-between items-center">
-                                <div>
-                                    <h3 className="text-lg font-display font-bold text-text-primary flex items-center gap-2">
-                                        <div className="p-1.5 rounded-md bg-accent-primary/10 text-accent-primary">
-                                            <UserPlus size={18} />
-                                        </div>
-                                        Create New User
-                                    </h3>
-                                    <p className="text-xs text-text-muted mt-1">Add a new member to your workspace.</p>
-                                </div>
-                                <button
-                                    onClick={() => setIsCreateModalOpen(false)}
-                                    className="text-text-muted hover:text-text-primary transition-colors p-1 hover:bg-bg-input rounded-md"
-                                >
-                                    <X size={20} />
-                                </button>
-                            </div>
-
-                            <form onSubmit={handleCreateUser} className="p-6 space-y-5">
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-text-secondary uppercase tracking-wider ml-1">Full Name</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="input w-full"
-                                        placeholder="e.g., Jane Doe"
-                                        value={newName}
-                                        onChange={(e) => setNewName(e.target.value)}
-                                    />
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-text-secondary uppercase tracking-wider ml-1">Email Address</label>
-                                    <input
-                                        type="email"
-                                        required
-                                        className="input w-full"
-                                        placeholder="e.g., jane@example.com"
-                                        value={newUserEmail}
-                                        onChange={(e) => setNewUserEmail(e.target.value)}
-                                    />
-                                </div>
-
-                                <div className="space-y-1.5">
-                                    <label className="text-xs font-bold text-text-secondary uppercase tracking-wider ml-1">Temporary Password</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="input w-full font-mono text-sm bg-bg-input/50"
-                                        placeholder="Secret.123"
-                                        value={newUserPass}
-                                        onChange={(e) => setNewUserPass(e.target.value)}
-                                    />
-                                    <p className="text-[11px] text-text-muted ml-1 flex items-center gap-1">
-                                        <ShieldCheck size={10} /> Must be at least 6 characters.
-                                    </p>
-                                </div>
-
-                                {createError && (
-                                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-medium flex items-center gap-2">
-                                        <Shield size={14} />
-                                        {createError}
-                                    </div>
-                                )}
-
-                                {createSuccess && (
-                                    <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-sm font-medium flex items-center gap-2">
-                                        <ShieldCheck size={14} />
-                                        {createSuccess}
-                                    </div>
-                                )}
-
-                                <div className="flex justify-end gap-3 pt-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsCreateModalOpen(false)}
-                                        className="btn btn-ghost"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={creatingUser}
-                                        className="btn btn-primary min-w-[120px] shadow-lg shadow-accent-primary/20"
-                                    >
-                                        {creatingUser ? <Loader2 className="animate-spin w-4 h-4" /> : 'Create User'}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                )
-            }
+            {/* Create User Modal Removed */}
             {/* AI Context Modal */}
             {
                 isContextModalOpen && selectedUser && (

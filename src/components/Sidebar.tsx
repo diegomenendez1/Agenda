@@ -19,7 +19,8 @@ export function Sidebar() {
     const navItems = [
         { icon: Inbox, label: 'Inbox', path: '/inbox' },
         { icon: CheckSquare, label: 'My Tasks', path: '/tasks' },
-        { icon: Users, label: 'Team', path: '/team' },
+        { icon: Users, label: 'My Team', path: '/my-team' },
+        { icon: Layers, label: 'Team Board', path: '/team' },
         { icon: Calendar, label: 'Calendar', path: '/calendar' },
         { icon: Layers, label: 'Projects', path: '/projects' },
         { icon: TrendingUp, label: 'Analytics', path: '/kpis' },

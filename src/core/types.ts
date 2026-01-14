@@ -12,6 +12,7 @@ export interface UserProfile {
     role: string;
     email: string;
     avatar?: string;
+    reportsTo?: EntityId; // ID of direct manager
     preferences: {
         autoPrioritize: boolean;
         theme: 'light' | 'dark' | 'system';
@@ -23,7 +24,7 @@ export interface UserProfile {
 export interface TeamMember {
     id: EntityId;
     name: string;
-    role: string; // e.g., "Developer", "Designer"
+    role: 'owner' | 'admin' | 'manager' | 'lead' | 'member'; // Enhanced roles
     avatar?: string;
     email: string;
     status?: 'active' | 'pending' | 'suspended';
@@ -34,7 +35,7 @@ export interface TeamMember {
 export interface TeamInvitation {
     id: EntityId;
     email: string;
-    role: string;
+    role: 'owner' | 'admin' | 'manager' | 'lead' | 'member';
     invitedBy: EntityId; // User ID of the inviter
     invitedByName?: string;
     teamId: EntityId;

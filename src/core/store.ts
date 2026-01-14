@@ -241,7 +241,8 @@ export const useStore = create<Store>((set, get) => ({
                 name: t.full_name,
                 email: t.email,
                 role: t.role,
-                avatar: t.avatar_url
+                avatar: t.avatar_url,
+                reportsTo: t.reports_to
             };
         });
 
@@ -316,7 +317,8 @@ export const useStore = create<Store>((set, get) => ({
                                 name: p.full_name,
                                 email: p.email,
                                 role: p.role,
-                                avatar: p.avatar_url
+                                avatar: p.avatar_url,
+                                reportsTo: p.reports_to
                             }
                         }
                     }));
