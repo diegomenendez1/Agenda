@@ -6,7 +6,7 @@ import clsx from 'clsx';
 import { format } from 'date-fns';
 
 export function MyTeamView() {
-    const { user, tasks, activeInvitations, team, revokeInvitation } = useStore();
+    const { user, tasks, activeInvitations, team, revokeInvitation, resendInvitation } = useStore();
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'members' | 'invitations'>('members');
 
@@ -61,7 +61,7 @@ export function MyTeamView() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold font-display text-text-primary">My Team</h1>
-                    <p className="text-text-muted">Manage your direct reports and team composition</p>
+                    <p className="text-text-muted">The central hub for team composition, invitations, and performance.</p>
                 </div>
                 <button
                     onClick={() => setIsInviteModalOpen(true)}
@@ -225,12 +225,20 @@ export function MyTeamView() {
 
                                     <div className="flex items-center gap-2">
                                         {invite.status === 'pending' && (
-                                            <button
-                                                onClick={() => handleRevoke(invite.id)}
-                                                className="px-3 py-1.5 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                                            >
-                                                Revoke
-                                            </button>
+                                            <>
+                                                <button
+                                                    onClick={() => resendInvitation(invite.id)}
+                                                    className="px-3 py-1.5 text-sm text-accent-primary hover:bg-accent-primary/10 rounded-lg transition-colors"
+                                                >
+                                                    Resend
+                                                </button>
+                                                <button
+                                                    onClick={() => handleRevoke(invite.id)}
+                                                    className="px-3 py-1.5 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                >
+                                                    Revoke
+                                                </button>
+                                            </>
                                         )}
                                         <div className={clsx(
                                             "px-3 py-1 text-xs rounded-full font-medium border",

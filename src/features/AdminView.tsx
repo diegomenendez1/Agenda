@@ -7,7 +7,7 @@ import clsx from 'clsx';
 import { format } from 'date-fns';
 
 export function AdminView() {
-    const { user } = useStore();
+    const { user, fetchAIContext, updateAIContext } = useStore();
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -86,39 +86,8 @@ export function AdminView() {
         }
     };
 
-    const handleInviteToTeam = async (targetId: string, targetName: string) => {
-        // This function was originally for "existing users".
-        // Now we also want to support email invites.
-        // For this specific button (on existing user row), existing RPC is fine, 
-        // but let's also update the store's "activeInvitations" for visibility if we can map it.
-        // Or, simpler: just use the new store action for *new* invites.
-
-        // For now, let's keep the RPC but maybe show a toast.
-        if (!confirm(`Invite ${targetName} to join your team?`)) return;
-
-        try {
-            const { error } = await supabase.rpc('invite_user_to_team', {
-                target_user_id: targetId
-            });
-
-            if (error) throw error;
-
-            // Allow tracking this as an "invite" in our new system too?
-            // Since we don't have the email easily here without looking it up, let's skip adding to 'activeInvitations' manually 
-            // unless we refactor 'users' list to include email. (It does).
-            // But 'activeInvitations' is mostly for *pending* emails not yet in the system or pending *team* logic.
-            // Let's assume this RPC handles the backend state.
-
-            alert(`Invitation sent to ${targetName}`);
-        } catch (err: any) {
-            console.error(err);
-            alert('Failed to invite: ' + err.message);
-        }
-    };
-
-    // NEW: Handle email invite from a new modal or input?
-    // Let's add an "Invite by Email" button to the top toolbar.
-
+    // Las invitaciones se gestionan ahora centralizadamente en MyTeamView.tsx
+    // Se mantiene fetchUsers para la gestión global de perfiles.
     const fetchUsers = async () => {
         setLoading(true);
         const { data } = await supabase.from('profiles').select('*');
@@ -135,34 +104,30 @@ export function AdminView() {
         setUpdating(null);
     };
 
-    const handleOpenContextModal = (u: any) => {
+    const handleOpenContextModal = async (u: any) => {
         setSelectedUser(u);
-        setContextValue(u.preferences?.aiContext || '');
+        setContextValue(''); // Clear while loading
         setIsContextModalOpen(true);
+        setSavingContext(true); // Reusing as loading state
+        try {
+            const context = await fetchAIContext(u.id);
+            setContextValue(context);
+        } catch (err) {
+            console.error("Failed to fetch context", err);
+        } finally {
+            setSavingContext(false);
+        }
     };
 
     const handleSaveContext = async () => {
         if (!selectedUser) return;
         setSavingContext(true);
         try {
-            const updatedPreferences = {
-                ...(selectedUser.preferences || {}),
-                aiContext: contextValue
-            };
-
-            const { error } = await supabase
-                .from('profiles')
-                .update({ preferences: updatedPreferences })
-                .eq('id', selectedUser.id);
-
-            if (error) throw error;
-
-            // Optimistic update
-            setUsers(users.map(u => u.id === selectedUser.id ? { ...u, preferences: updatedPreferences } : u));
+            await updateAIContext(selectedUser.id, contextValue);
             setIsContextModalOpen(false);
         } catch (err: any) {
             console.error(err);
-            alert('Failed to save context: ' + err.message);
+            // Error toast handled by store
         } finally {
             setSavingContext(false);
         }
@@ -219,10 +184,10 @@ export function AdminView() {
                         <div className="w-10 h-10 rounded-xl bg-accent-primary/10 flex items-center justify-center shadow-inner">
                             <Crown className="w-6 h-6 text-accent-primary" />
                         </div>
-                        Admin Console
+                        Workspace Admin
                     </h1>
                     <p className="text-text-muted text-lg font-light ml-1">
-                        Manage workspace members, roles, and security settings.
+                        Manage global organization roles, security, and AI master settings.
                     </p>
                 </div>
             </header>
@@ -333,14 +298,6 @@ export function AdminView() {
                                                     <Bot className="w-4 h-4" />
                                                 </button>
                                                 <button
-                                                    className="p-2 text-text-muted hover:text-blue-500 hover:bg-blue-500/10 rounded-lg transition-all"
-                                                    title="Invite to Team"
-                                                    disabled={u.id === user?.id}
-                                                    onClick={() => handleInviteToTeam(u.id, u.full_name)}
-                                                >
-                                                    <Users className="w-4 h-4" />
-                                                </button>
-                                                <button
                                                     className="p-2 text-text-muted hover:text-amber-500 hover:bg-amber-500/10 rounded-lg transition-all"
                                                     title="Security Settings"
                                                     onClick={() => handleOpenSecurityModal(u)}
@@ -365,52 +322,7 @@ export function AdminView() {
                 </div>
             </div>
 
-            {/* Pending Invitations Section */}
-            <div className="glass-panel rounded-2xl overflow-hidden flex-1 flex flex-col border border-border-subtle shadow-xl shadow-accent-primary/5 mt-8">
-                <div className="p-5 border-b border-border-subtle bg-bg-card/50">
-                    <h3 className="text-lg font-display font-bold text-text-primary flex items-center gap-2">
-                        <Mail className="w-5 h-5 text-accent-primary" />
-                        Pending Invitations
-                    </h3>
-                </div>
-                <div className="flex-1 overflow-auto custom-scrollbar bg-bg-card p-0">
-                    {useStore().activeInvitations.length === 0 ? (
-                        <div className="p-8 text-center text-text-muted text-sm">No pending invitations.</div>
-                    ) : (
-                        <table className="w-full text-left border-collapse">
-                            <thead className="bg-bg-input/50 text-xs font-bold text-text-muted uppercase tracking-wider">
-                                <tr>
-                                    <th className="p-4 pl-6">Email</th>
-                                    <th className="p-4">Role</th>
-                                    <th className="p-4">Invited By</th>
-                                    <th className="p-4">Sent</th>
-                                    <th className="p-4 text-right pr-6">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border-subtle">
-                                {useStore().activeInvitations.map(invite => (
-                                    <tr key={invite.id} className="hover:bg-accent-primary/5 transition-colors">
-                                        <td className="p-4 pl-6 font-medium text-text-primary">{invite.email}</td>
-                                        <td className="p-4 text-xs font-bold uppercase tracking-wider">{invite.role}</td>
-                                        <td className="p-4 text-sm text-text-secondary">{invite.invitedByName || 'System'}</td>
-                                        <td className="p-4 text-text-muted text-xs font-mono">
-                                            {format(new Date(invite.createdAt), 'MMM d, HH:mm')}
-                                        </td>
-                                        <td className="p-4 text-right pr-6">
-                                            <button
-                                                onClick={() => useStore().revokeInvitation(invite.id)}
-                                                className="text-red-500 hover:bg-red-500/10 p-2 rounded-lg transition-colors text-xs font-bold"
-                                            >
-                                                Revoke
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-                </div>
-            </div>
+            {/* Se ha eliminado la sección de invitaciones pendientes, ahora disponible en My Team */}
 
             {/* Create User Modal Removed */}
             {/* AI Context Modal */}
@@ -444,10 +356,11 @@ export function AdminView() {
                                         Custom AI Prompt / Context
                                     </label>
                                     <textarea
-                                        className="input w-full min-h-[150px] resize-y text-sm leading-relaxed"
-                                        placeholder="Enter specific instructions for the AI when processing tasks for this user..."
+                                        className="input w-full min-h-[150px] resize-y text-sm leading-relaxed disabled:opacity-50 disabled:cursor-wait"
+                                        placeholder={savingContext ? "Loading context..." : "Enter specific instructions for the AI..."}
                                         value={contextValue}
                                         onChange={(e) => setContextValue(e.target.value)}
+                                        disabled={savingContext}
                                     />
                                     <p className="text-xs text-text-muted ml-1">
                                         This context is invisible to the user but determines how their tasks are processed.

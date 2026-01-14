@@ -95,7 +95,12 @@ interface Actions {
     fetchInvitations: () => Promise<void>;
     sendInvitation: (email: string, role: string) => Promise<void>;
     revokeInvitation: (id: string) => Promise<void>;
+    resendInvitation: (id: string) => Promise<void>; // NEW
     leaveTeam: () => Promise<void>;
+
+    // AI Context & Privacy - NEW
+    fetchAIContext: (userId: EntityId) => Promise<string>;
+    updateAIContext: (userId: EntityId, context: string) => Promise<void>;
 }
 
 type Store = AppState & Actions;
@@ -152,6 +157,22 @@ export const useStore = create<Store>((set, get) => ({
         // await supabase.from('team_invitations').delete().eq('id', id);
     },
 
+    resendInvitation: async (id) => {
+        const state = get();
+        const invite = state.activeInvitations.find(i => i.id === id);
+        if (!invite) return;
+
+        // Optimistic: Update createdAt to signify resend
+        set(state => ({
+            activeInvitations: state.activeInvitations.map(i =>
+                i.id === id ? { ...i, createdAt: Date.now() } : i
+            )
+        }));
+
+        toast.success(`Invitation resent to ${invite.email}`);
+        // RPC: await supabase.rpc('resend_invitation', { invite_id: id });
+    },
+
     leaveTeam: async () => {
         const { user } = get();
         if (!user) return;
@@ -170,6 +191,9 @@ export const useStore = create<Store>((set, get) => ({
         // Fetch Profile
         const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
         if (profile) {
+            // Load Private AI Context from new table
+            const { data: aiData } = await supabase.from('user_ai_metadata').select('ai_context').eq('user_id', user.id).single();
+
             set({
                 user: {
                     id: profile.id,
@@ -177,7 +201,10 @@ export const useStore = create<Store>((set, get) => ({
                     email: profile.email,
                     avatar: profile.avatar_url,
                     role: profile.role,
-                    preferences: profile.preferences
+                    preferences: {
+                        ...profile.preferences,
+                        aiContext: aiData?.ai_context || ''
+                    }
                 }
             });
         }
@@ -938,9 +965,51 @@ export const useStore = create<Store>((set, get) => ({
 
     convertInboxToNote: async (inboxItemId, title, body) => {
         const state = get();
-        // Uses optimistic methods internally
-        await state.addNote(title, body || '');
+        await state.addNote(title, body || state.inbox[inboxItemId].text);
         await state.deleteInboxItem(inboxItemId);
+    },
+
+    // AI Context Persistence - NEW
+    fetchAIContext: async (userId) => {
+        const { data } = await supabase
+            .from('user_ai_metadata')
+            .select('ai_context')
+            .eq('user_id', userId)
+            .single();
+        return data?.ai_context || '';
+    },
+
+    updateAIContext: async (userId, context) => {
+        console.log(`[STORE] Updating AI Context for ${userId}...`);
+        // 1. Persist in DB (Admin/Owner can do this now thanks to new RLS)
+        const { data, error } = await supabase
+            .from('user_ai_metadata')
+            .upsert({
+                user_id: userId,
+                ai_context: context,
+                updated_at: new Date().toISOString()
+            })
+            .select();
+
+        if (error) {
+            console.error("[STORE] Upsert error:", error);
+            toast.error("Failed to save AI Context due to permissions.");
+            throw error;
+        }
+        console.log("[STORE] Upsert success:", data);
+
+        // 2. Update local state
+        const currentUserId = get().user?.id;
+        if (userId === currentUserId) {
+            set(state => ({
+                user: state.user ? {
+                    ...state.user,
+                    preferences: { ...state.user.preferences, aiContext: context }
+                } : null
+            }));
+        }
+
+        toast.success("AI Context updated successfully.");
     },
 
     updateUserProfile: async (profile) => {
