@@ -11,10 +11,22 @@ interface WorkloadChartProps {
 export function WorkloadChart({ tasks, team, className }: WorkloadChartProps) {
     const data = useMemo(() => {
         const memberStats = Object.values(team).map(member => {
-            const memberTasks = tasks.filter(t =>
-                t.status !== 'done' && // Only count active load
-                (t.assigneeIds?.includes(member.id) || t.ownerId === member.id)
-            );
+            const memberTasks = tasks.filter(t => {
+                if (t.status === 'done') return false;
+                
+                // QA-03 FIX: Normalizar carga.
+                // Una tarea solo cuenta para quien debe ejecutarla.
+                // Prioridad: 
+                // 1. Si hay asignados, cuenta SOLO para los asignados.
+                // 2. Si no hay asignados, cuenta para el owner.
+                const hasAssignees = t.assigneeIds && t.assigneeIds.length > 0;
+                
+                if (hasAssignees) {
+                    return t.assigneeIds.includes(member.id);
+                }
+                
+                return t.ownerId === member.id;
+            });
 
             const count = memberTasks.length;
             const highPri = memberTasks.filter(t => t.priority === 'high' || t.priority === 'critical').length;

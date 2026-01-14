@@ -242,8 +242,19 @@ export const useStore = create<Store>((set, get) => ({
                 email: t.email,
                 role: t.role,
                 avatar: t.avatar_url,
-                reportsTo: t.reports_to
+                reportsTo: t.reports_to // CRITICAL: This field drives the hierarchy UI
             };
+        });
+
+        // Hierarchy Post-Processing: Link Managers directly for easier UI consumption
+        // (Optional: You could add a 'directReports' array to each user object here if useful for UI)
+        Object.values(team).forEach((member: any) => {
+            if (member.reportsTo && team[member.reportsTo]) {
+                if (!team[member.reportsTo].directReports) {
+                    team[member.reportsTo].directReports = [];
+                }
+                team[member.reportsTo].directReports.push(member.id);
+            }
         });
 
         const notifications: Record<string, any> = {};
@@ -352,20 +363,26 @@ export const useStore = create<Store>((set, get) => ({
             })
             .subscribe();
 
-        // Presence Logic
+        // Presence Logic with Throttle (QA-Scalability)
         const presenceChannel = supabase.channel('online-users');
+        let throttleTimer: any = null;
 
         const updatePresence = () => {
-            const newState = presenceChannel.presenceState();
-            const uniqueOnlineUsers = [
-                ...new Set(
-                    Object.values(newState)
-                        .flat()
-                        .map((p: any) => p.user_id)
-                        .filter(Boolean)
-                )
-            ];
-            set({ onlineUsers: uniqueOnlineUsers });
+            if (throttleTimer) return;
+
+            throttleTimer = setTimeout(() => {
+                const newState = presenceChannel.presenceState();
+                const uniqueOnlineUsers = [
+                    ...new Set(
+                        Object.values(newState)
+                            .flat()
+                            .map((p: any) => p.user_id)
+                            .filter(Boolean)
+                    )
+                ];
+                set({ onlineUsers: uniqueOnlineUsers });
+                throttleTimer = null;
+            }, 2000); // Update at most every 2 seconds
         };
 
         presenceChannel

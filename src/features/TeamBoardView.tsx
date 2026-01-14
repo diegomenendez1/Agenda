@@ -21,58 +21,52 @@ export function TeamBoardView() {
     }, []);
 
     // Strict Filtering for "Selective Visibility"
-    // The Team Board is NOT a public board. It only shows tasks that:
-    // 1. Are marked as 'team' visibility
-    // 2. HAVE assignees (shared with someone)
-    // 3. The current user is involved in (either as the owner who shared it, or as an assignee)
     const taskList = useMemo(() => {
         return Object.values(tasks).filter(t => {
-            // 1. Core Definition: What is a "Team Task"?
+            // 1. Core Definition
             const isShared = t.visibility === 'team' || (t.assigneeIds && t.assigneeIds.length > 0);
 
-            // STRICT PRIVACY
-            if (t.visibility === 'private' && t.ownerId !== user?.id) return false;
-
-            if (!isShared) return false;
-
-            // 2. Role-Based Access Control
-            if (user?.role === 'owner' || user?.role === 'admin') return true;
-
-            // 3. Hierarchy Check (Audit Recommendation)
-            // - Managers see their own tasks + tasks of people who report to them.
-            // - Members see their own tasks + tasks of their manager + tasks of peers (same manager).
-            // - Everyone sees tasks they are assigned to.
-
+            // 0. ABSOLUTE ACCESS: Owner or Assignee or Admin
             const isOwner = t.ownerId === user?.id;
             const isAssigned = t.assigneeIds?.includes(user?.id || '');
 
-            // Fast track
+            if (user?.role === 'owner' || user?.role === 'admin') return true;
             if (isOwner || isAssigned) return true;
 
-            // Resolve Team Relationships
-            const taskOwner = team[t.ownerId];
-            if (!taskOwner) return false; // Can't verify hierarchy if profile missing
-
-            // If I am a Manager...
-            if (user?.role === 'manager') {
-                // I see tasks owned by my reports
-                const isMyReport = taskOwner.reportsTo === user.id;
-                return isMyReport;
+            // 2. Ghost Visibility (Manager seeing Private work as "Busy")
+            if (t.visibility === 'private') {
+                // If I am the manager of the owner, I see a "Ghost" entry
+                const owner = team[t.ownerId];
+                if (owner && owner.reportsTo === user?.id) {
+                    return true; // Handled in render/Kanban as masked task
+                }
+                return false;
             }
 
-            // If I am a Member...
-            // I see tasks from my Manager
-            const isMyManager = user.reportsTo === t.ownerId;
-            if (isMyManager) return true;
+            if (!isShared) return false;
 
-            // I see tasks from Peers (same reportsTo) - excluding orphans (null reportsTo) unless in same null group? 
-            // Better to be strict: Only if reportsTo is set and matches.
-            const isPeer = user.reportsTo && taskOwner.reportsTo === user.reportsTo;
-            if (isPeer) return true;
+            // 3. Hierarchy Check
+            const taskOwner = team[t.ownerId];
+            if (!taskOwner) return isShared;
+
+            // Recurse hierarchy via directReports pre-processing in store?
+            // Actually, we already have the recursive SQL, but for frontend
+            // immediate feedback we check if they are in my direct reports tree.
+            const isMyDirectReport = taskOwner.reportsTo === user?.id;
+
+            if (isMyDirectReport) return true;
+
+            if (isShared) return true;
 
             return false;
         });
     }, [tasks, team, user, selectedMemberId, selectedProjectIds]);
+
+    // NEW: Computed "My Direct Reports" for the Quick Filter UI
+    const myDirectReports = useMemo(() => {
+        if (!user) return [];
+        return Object.values(team).filter(m => m.reportsTo === user.id);
+    }, [team, user]);
 
     return (
         <div className="flex flex-col h-full bg-bg-app overflow-hidden p-6 md:p-8">
@@ -131,6 +125,17 @@ export function TeamBoardView() {
                             })}
                         </div>
                     </div>
+
+                    {/* HIERARCHY FILTER SHORTCUT */}
+                    {myDirectReports.length > 0 && (
+                        <>
+                            <div className="h-6 w-px bg-border-subtle" />
+                            <div className="text-[10px] font-bold text-accent-primary uppercase tracking-wider px-2 whitespace-nowrap hidden lg:block">
+                                Mi Equipo ({myDirectReports.length})
+                            </div>
+                        </>
+                    )}
+
                     <div className="h-6 w-px bg-border-subtle" />
                     <ProjectFilter
                         projects={Object.values(projects)}
@@ -167,9 +172,7 @@ export function TeamBoardView() {
                     <h3 className="text-sm font-bold text-text-muted uppercase tracking-wider mb-4">Team Workload Distribution</h3>
                     <WorkloadChart tasks={taskList} team={team} />
                 </div>
-            )
-            }
-
+            )}
 
             <div className="flex-1 overflow-hidden -mx-2 px-2 pb-2">
                 <KanbanBoard tasks={taskList} />
@@ -242,6 +245,6 @@ export function TeamBoardView() {
                     </div>
                 </div>
             )}
-        </div >
+        </div>
     );
 }

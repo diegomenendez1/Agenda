@@ -149,36 +149,54 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                     key={task.id}
                                     draggable={task.status !== 'backlog'}
                                     onDragStart={(e) => task.status !== 'backlog' && handleDragStart(e, task.id)}
-                                    onClick={() => setEditingTask(task)}
                                     className={clsx(
-                                        "glass-panel p-4 rounded-xl cursor-grab active:cursor-grabbing hover:-translate-y-1 transition-all duration-200",
+                                        "glass-panel p-4 rounded-xl transition-all duration-200",
                                         "shadow-sm hover:shadow-lg hover:shadow-accent-primary/5 active:scale-[0.98]",
                                         "border border-border-subtle hover:border-accent-primary/30 group relative bg-bg-card",
                                         getPriorityBorder(task.priority),
                                         task.status === 'done' && "opacity-60 grayscale-[0.5]",
-                                        task.status === 'backlog' && "cursor-default"
+                                        task.status === 'backlog' && "cursor-default",
+                                        // Is it a Ghost Task? (Private + I'm not owner/assignee)
+                                        task.visibility === 'private' && task.ownerId !== user?.id && !task.assigneeIds?.includes(user?.id || '') && "opacity-40 grayscale pointer-events-none select-none"
                                     )}
                                 >
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div className="flex flex-col gap-1 pr-6 w-full">
-                                            {task.projectId && projects[task.projectId] && (
-                                                <div className="flex items-center gap-1.5">
-                                                    <div className="w-1.5 h-1.5 rounded-full shadow-sm" style={{ backgroundColor: projects[task.projectId].color }} />
-                                                    <span className="text-[10px] text-text-muted font-medium uppercase tracking-wide truncate max-w-[120px]">
-                                                        {projects[task.projectId].name}
-                                                    </span>
+                                    {(() => {
+                                        const isGhost = task.visibility === 'private' && task.ownerId !== user?.id && !task.assigneeIds?.includes(user?.id || '');
+                                        const displayTitle = isGhost ? "Actividad Privada (Confidencial)" : task.title;
+
+                                        return (
+                                            <>
+                                                <div className="flex justify-between items-start mb-3">
+                                                    <div className="flex flex-col gap-1 pr-6 w-full">
+                                                        {task.projectId && projects[task.projectId] && !isGhost && (
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div className="w-1.5 h-1.5 rounded-full shadow-sm" style={{ backgroundColor: projects[task.projectId].color }} />
+                                                                <span className="text-[10px] text-text-muted font-medium uppercase tracking-wide truncate max-w-[120px]">
+                                                                    {projects[task.projectId].name}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                        +                                                       {isGhost && (
+                                                            +                                                           <div className="flex items-center gap-1 text-[9px] text-text-muted font-bold uppercase tracking-tighter mb-1">
+                                                                +                                                               <Lock size={10} /> Ghost Task (Busy)
+                                                                +                                                           </div>
+                                                            +                                                       )}
+                                                        <span className={clsx(
+                                                            "text-[14px] font-medium leading-snug",
+                                                            isGhost ? "text-text-muted italic blur-[2px]" : "text-text-primary line-clamp-3"
+                                                        )}>
+                                                            {displayTitle}
+                                                        </span>
+                                                    </div>
+                                                    {task.ownerId === user?.id && !isGhost && (
+                                                        <button className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-text-primary p-1 -mt-1 -mr-1 transition-opacity">
+                                                            <MoreHorizontal size={16} />
+                                                        </button>
+                                                    )}
                                                 </div>
-                                            )}
-                                            <span className="text-[14px] font-medium text-text-primary line-clamp-3 leading-snug">
-                                                {task.title}
-                                            </span>
-                                        </div>
-                                        {task.ownerId === user?.id && (
-                                            <button className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-text-primary p-1 -mt-1 -mr-1 transition-opacity">
-                                                <MoreHorizontal size={16} />
-                                            </button>
-                                        )}
-                                    </div>
+                                            </>
+                                        );
+                                    })()}
 
                                     {/* Action for Backlog Items */}
                                     {task.status === 'backlog' && (
