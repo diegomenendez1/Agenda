@@ -3,7 +3,7 @@ import { useStore } from '../core/store';
 import {
     X, Shield, Mail, Calendar, CheckCircle, Clock,
     BarChart2, Zap, AlertTriangle, Trash2, Save,
-    User, ChevronRight, Briefcase, Lock
+    User, Users, ChevronRight, Briefcase, Lock
 } from 'lucide-react';
 import clsx from 'clsx';
 import { format } from 'date-fns';
@@ -286,6 +286,42 @@ export function MemberManagementModal({ isOpen, onClose, memberId }: MemberManag
                                             <option value="admin">Admin</option>
                                             {/* Only Owners can make Owners, usually */}
                                             {user?.role === 'owner' && <option value="owner">Owner</option>}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Manager / Reports To */}
+                            <div className="bg-bg-card rounded-xl border border-border-subtle shadow-sm overflow-hidden">
+                                <div className="p-4 border-b border-border-subtle bg-bg-input/30 flex justify-between items-center">
+                                    <h3 className="font-bold text-text-primary flex items-center gap-2">
+                                        <Users size={16} className="text-blue-500" /> Reporting Line
+                                    </h3>
+                                </div>
+                                <div className="p-6">
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div>
+                                            <p className="text-sm font-medium text-text-primary">Direct Manager</p>
+                                            <p className="text-xs text-text-muted mt-1">Select who this member reports to directly.</p>
+                                        </div>
+                                        <select
+                                            value={member.reportsTo || ''}
+                                            onChange={(e) => {
+                                                const val = e.target.value === '' ? null : e.target.value;
+                                                useStore.getState().updateTeamMember(member.id, { reportsTo: val });
+                                                toast.success('Reporting line updated');
+                                            }}
+                                            disabled={!canManage || isSaving}
+                                            className="input w-48 text-sm py-1.5"
+                                        >
+                                            <option value="">-- No Manager --</option>
+                                            {Object.values(team || {})
+                                                .filter(m => m.id !== member.id) // Cannot report to self
+                                                .map(m => (
+                                                    <option key={m.id} value={m.id}>
+                                                        {m.name}
+                                                    </option>
+                                                ))}
                                         </select>
                                     </div>
                                 </div>

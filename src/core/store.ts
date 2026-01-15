@@ -104,7 +104,7 @@ interface Actions {
     updateAIContext: (userId: EntityId, context: string) => Promise<void>;
 
     // Member Management - NEW
-    updateMemberRole: (memberId: string, role: string) => Promise<void>;
+    updateTeamMember: (memberId: string, updates: { role?: string; reportsTo?: string | null }) => Promise<void>;
     removeTeamMember: (memberId: string) => Promise<void>;
     validateInvitation: (token: string) => Promise<any>;
     acceptInvitation: (token: string, userId: string) => Promise<void>;
@@ -242,21 +242,36 @@ export const useStore = create<Store>((set, get) => ({
         // await supabase.rpc('leave_team', { user_id: user.id });
     },
 
-    updateMemberRole: async (memberId, role) => {
+    updateTeamMember: async (memberId, updates) => {
         // Optimistic update
-        set(state => ({
-            team: {
-                ...state.team,
-                [memberId]: { ...state.team[memberId], role }
-            }
-        }));
+        set(state => {
+            const currentMember = state.team[memberId];
+            if (!currentMember) return state;
 
-        const { error } = await supabase.from('profiles').update({ role }).eq('id', memberId);
+            return {
+                team: {
+                    ...state.team,
+                    [memberId]: {
+                        ...currentMember,
+                        ...updates
+                    }
+                }
+            };
+        });
+
+        const dbUpdates: any = {};
+        if (updates.role !== undefined) dbUpdates.role = updates.role;
+        // Handle explicit null for removing manager
+        if (updates.reportsTo !== undefined) dbUpdates.reports_to = updates.reportsTo;
+
+        const { error } = await supabase.from('profiles').update(dbUpdates).eq('id', memberId);
         if (error) {
-            console.error("Failed to update role:", error);
-            // Revert would go here
+            console.error("Failed to update team member:", error);
             throw error;
         }
+
+        // Refresh to ensure consistency
+        await get().initialize();
     },
 
     removeTeamMember: async (memberId) => {
