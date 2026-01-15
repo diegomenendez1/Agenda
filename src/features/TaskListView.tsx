@@ -116,8 +116,7 @@ export function TaskListView() {
 
     return (
         <div className={clsx(
-            "flex flex-col h-full bg-bg-app overflow-hidden px-6 pt-6 pb-2 md:px-8 md:pt-8 md:pb-2 transition-all duration-300",
-            viewMode === 'list' && "max-w-5xl mx-auto w-full"
+            "flex flex-col h-full bg-bg-app overflow-hidden px-6 pt-6 pb-2 md:px-8 md:pt-8 md:pb-2 transition-all duration-300"
         )}>
             {/* Header Section */}
             <header className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-enter relative z-20">
@@ -307,7 +306,7 @@ export function TaskListView() {
                         <KanbanBoard tasks={filteredTasks} />
                     </div>
                 ) : filteredTasks.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-64 text-text-muted border-2 border-dashed border-border-subtle rounded-2xl bg-bg-sidebar/50">
+                    <div className="flex flex-col items-center justify-center h-64 text-text-muted border-2 border-dashed border-border-subtle rounded-2xl bg-bg-sidebar/50 max-w-5xl mx-auto w-full">
                         <div className="w-16 h-16 rounded-full bg-bg-input flex items-center justify-center mb-4">
                             <CheckCircle2 className="w-8 h-8 opacity-20" />
                         </div>
@@ -315,7 +314,7 @@ export function TaskListView() {
                         <p className="text-sm opacity-60 mt-1">Try changing the filter or create a new task.</p>
                     </div>
                 ) : (
-                    <ul className="flex flex-col gap-3 pb-20">
+                    <ul className="flex flex-col gap-3 pb-20 max-w-5xl mx-auto w-full">
                         {filteredTasks.map(task => (
                             <TaskItem key={task.id} task={task} />
                         ))}

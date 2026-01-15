@@ -139,11 +139,11 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                     {/* Drop Zone / List */}
                     {/* Removed bgClass and added border-dashed for "sutiles lineas" effect if empty, or just subtle border container */}
                     <div className={clsx(
-                        "flex-1 rounded-2xl p-2 transition-all min-h-[150px]",
+                        "flex-1 rounded-2xl p-2 transition-all min-h-[150px] overflow-y-auto",
                         "border border-border-subtle/40 bg-bg-app/50", // Very subtle container border instead of full background
                         "group-hover/column:border-border-subtle group-hover/column:bg-bg-input/10"
                     )}>
-                        <div className="flex flex-col gap-3 h-full">
+                        <div className="flex flex-col gap-3">
                             {tasksByStatus[col.id].map(task => (
                                 <div
                                     key={task.id}

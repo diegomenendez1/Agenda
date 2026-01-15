@@ -48,7 +48,7 @@ export default function App() {
 
   useEffect(() => {
     // Theme Switcher Logic
-    const theme = user?.preferences?.theme || 'system';
+    const theme = user?.preferences?.theme || 'light';
     const root = window.document.documentElement;
 
     const applyTheme = (t: string) => {
