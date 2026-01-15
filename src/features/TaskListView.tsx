@@ -286,10 +286,11 @@ export function TaskListView() {
                                                     clearCompletedTasks();
                                                 }
                                             }}
-                                            className="p-1.5 rounded-lg text-text-muted hover:text-red-500 hover:bg-red-50 transition-all flex items-center gap-1"
+                                            className="ml-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 text-red-500 bg-red-50 hover:bg-red-100 hover:text-red-600 border border-red-200"
                                             title="Clear Completed Tasks"
                                         >
-                                            <Trash2 size={18} />
+                                            <Trash2 size={14} />
+                                            <span>Clear</span>
                                         </button>
                                     )}
                                 </div>

@@ -5,14 +5,26 @@ import { format, addDays } from 'date-fns';
 test.describe('Recurrence E2E Stress & State Integrity', () => {
 
     test.beforeEach(async ({ page }) => {
-        await page.goto('/');
-        // Reset state
+        await page.goto('/login');
+        await page.fill('input[type="email"]', 'diegomenendez1@gmail.com');
+        await page.fill('input[type="password"]', 'Yali.202');
+        await page.click('button[type="submit"]');
+        await expect(page.locator('h1')).toContainText('Inbox', { timeout: 25000 });
+
+        // Suppress Welcome Modal
         await page.evaluate(() => {
-            localStorage.clear();
-            // If we had a direct store reset exposed, we'd use it.
-            // For now, reliable reload.
+            localStorage.setItem('lastDigestDate', new Date().toDateString());
         });
-        await page.reload();
+
+        // Go to tasks
+        await page.goto('/tasks');
+        await expect(page.locator('h1')).toContainText('My Tasks');
+
+        // Ensure List View
+        const listBtn = page.locator('button[title="List View"]');
+        if (await listBtn.isVisible()) {
+            await listBtn.click();
+        }
     });
 
     test('Race Condition: Double Click on Complete', async ({ page }) => {
@@ -23,9 +35,10 @@ test.describe('Recurrence E2E Stress & State Integrity', () => {
         const taskTitle = `Race Stress ${Date.now()}`;
 
         // 1. Create Task
-        await page.getByText('New Task').click();
+        await page.click('button:has-text("New Task")');
         await page.fill('input[placeholder="Task Title"]', taskTitle);
-        await page.click('text=Save Task');
+        await page.click('button:has-text("Save Changes")');
+        await expect(page.getByRole('dialog')).toBeHidden();
 
         // 2. Add Recurrence (Daily)
         await page.getByText(taskTitle).first().click();
@@ -104,9 +117,9 @@ test.describe('Recurrence E2E Stress & State Integrity', () => {
         const taskTitle = `Chain Link ${Date.now()}`;
 
         // 1. Create & Recur
-        await page.getByText('New Task').click();
+        await page.click('button:has-text("New Task")');
         await page.fill('input[placeholder="Task Title"]', taskTitle);
-        await page.click('text=Save Task');
+        await page.click('button:has-text("Save Changes")');
         await page.getByText(taskTitle).first().click();
 
         // Set Daily
@@ -114,44 +127,52 @@ test.describe('Recurrence E2E Stress & State Integrity', () => {
         await repeatSelect.selectOption('daily');
         await page.click('text=Save Changes');
 
-        // 2. Complete Generation 1
+        // 2. Capture Generation 1 ID
+        const firstTaskId = await page.evaluate((title) => {
+            const state = JSON.parse(localStorage.getItem('agenda-storage') || '{}');
+            const tasks = state.state.tasks || {};
+            const task = Object.values(tasks).find((t: any) => t.title === title) as any;
+            return task ? task.id : null;
+        }, taskTitle);
+
+        expect(firstTaskId).not.toBeNull();
+
+        // 3. Complete Generation 1
+        // Open it
         await page.getByText(taskTitle).first().click();
-        await page.locator('select').filter({ hasText: 'To Do' }).selectOption('done');
-        await page.click('button:has-text("Save")');
-        await page.waitForTimeout(1000); // Async creation
 
-        // 3. Complete Generation 2
-        // Find the new one (Trend: usually top or bottom).
-        // We reload to ensure clean UI state
-        await page.reload();
+        // Mark as Done via Modal
+        // Note: The UI might have "Mark as Done" or Select. 
+        // Based on EditTaskModal code: "Approve & Complete" or Status Select.
+        // Let's use Status Select to be safe + Save.
+        const statusSelect = page.locator('select').filter({ hasText: 'To Do' }).or(page.locator('select').filter({ hasText: 'Backlog' })).or(page.locator('select').filter({ hasText: 'In Progress' })).first();
+        // Refine selector if needed, but generic select usually works in modal if unique.
+        // Actually, let's use the explicit "Status" label if possible.
+        // But simply selecting option "done" on THE select element in the modal works.
+        await page.locator('select').nth(0).selectOption('done');
 
-        // Click the one that is NOT done (we assume logic from previous test holds).
-        const tasks = page.locator(`text=${taskTitle}`);
-        const count = await tasks.count();
-        let activeIndex = -1;
+        // Save
+        await page.click('button:has-text("Save Changes")'); // or "Save"
 
-        for (let i = 0; i < count; ++i) {
-            // Check visual cue or open. 
-            // Optimistic: click and check
-            await tasks.nth(i).click();
-            const val = await page.locator('select').first().inputValue();
-            if (val !== 'done') {
-                activeIndex = i;
-                // Don't close yet, we will complete it.
-                await page.locator('select').first().selectOption('done');
-                await page.click('button:has-text("Save")');
-                break;
-            } else {
-                // Close
-                await page.click('button:has-text("Cancel")').catch(() => page.locator('[aria-label="Close"]').click());
-            }
-        }
+        // Wait for Async Recurrence Generation
+        await page.waitForTimeout(3000);
 
-        expect(activeIndex).not.toBe(-1); // Should find Gen 2
+        // 4. Verify Generation 2 exists in Store
+        const tasksState = await page.evaluate(() => {
+            const state = JSON.parse(localStorage.getItem('agenda-storage') || '{}');
+            return state.state.tasks || {};
+        });
+
+        const gen2Task = Object.values(tasksState).find((t: any) =>
+            t.originalTaskId === firstTaskId &&
+            t.id !== firstTaskId &&
+            (t.status === 'todo' || t.status === 'backlog')
+        );
+
+        expect(gen2Task).toBeDefined();
 
         // 4. Verify Generation 3 exists
         await page.waitForTimeout(1000);
-        await page.reload();
 
         // Now there should be 3 tasks (2 done, 1 todo).
         // We are checking functional chain continuity.

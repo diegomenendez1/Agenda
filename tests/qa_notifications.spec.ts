@@ -19,6 +19,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 test.describe('QA: Notification System & Realtime', () => {
     let testUserId: string;
+    let testOrgId: string;
 
     test.beforeAll(async () => {
         // Authenticate in Node context to get the User ID for injection
@@ -32,17 +33,25 @@ test.describe('QA: Notification System & Realtime', () => {
             throw new Error('Could not login as tester@test.com to prepare tests. Check credentials.');
         }
         testUserId = data.user.id;
-        console.log(`QA Test: Using User ID ${testUserId}`);
+
+        // Fetch Org ID
+        const { data: profile } = await supabase.from('profiles').select('organization_id').eq('id', testUserId).single();
+        if (profile) {
+            testOrgId = profile.organization_id;
+        }
+
+        console.log(`QA Test: Using User ID ${testUserId}, Org ID: ${testOrgId}`);
     });
 
     test.beforeEach(async ({ page }) => {
         // 1. Go to App
         await page.goto('/');
 
-        // 2. Clear Session to ensure clean login
+        // 2. Clear Session to ensure clean login, but SUPPRESS Welcome Modal
         await page.evaluate(() => {
             localStorage.clear();
             sessionStorage.clear();
+            localStorage.setItem('lastDigestDate', new Date().toDateString());
         });
         await page.reload();
 
@@ -71,9 +80,13 @@ test.describe('QA: Notification System & Realtime', () => {
         // Let's create a UNIQUE notification title
         const uniqueTitle = `Test-Notification-${Date.now()}`;
 
+        // Wait for Realtime to connect (client subscribe is async)
+        await page.waitForTimeout(3000);
+
         // INJECT via Node Client
         const { error } = await supabase.from('notifications').insert({
             user_id: testUserId,
+            organization_id: testOrgId,
             type: 'system',
             title: uniqueTitle,
             message: 'This is a realtime test message injected from QA script.',
@@ -106,6 +119,7 @@ test.describe('QA: Notification System & Realtime', () => {
         // Inject
         await supabase.from('notifications').insert({
             user_id: testUserId,
+            organization_id: testOrgId,
             type: 'assignment',
             title: uniqueTitle,
             message: 'Testing persistence after reload.',
@@ -114,7 +128,8 @@ test.describe('QA: Notification System & Realtime', () => {
 
         // Wait for it to arrive
         const bell = page.locator('button[title="Notifications"]');
-        await expect(bell.locator('span.bg-red-500')).toBeVisible();
+        await expect(bell).toBeVisible();
+        await expect(bell.locator('span.bg-red-500')).toBeVisible({ timeout: 10000 });
 
         // RELOAD
         await page.reload();
@@ -133,6 +148,7 @@ test.describe('QA: Notification System & Realtime', () => {
 
         await supabase.from('notifications').insert({
             user_id: testUserId,
+            organization_id: testOrgId,
             type: 'mention',
             title: uniqueTitle,
             message: 'Click me to go to Projects.',
@@ -161,6 +177,7 @@ test.describe('QA: Notification System & Realtime', () => {
 
         const { error } = await supabase.from('notifications').insert({
             user_id: testUserId,
+            organization_id: testOrgId,
             type: 'rejection',
             title: uniqueTitle,
             message: 'Your task was rejected.',

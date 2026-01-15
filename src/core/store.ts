@@ -497,18 +497,33 @@ export const useStore = create<Store>((set, get) => ({
                     }
                 }
             })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, (payload: any) => {
+            .subscribe((status) => {
+                console.log(`[Realtime] Subscription Status: ${status}`);
+            });
+
+        const channel = supabase.channel('public:notifications')
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'notifications',
+                filter: `user_id=eq.${user.id}`
+            }, (payload: any) => {
+
                 const n = payload.new;
                 const currentUserId = get().user?.id;
 
                 if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
                     // Only process if it's for me
-                    if (n.user_id !== currentUserId) return;
+                    if (n.user_id !== currentUserId) {
 
+                        return;
+                    }
+                    // Filter redundant (already filtered by channel) but safe
                     const notification = {
                         ...n,
                         userId: n.user_id,
-                        createdAt: n.created_at ? fromSeconds(n.created_at) || Date.now() : Date.now()
+                        createdAt: n.created_at ? fromSeconds(n.created_at) || Date.now() : Date.now(),
+                        organizationId: n.organization_id // NEW
                     };
                     set(state => ({ notifications: { ...state.notifications, [n.id]: notification } }));
                 } else if (payload.eventType === 'DELETE') {
@@ -520,6 +535,11 @@ export const useStore = create<Store>((set, get) => ({
             })
             .subscribe();
 
+        set({
+            realtimeCheck: setInterval(() => {
+                // Keep alive logic if needed
+            }, 30000)
+        });
         // Presence Logic with Throttle (QA-Scalability)
         const presenceChannel = supabase.channel('online-users');
         let throttleTimer: any = null;
@@ -684,6 +704,7 @@ export const useStore = create<Store>((set, get) => ({
 
     updateTask: async (id, updates) => {
         const userId = get().user?.id;
+        const oldTask = get().tasks[id]; // Capture OLD state
 
         set(state => {
             const task = state.tasks[id];
@@ -722,9 +743,36 @@ export const useStore = create<Store>((set, get) => ({
 
         await supabase.from('tasks').update(dbUpdates).eq('id', id);
 
-        // Notify new assignees logic could go here similar to addTask
-        // Simplified: The caller of updateTask/assignTask usually handles specific notifications or we can hook it here.
-        // For now, let's keep it simple and let distinct actions handle it or triggers.
+        // RECURRENCE LOGIC (Moved from updateStatus to support EditTaskModal completion)
+        if (oldTask && updates.status === 'done' && oldTask.status !== 'done') {
+            const currentTask = get().tasks[id]; // Get latest state with any merged recurrence config (e.g. if updated concurrently)
+            // Use currentTask.recurrence just in case the modal updated recurrence simultaneously with status
+
+            if (currentTask.recurrence && shouldRecur(currentTask)) {
+
+                const nextDueDate = calculateNextDueDate(currentTask.recurrence, currentTask.dueDate, Date.now());
+
+                try {
+                    await get().addTask({
+                        title: currentTask.title,
+                        description: currentTask.description,
+                        priority: currentTask.priority,
+                        projectId: currentTask.projectId,
+                        tags: currentTask.tags,
+                        assigneeIds: currentTask.assigneeIds,
+                        estimatedMinutes: currentTask.estimatedMinutes,
+                        source: 'system',
+                        visibility: currentTask.visibility,
+                        recurrence: currentTask.recurrence, // Copy recurrence config
+                        originalTaskId: currentTask.originalTaskId || currentTask.id,
+                        dueDate: nextDueDate,
+                        status: 'todo'
+                    });
+                } catch (err) {
+                    console.error("Failed to generate recurring task:", err);
+                }
+            }
+        }
     },
 
     updateStatus: async (id, status) => {
@@ -747,26 +795,7 @@ export const useStore = create<Store>((set, get) => ({
             completedAt: targetStatus === 'done' ? Date.now() : undefined
         };
 
-        // NEW: Recurring Task Logic
-        if (targetStatus === 'done' && task.recurrence && shouldRecur(task)) {
-            const nextDueDate = calculateNextDueDate(task.recurrence, task.dueDate, Date.now());
-
-            await state.addTask({
-                title: task.title,
-                description: task.description,
-                priority: task.priority,
-                projectId: task.projectId,
-                tags: task.tags,
-                assigneeIds: task.assigneeIds,
-                estimatedMinutes: task.estimatedMinutes,
-                source: 'system',
-                visibility: task.visibility,
-                recurrence: task.recurrence,
-                originalTaskId: task.originalTaskId || task.id,
-                dueDate: nextDueDate,
-                status: 'todo'
-            });
-        }
+        // Note: Recurrence logic is now handled inside updateTask
 
         await state.updateTask(id, updates);
 

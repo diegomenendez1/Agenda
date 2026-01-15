@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Folder, Flag, Clock, Trash2, User, Lock, Sparkles, ArrowRight, Layout, AlertTriangle, Search, Loader2, Check, Eye, EyeOff, ListTodo } from 'lucide-react';
 import { useStore } from '../core/store';
-// import { ActivityFeed } from './ActivityFeed'; // Temporarily disabled to rule out circular dep
+import { ActivityFeed } from './ActivityFeed';
 import type { Task, Priority, TaskStatus, RecurrenceConfig } from '../core/types';
 import { fetchWithRetry } from '../core/api';
 import clsx from 'clsx';
@@ -786,9 +786,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                     {/* Right Column: Activity Feed */}
                     {showActivity && (
                         <div className="w-[350px] border-l border-border-subtle bg-bg-app/20 p-4 shrink-0 overflow-hidden">
-                            <div className="w-[350px] border-l border-border-subtle bg-bg-app/20 p-4 shrink-0 overflow-hidden flex items-center justify-center text-text-muted text-sm">
-                                Activity Feed Unavailable
-                            </div>
+                            <ActivityFeed taskId={task.id || ''} />
                         </div>
                     )}
                 </div>
