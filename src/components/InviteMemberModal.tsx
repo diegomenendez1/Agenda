@@ -140,17 +140,31 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
                             <select
                                 value={role}
                                 onChange={(e) => setRole(e.target.value)}
-                                className="input w-full appearance-none bg-bg-input"
+                                disabled={!['admin', 'owner'].includes(user?.role || '')}
+                                className={clsx(
+                                    "input w-full appearance-none",
+                                    !['admin', 'owner'].includes(user?.role || '') && "opacity-50 cursor-not-allowed bg-bg-input/50"
+                                )}
                             >
                                 <option value="member">Member (Standard Access)</option>
                                 <option value="lead">Team Lead (Can Invite)</option>
                                 <option value="manager">Manager (Full Team Access)</option>
                                 <option value="admin">Admin (Global Settings)</option>
                             </select>
-                            <p className="text-[10px] text-text-muted mt-1 px-1">
-                                <strong>Managers</strong> can see all tasks of their direct reports.
-                                <strong>Leads</strong> can manage specific projects.
-                            </p>
+
+                            {['admin', 'owner'].includes(user?.role || '') ? (
+                                <p className="text-[10px] text-text-muted mt-1 px-1">
+                                    <strong>Managers</strong> can see all tasks of their direct reports.
+                                </p>
+                            ) : (
+                                <div className="mt-2 flex items-start gap-2 text-amber-500 bg-amber-500/10 p-2 rounded-lg text-xs">
+                                    <AlertTriangle size={12} className="mt-0.5" />
+                                    <span>
+                                        As a member, you can <strong>request</strong> to invite someone.
+                                        An Admin must approve this request and assign the final role.
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -184,7 +198,9 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
                             ) : (
                                 <>
                                     <Send size={18} />
-                                    <span>Send Invitation</span>
+                                    <span>
+                                        {['admin', 'owner'].includes(user?.role || '') ? 'Send Invitation' : 'Request Access'}
+                                    </span>
                                 </>
                             )}
                         </button>

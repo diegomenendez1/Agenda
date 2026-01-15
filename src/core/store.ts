@@ -38,6 +38,7 @@ const hydrateTask = (t: any): Task => ({
     source: t.source,
     estimatedMinutes: t.estimated_minutes,
     acceptedAt: fromSeconds(t.accepted_at),
+    organizationId: t.organization_id // NEW
 });
 
 interface Actions {
@@ -107,6 +108,9 @@ interface Actions {
     removeTeamMember: (memberId: string) => Promise<void>;
     validateInvitation: (token: string) => Promise<any>;
     acceptInvitation: (token: string, userId: string) => Promise<void>;
+    createOrganization: (name: string) => Promise<void>;
+    approveInvitation: (id: string, role: string) => Promise<void>; // NEW
+    rejectInvitation: (id: string) => Promise<void>; // NEW
 }
 
 type Store = AppState & Actions;
@@ -127,34 +131,81 @@ export const useStore = create<Store>((set, get) => ({
     // --- Actions ---
 
     fetchInvitations: async () => {
-        // Mock implementation for now as we don't have the table yet
-        // In a real scenario: const { data } = await supabase.from('team_invitations').select('*');
-        // if (data) set({ activeInvitations: data });
+        const { data, error } = await supabase
+            .from('team_invitations')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Failed to fetch invitations:', error);
+            return;
+        }
+
+        const invites = data.map((i: any) => ({
+            id: i.id,
+            email: i.email,
+            role: i.role,
+            status: i.status as any,
+            teamId: i.team_id || 'default-team', // Fallback
+            organizationId: i.organization_id,
+            invitedBy: i.invited_by,
+            createdAt: new Date(i.created_at).getTime(),
+            token: i.token // Only admins see this usually, but strictly handled by RLS
+        }));
+
+        set({ activeInvitations: invites });
     },
 
     sendInvitation: async (email, role) => {
         const { user } = get();
-        // Optimistic update
-        const newInvite: any = {
-            id: crypto.randomUUID(),
-            token: crypto.randomUUID(), // Generate secure token
-            email,
-            role,
-            invitedBy: user?.id || 'system',
-            invitedByName: user?.name,
-            teamId: 'default-team',
-            status: 'pending',
-            createdAt: Date.now()
-        };
+        if (!user) return;
+
+        const isAdmin = user.role === 'owner' || user.role === 'admin';
+
+        // Choose RPC based on role
+        if (isAdmin) {
+            const { data, error } = await supabase.rpc('invite_user_direct', {
+                invite_email: email,
+                invite_role: role
+            });
+
+            if (error) throw error;
+        } else {
+            const { data, error } = await supabase.rpc('request_invitation', {
+                invite_email: email
+            });
+
+            if (error) throw error;
+        }
+
+        // Refresh list
+        await get().fetchInvitations();
+
+        toast.success(isAdmin ? 'Invitation sent' : 'Request sent for approval');
+    },
+
+    approveInvitation: async (id, role) => {
+        const { error } = await supabase.rpc('approve_invitation', {
+            invite_id: id,
+            assigned_role: role
+        });
+
+        if (error) throw error;
+        await get().fetchInvitations();
+        toast.success('Invitation approved');
+    },
+
+    rejectInvitation: async (id) => {
+        const { error } = await supabase.rpc('delete_invitation', {
+            target_invite_id: id
+        });
+
+        if (error) throw error;
 
         set(state => ({
-            activeInvitations: [...state.activeInvitations, newInvite]
+            activeInvitations: state.activeInvitations.filter(i => i.id !== id)
         }));
-
-        // Call RPC (simulated)
-        // const { error } = await supabase.rpc('invite_user_to_team', { email });
-        // For existing users, update their profile too?
-        // Implementation detail: for now we just track invites.
+        toast.success('Invitation rejected/deleted');
     },
 
     revokeInvitation: async (id) => {
@@ -253,6 +304,12 @@ export const useStore = create<Store>((set, get) => ({
         await get().initialize(); // Refresh user profile and team
     },
 
+    createOrganization: async (name) => {
+        const { error } = await supabase.rpc('create_new_organization', { org_name: name });
+        if (error) throw error;
+        await get().initialize();
+    },
+
     initialize: async () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
@@ -273,7 +330,8 @@ export const useStore = create<Store>((set, get) => ({
                     preferences: {
                         ...profile.preferences,
                         aiContext: aiData?.ai_context || ''
-                    }
+                    },
+                    organizationId: profile.organization_id // NEW
                 }
             });
         }
@@ -316,7 +374,8 @@ export const useStore = create<Store>((set, get) => ({
             projects[p.id] = {
                 ...p,
                 createdAt: p.created_at ? fromSeconds(p.created_at) || Date.now() : Date.now(),
-                deadline: fromSeconds(p.deadline)
+                deadline: fromSeconds(p.deadline),
+                organizationId: p.organization_id // NEW
             }
         });
 
@@ -326,7 +385,8 @@ export const useStore = create<Store>((set, get) => ({
                 ...n,
                 projectId: n.project_id,
                 createdAt: fromSeconds(n.created_at) || Date.now(),
-                updatedAt: fromSeconds(n.updated_at) || Date.now()
+                updatedAt: fromSeconds(n.updated_at) || Date.now(),
+                organizationId: n.organization_id // NEW
             };
         });
 
@@ -358,7 +418,8 @@ export const useStore = create<Store>((set, get) => ({
             notifications[n.id] = {
                 ...n,
                 userId: n.user_id,
-                createdAt: n.created_at ? fromSeconds(n.created_at) || Date.now() : Date.now()
+                createdAt: n.created_at ? fromSeconds(n.created_at) || Date.now() : Date.now(),
+                organizationId: n.organization_id // NEW
             };
         });
 
@@ -499,14 +560,16 @@ export const useStore = create<Store>((set, get) => ({
     addInboxItem: async (text, source = 'manual') => {
         const id = uuidv4();
         // Optimistic
-        const newItem = { id, text, source, processed: false, createdAt: Date.now() };
-        set(state => ({ inbox: { ...state.inbox, [id]: newItem as any } }));
         const userId = get().user?.id;
+        const orgId = get().user?.organizationId; // NEW
+        const newItem = { id, text, source, processed: false, createdAt: Date.now(), organizationId: orgId };
+        set(state => ({ inbox: { ...state.inbox, [id]: newItem as any } }));
         const { error } = await supabase.from('inbox_items').insert({
             id,
             text,
             source,
             user_id: userId,
+            organization_id: orgId, // NEW
             created_at: newItem.createdAt // BIGINT (Number)
         });
         if (error) {
@@ -565,7 +628,8 @@ export const useStore = create<Store>((set, get) => ({
             visibility: hasOtherAssignees ? 'team' : (taskData.visibility || 'private'),
             smartAnalysis: taskData.smartAnalysis,
             source: taskData.source,
-            estimatedMinutes: taskData.estimatedMinutes
+            estimatedMinutes: taskData.estimatedMinutes,
+            organizationId: get().user?.organizationId // NEW
         };
 
         // ... existing persistence logic ...
@@ -588,7 +652,8 @@ export const useStore = create<Store>((set, get) => ({
             visibility: task.visibility,
             smart_analysis: task.smartAnalysis,
             source: task.source,
-            estimated_minutes: task.estimatedMinutes
+            estimated_minutes: task.estimatedMinutes,
+            organization_id: task.organizationId // NEW
         });
 
         if (error) {
@@ -940,16 +1005,28 @@ export const useStore = create<Store>((set, get) => ({
     addProject: async (name, goal, color = '#6366f1') => {
         const id = uuidv4();
         const now = Date.now();
+        const userId = get().user?.id || 'unknown';
+        const orgId = get().user?.organizationId; // NEW
+
         // Optimistic
-        const newProject = { id, name, goal, color, status: 'active', createdAt: now };
+        const newProject = {
+            id,
+            name,
+            goal,
+            color,
+            status: 'active',
+            createdAt: now,
+            organizationId: orgId // NEW
+        };
         set(state => ({ projects: { ...state.projects, [id]: newProject as any } }));
-        const userId = get().user?.id;
+
         await supabase.from('projects').insert({
             id,
             name,
             goal,
             color,
             user_id: userId,
+            organization_id: orgId, // NEW
             created_at: toSeconds(now)
         });
         return id;
@@ -958,15 +1035,27 @@ export const useStore = create<Store>((set, get) => ({
     addNote: async (title, body) => {
         const id = uuidv4();
         const now = Date.now();
-        // Optimistic
-        const newNote = { id, title, body, createdAt: now, updatedAt: now, tags: [] };
-        set(state => ({ notes: { ...state.notes, [id]: newNote as any } }));
         const userId = get().user?.id;
+        const orgId = get().user?.organizationId; // NEW
+
+        // Optimistic
+        const newNote = {
+            id,
+            title,
+            body,
+            createdAt: now,
+            updatedAt: now,
+            tags: [],
+            organizationId: orgId // NEW
+        };
+        set(state => ({ notes: { ...state.notes, [id]: newNote as any } }));
+
         await supabase.from('notes').insert({
             id,
             title,
             body,
             user_id: userId,
+            organization_id: orgId, // NEW
             created_at: now, // BIGINT (Number)
             updated_at: new Date(now).toISOString() // TIMESTAMPTZ (String)
         });
@@ -1000,12 +1089,13 @@ export const useStore = create<Store>((set, get) => ({
 
     addHabit: async (habitData) => {
         const id = uuidv4();
+        // Optimistic only for now (until backend table is created)
         const newHabit: any = {
             id,
             ...habitData,
-            createdAt: Date.now()
+            createdAt: Date.now(),
+            // organizationId: get().user?.organizationId // Not enabled for habits yet in DB
         };
-        // Optimistic only for now (until backend table is created)
         set(state => ({ habits: { ...state.habits, [id]: newHabit } }));
         return id;
     },
@@ -1216,15 +1306,11 @@ export const useStore = create<Store>((set, get) => ({
 
     sendNotification: async (userId, type, title, message, link) => {
         const id = uuidv4();
-
-
-        // We don't necessarily update local state if it's for someone else
-        // But if it's for me (testing), I might want to?
-        // Actually, realtime subscription will handle the update if it's for me.
-
+        // Database Insert
         await supabase.from('notifications').insert({
             id,
             user_id: userId,
+            organization_id: get().user?.organizationId, // NEW
             type,
             title,
             message,

@@ -13,6 +13,7 @@ export interface UserProfile {
     email: string;
     avatar?: string;
     reportsTo?: EntityId; // ID of direct manager
+    organizationId: EntityId; // NEW: Multi-tenancy support
     preferences: {
         autoPrioritize: boolean;
         theme: 'light' | 'dark' | 'system';
@@ -39,7 +40,8 @@ export interface TeamInvitation {
     invitedBy: EntityId; // User ID of the inviter
     invitedByName?: string;
     teamId: EntityId;
-    status: 'pending' | 'accepted' | 'declined' | 'revoked';
+    organizationId: EntityId; // NEW
+    status: 'pending' | 'accepted' | 'declined' | 'revoked' | 'approval_needed';
     createdAt: number;
     token?: string; // For link-based invites
 }
@@ -58,7 +60,9 @@ export interface InboxItem {
     text: string;
     source: 'manual' | 'email' | 'system' | 'voice' | 'meeting';
     processed: boolean;
+    processed: boolean;
     createdAt: number;
+    organizationId: EntityId;
 }
 
 // Recurring Tasks Support
@@ -89,6 +93,9 @@ export interface Task {
     // New fields
     assigneeIds?: EntityId[];
     ownerId: EntityId; // The creator of the task
+    assigneeIds?: EntityId[];
+    ownerId: EntityId; // The creator of the task
+    organizationId: EntityId; // NEW
     visibility: 'private' | 'team'; // Segmentation logic
     smartAnalysis?: SmartAnalysis;
     source?: 'manual' | 'email' | 'voice' | 'system' | 'meeting';
@@ -108,6 +115,8 @@ export interface Project {
     goal?: string;
     deadline?: number;
     createdAt: number;
+    createdAt: number;
+    organizationId: EntityId;
     teamId?: EntityId; // If it belongs to a team
 }
 
@@ -119,7 +128,9 @@ export interface Note {
     taskId?: EntityId;
     createdAt: number;
     updatedAt: number;
+    updatedAt: number;
     tags: string[];
+    organizationId: EntityId;
 }
 
 export interface Habit {
@@ -146,7 +157,9 @@ export interface Notification {
     link?: string; // /tasks/:id
     read: boolean;
     createdAt: number;
+    createdAt: number;
     metadata?: any;
+    organizationId: EntityId;
 }
 
 export interface AppState {

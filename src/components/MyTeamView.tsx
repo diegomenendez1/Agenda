@@ -10,7 +10,7 @@ export function MyTeamView() {
     const { user, tasks, activeInvitations, team, revokeInvitation, resendInvitation } = useStore();
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'members' | 'invitations'>('members');
+    const [activeTab, setActiveTab] = useState<'members' | 'invitations' | 'approvals'>('members');
     const [searchQuery, setSearchQuery] = useState('');
 
     // Filter members that report to the current user (or all if admin/owner)
@@ -57,6 +57,16 @@ export function MyTeamView() {
         });
         return stats;
     }, [tasks]);
+
+    const { pendingInvites, approvalRequests } = useMemo(() => {
+        return {
+            pendingInvites: activeInvitations.filter(i => i.status === 'pending'),
+            approvalRequests: activeInvitations.filter(i => i.status === 'approval_needed')
+        };
+    }, [activeInvitations]);
+
+    const { approveInvitation, rejectInvitation } = useStore();
+    const isExec = user.role === 'owner' || user.role === 'admin';
 
     const handleRevoke = async (inviteId: string) => {
         if (confirm('Are you sure you want to revoke this invitation?')) {
@@ -119,9 +129,23 @@ export function MyTeamView() {
                         <span className="font-semibold text-text-muted text-sm uppercase tracking-wide">Pending Invites</span>
                     </div>
                     <div className="text-3xl font-bold text-text-primary">
-                        {activeInvitations.filter(i => i.status === 'pending').length}
+                        {pendingInvites.length}
                     </div>
                 </div>
+
+                {isExec && (
+                    <div className="bg-bg-card border border-border-subtle p-5 rounded-xl shadow-sm">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2 bg-purple-500/10 text-purple-500 rounded-lg">
+                                <Shield size={20} />
+                            </div>
+                            <span className="font-semibold text-text-muted text-sm uppercase tracking-wide">Approval Requests</span>
+                        </div>
+                        <div className="text-3xl font-bold text-text-primary">
+                            {approvalRequests.length}
+                        </div>
+                    </div>
+                )}
 
                 <div className="bg-bg-card border border-border-subtle p-5 rounded-xl shadow-sm">
                     <div className="flex items-center gap-3 mb-2">
@@ -157,21 +181,41 @@ export function MyTeamView() {
                         activeTab === 'invitations' ? "text-accent-primary" : "text-text-muted hover:text-text-primary"
                     )}
                 >
-                    Pending Invitations
-                    {activeInvitations.length > 0 && (
+                    Sent Invitations
+                    {pendingInvites.length > 0 && (
                         <span className="ml-2 bg-bg-input text-text-primary text-[10px] px-1.5 py-0.5 rounded-full">
-                            {activeInvitations.length}
+                            {pendingInvites.length}
                         </span>
                     )}
                     {activeTab === 'invitations' && (
                         <div className="absolute bottom-0 left-0 w-full h-0.5 bg-accent-primary rounded-t-full" />
                     )}
                 </button>
+
+                {isExec && (
+                    <button
+                        onClick={() => setActiveTab('approvals')}
+                        className={clsx(
+                            "pb-3 text-sm font-medium transition-colors relative",
+                            activeTab === 'approvals' ? "text-accent-primary" : "text-text-muted hover:text-text-primary"
+                        )}
+                    >
+                        Approvals
+                        {approvalRequests.length > 0 && (
+                            <span className="ml-2 bg-purple-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                                {approvalRequests.length}
+                            </span>
+                        )}
+                        {activeTab === 'approvals' && (
+                            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-accent-primary rounded-t-full" />
+                        )}
+                    </button>
+                )}
             </div>
 
             {/* Content Area */}
             <div className="bg-bg-card border border-border-subtle rounded-xl min-h-[400px]">
-                {activeTab === 'members' ? (
+                {activeTab === 'members' && (
                     <div className="divide-y divide-border-subtle">
                         {filteredMembers.length === 0 ? (
                             <div className="p-12 text-center text-text-muted">
@@ -222,15 +266,17 @@ export function MyTeamView() {
                             })
                         )}
                     </div>
-                ) : (
+                )}
+
+                {activeTab === 'invitations' && (
                     <div className="divide-y divide-border-subtle">
-                        {activeInvitations.length === 0 ? (
+                        {pendingInvites.length === 0 ? (
                             <div className="p-12 text-center text-text-muted">
                                 <Mail size={48} className="mx-auto mb-4 opacity-20" />
-                                <p>No pending invitations.</p>
+                                <p>No active sent invitations.</p>
                             </div>
                         ) : (
-                            activeInvitations.map((invite) => (
+                            pendingInvites.map((invite) => (
                                 <div key={invite.id} className="p-4 flex items-center justify-between hover:bg-bg-input/30 transition-colors">
                                     <div className="flex items-center gap-4">
                                         <div className="p-3 bg-bg-input rounded-lg text-text-muted">
@@ -252,30 +298,71 @@ export function MyTeamView() {
                                     </div>
 
                                     <div className="flex items-center gap-2">
-                                        {invite.status === 'pending' && (
-                                            <>
-                                                <button
-                                                    onClick={() => resendInvitation(invite.id)}
-                                                    className="px-3 py-1.5 text-sm text-accent-primary hover:bg-accent-primary/10 rounded-lg transition-colors"
-                                                >
-                                                    Resend
-                                                </button>
-                                                <button
-                                                    onClick={() => handleRevoke(invite.id)}
-                                                    className="px-3 py-1.5 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                                                >
-                                                    Revoke
-                                                </button>
-                                            </>
-                                        )}
+                                        <button
+                                            onClick={() => resendInvitation(invite.id)}
+                                            className="px-3 py-1.5 text-sm text-accent-primary hover:bg-accent-primary/10 rounded-lg transition-colors"
+                                        >
+                                            Resend
+                                        </button>
+                                        <button
+                                            onClick={() => handleRevoke(invite.id)}
+                                            className="px-3 py-1.5 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                                        >
+                                            Revoke
+                                        </button>
                                         <div className={clsx(
                                             "px-3 py-1 text-xs rounded-full font-medium border",
-                                            invite.status === 'pending' ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
-                                                invite.status === 'accepted' ? "bg-green-500/10 text-green-500 border-green-500/20" :
-                                                    "bg-red-500/10 text-red-500 border-red-500/20"
+                                            "bg-amber-500/10 text-amber-500 border-amber-500/20"
                                         )}>
-                                            {invite.status}
+                                            Pending
                                         </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'approvals' && (
+                    <div className="divide-y divide-border-subtle">
+                        {approvalRequests.length === 0 ? (
+                            <div className="p-12 text-center text-text-muted">
+                                <CheckCircle size={48} className="mx-auto mb-4 opacity-20" />
+                                <p>No pending requests.</p>
+                            </div>
+                        ) : (
+                            approvalRequests.map((req) => (
+                                <div key={req.id} className="p-4 flex items-center justify-between hover:bg-bg-input/30 transition-colors">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-purple-500/10 text-purple-500 rounded-lg">
+                                            <Users size={20} />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-medium text-text-primary">{req.email}</h3>
+                                            <div className="flex items-center gap-2 text-sm text-text-muted">
+                                                <span>Requested by <strong>{req.invitedByName || 'Unknown'}</strong></span>
+                                                <span>•</span>
+                                                <span className="flex items-center gap-1">
+                                                    <Clock size={12} />
+                                                    {format(req.createdAt, 'MMM d, yyyy')}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => rejectInvitation(req.id)}
+                                            className="px-3 py-1.5 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                                        >
+                                            Reject
+                                        </button>
+                                        <button
+                                            onClick={() => approveInvitation(req.id, 'member')} // Default to member, maybe add dropdown later
+                                            className="px-4 py-1.5 text-sm bg-purple-600 text-white hover:bg-purple-700 rounded-lg shadow-sm transition-colors"
+                                        >
+                                            Approve as Member
+                                        </button>
                                     </div>
                                 </div>
                             ))
@@ -294,6 +381,6 @@ export function MyTeamView() {
                 onClose={() => setSelectedMemberId(null)}
                 memberId={selectedMemberId}
             />
-        </div>
+        </div >
     );
 }
