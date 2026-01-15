@@ -96,7 +96,7 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
             {COLUMNS.map(col => (
                 <div
                     key={col.id}
-                    className="flex-shrink-0 w-80 flex flex-col gap-3 group/column"
+                    className="flex-shrink-0 flex-1 min-w-[300px] flex flex-col gap-3 group/column"
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, col.id)}
                 >

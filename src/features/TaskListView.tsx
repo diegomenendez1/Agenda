@@ -116,7 +116,7 @@ export function TaskListView() {
 
     return (
         <div className={clsx(
-            "flex flex-col h-full bg-bg-app overflow-hidden p-6 md:p-8 transition-all duration-300",
+            "flex flex-col h-full bg-bg-app overflow-hidden px-6 pt-6 pb-2 md:px-8 md:pt-8 md:pb-2 transition-all duration-300",
             viewMode === 'list' && "max-w-5xl mx-auto w-full"
         )}>
             {/* Header Section */}
