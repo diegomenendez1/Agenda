@@ -31,6 +31,8 @@ export interface TeamMember {
     status?: 'active' | 'pending' | 'suspended';
     invitedBy?: EntityId;
     invitedAt?: number;
+    joined_at?: number; // Added for UI compatibility
+    reportsTo?: EntityId;
 }
 
 export interface TeamInvitation {
@@ -59,7 +61,6 @@ export interface InboxItem {
     id: EntityId;
     text: string;
     source: 'manual' | 'email' | 'system' | 'voice' | 'meeting';
-    processed: boolean;
     processed: boolean;
     createdAt: number;
     organizationId: EntityId;
@@ -93,8 +94,6 @@ export interface Task {
     // New fields
     assigneeIds?: EntityId[];
     ownerId: EntityId; // The creator of the task
-    assigneeIds?: EntityId[];
-    ownerId: EntityId; // The creator of the task
     organizationId: EntityId; // NEW
     visibility: 'private' | 'team'; // Segmentation logic
     smartAnalysis?: SmartAnalysis;
@@ -115,7 +114,6 @@ export interface Project {
     goal?: string;
     deadline?: number;
     createdAt: number;
-    createdAt: number;
     organizationId: EntityId;
     teamId?: EntityId; // If it belongs to a team
 }
@@ -127,7 +125,6 @@ export interface Note {
     projectId?: EntityId;
     taskId?: EntityId;
     createdAt: number;
-    updatedAt: number;
     updatedAt: number;
     tags: string[];
     organizationId: EntityId;
@@ -157,7 +154,6 @@ export interface Notification {
     link?: string; // /tasks/:id
     read: boolean;
     createdAt: number;
-    createdAt: number;
     metadata?: any;
     organizationId: EntityId;
 }
@@ -175,6 +171,7 @@ export interface AppState {
 
     activeInvitations: TeamInvitation[]; // List of pending invitations
     onlineUsers: EntityId[]; // List of user IDs currently online
+    realtimeCheck?: any;
 }
 
 export type ActivityType =

@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../core/store';
 import {
-    X, Shield, Mail, Calendar, CheckCircle, Clock,
-    BarChart2, Zap, AlertTriangle, Trash2, Save,
-    User, Users, ChevronRight, Briefcase, Lock
+    X, Shield, Mail, CheckCircle, Clock,
+    BarChart2, Zap, AlertTriangle, Save,
+    User, Users, Briefcase, Lock
 } from 'lucide-react';
 import clsx from 'clsx';
 import { format } from 'date-fns';

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Folder, Flag, Clock, Trash2, User, Lock, Sparkles, ArrowRight, Layout, AlertTriangle, Search, Loader2, Check, Eye, EyeOff, ListTodo } from 'lucide-react';
+import { X, Folder, Flag, Clock, Trash2, User, Lock, Sparkles, ArrowRight, Layout, AlertTriangle, Search, Loader2, Check, ListTodo } from 'lucide-react';
 import { useStore } from '../core/store';
 import { ActivityFeed } from './ActivityFeed';
 import type { Task, Priority, TaskStatus, RecurrenceConfig } from '../core/types';
@@ -363,7 +363,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                             </button>
                                             <button
                                                 onClick={() => {
-                                                    unassignTask(task.id, user.id);
+                                                    unassignTask(task.id!, user.id);
                                                     onClose();
                                                 }}
                                                 className="flex-1 px-2 py-1.5 bg-orange-500 text-white rounded-lg text-xs font-bold hover:bg-orange-600 shadow-sm"
@@ -712,7 +712,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                             type="button"
                                             onClick={async () => {
                                                 // REJECTION FLOW
-                                                await updateStatus(task.id, 'in_progress');
+                                                await updateStatus(task.id!, 'in_progress');
                                                 setIsSuccess(true);
                                                 setTimeout(onClose, 800);
                                             }}
@@ -729,7 +729,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                         onClick={async () => {
                                             setStatus('done');
                                             const date = dueDateStr ? new Date(dueDateStr) : null;
-                                            updateTask(task.id, {
+                                            updateTask(task.id!, {
                                                 status: 'done',
                                                 completedAt: Date.now(),
                                                 title,

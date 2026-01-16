@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Inbox, CheckSquare, Calendar, Layers, StickyNote, Users, Sparkles, LogOut, Shield, ChevronRight, TrendingUp } from 'lucide-react';
+import { Inbox, CheckSquare, Calendar, Layers, StickyNote, Users, Sparkles, LogOut, ChevronRight, TrendingUp } from 'lucide-react';
 import { useStore } from '../core/store';
 import { supabase } from '../core/supabase';
 import { NotificationCenter } from './NotificationCenter';

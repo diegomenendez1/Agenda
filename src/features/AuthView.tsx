@@ -125,7 +125,6 @@ export function AuthView() {
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="input pl-11 py-3"
                                 placeholder="name@company.com"
-                                placeholder="name@company.com"
                                 required
                                 disabled={isInviteValid}
                             />

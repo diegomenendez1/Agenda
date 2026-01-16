@@ -66,7 +66,7 @@ export function MyTeamView() {
     }, [activeInvitations]);
 
     const { approveInvitation, rejectInvitation } = useStore();
-    const isExec = user.role === 'owner' || user.role === 'admin';
+    const isExec = user?.role === 'owner' || user?.role === 'admin';
 
     const handleRevoke = async (inviteId: string) => {
         if (confirm('Are you sure you want to revoke this invitation?')) {

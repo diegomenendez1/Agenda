@@ -1,4 +1,4 @@
-import { useState, Component, ErrorInfo, ReactNode, useMemo, lazy, Suspense } from 'react';
+import { useState, Component, type ErrorInfo, type ReactNode, useMemo, lazy, Suspense } from 'react';
 import { startOfWeek, addDays, format, isSameDay, addWeeks, subWeeks, setHours, isValid } from 'date-fns';
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, AlertCircle } from 'lucide-react';
 import clsx from 'clsx';

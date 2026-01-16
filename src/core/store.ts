@@ -46,7 +46,7 @@ interface Actions {
     initialize: () => Promise<void>;
 
     // Inbox
-    addInboxItem: (text: string, source?: 'manual' | 'email' | 'system' | 'voice') => Promise<void>;
+    addInboxItem: (text: string, source?: 'manual' | 'email' | 'system' | 'voice' | 'meeting') => Promise<void>;
     updateInboxItem: (id: EntityId, text: string) => Promise<void>;
     deleteInboxItem: (id: EntityId) => Promise<void>;
     deleteInboxItems: (ids: EntityId[]) => Promise<void>;
@@ -90,7 +90,7 @@ interface Actions {
     markAllNotificationsRead: () => Promise<void>;
     deleteNotification: (id: EntityId) => Promise<void>;
     clearAllNotifications: () => Promise<void>;
-    sendNotification: (userId: EntityId, type: 'mention' | 'assignment' | 'status_change' | 'system', title: string, message: string, link?: string) => Promise<void>;
+    sendNotification: (userId: EntityId, type: 'mention' | 'assignment' | 'status_change' | 'system' | 'rejection', title: string, message: string, link?: string) => Promise<void>;
     claimTask: (taskId: EntityId) => Promise<boolean>;
     unassignTask: (taskId: EntityId, userId: EntityId) => Promise<void>;
 
@@ -106,7 +106,8 @@ interface Actions {
     updateAIContext: (userId: EntityId, context: string) => Promise<void>;
 
     // Member Management - NEW
-    updateTeamMember: (memberId: string, updates: { role?: string; reportsTo?: string | null }) => Promise<void>;
+    updateTeamMember: (memberId: string, updates: { role?: any; reportsTo?: string | null }) => Promise<void>;
+    updateMemberRole: (memberId: string, role: string) => Promise<void>;
     removeTeamMember: (memberId: string) => Promise<void>;
     validateInvitation: (token: string) => Promise<any>;
     acceptInvitation: (token: string, userId: string) => Promise<void>;
@@ -129,6 +130,7 @@ export const useStore = create<Store>((set, get) => ({
     notifications: {}, // Notifications
     onlineUsers: [], // Real-time presence
     activeInvitations: [],
+    realtimeCheck: undefined,
 
     // --- Actions ---
 
@@ -166,14 +168,14 @@ export const useStore = create<Store>((set, get) => ({
 
         // Choose RPC based on role
         if (isAdmin) {
-            const { data, error } = await supabase.rpc('invite_user_direct', {
+            const { error } = await supabase.rpc('invite_user_direct', {
                 invite_email: email,
                 invite_role: role
             });
 
             if (error) throw error;
         } else {
-            const { data, error } = await supabase.rpc('request_invitation', {
+            const { error } = await supabase.rpc('request_invitation', {
                 invite_email: email
             });
 
@@ -233,6 +235,10 @@ export const useStore = create<Store>((set, get) => ({
         // RPC: await supabase.rpc('resend_invitation', { invite_id: id });
     },
 
+    updateMemberRole: async (memberId, role) => {
+        await get().updateTeamMember(memberId, { role });
+    },
+
     leaveTeam: async () => {
         const { user } = get();
         if (!user) return;
@@ -256,7 +262,7 @@ export const useStore = create<Store>((set, get) => ({
                     [memberId]: {
                         ...currentMember,
                         ...updates
-                    }
+                    } as any
                 }
             };
         });
@@ -532,7 +538,7 @@ export const useStore = create<Store>((set, get) => ({
                 console.log(`[Realtime] Subscription Status: ${status}`);
             });
 
-        const channel = supabase.channel('public:notifications')
+        supabase.channel('public:notifications')
             .on('postgres_changes', {
                 event: '*',
                 schema: 'public',

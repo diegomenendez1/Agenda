@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useStore } from '../core/store';
 import type { TaskStatus, Task } from '../core/types';
 import { clsx } from 'clsx';
-import { MoreHorizontal, Calendar, AlertCircle, CheckCircle2, Lock, Flag, Clock, X, Trash2, Eye } from 'lucide-react';
+import { MoreHorizontal, Calendar, CheckCircle2, Lock, Flag, Clock, X, Trash2, Eye } from 'lucide-react';
 import { format } from 'date-fns';
 import { EditTaskModal } from './EditTaskModal';
 

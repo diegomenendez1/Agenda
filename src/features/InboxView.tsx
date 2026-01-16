@@ -15,7 +15,7 @@ export function InboxView() {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isSelectionMode, setIsSelectionMode] = useState(false);
 
-    const handleCapture = (text: string, source: 'manual' | 'email' | 'voice' | 'system') => {
+    const handleCapture = (text: string, source: 'manual' | 'email' | 'voice' | 'system' | 'meeting') => {
         addInboxItem(text, source);
     };
 

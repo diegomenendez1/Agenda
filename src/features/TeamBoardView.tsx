@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import clsx from 'clsx';
-import { PresenceIndicator } from '../components/PresenceIndicator';
+
 import { WorkloadChart } from '../components/WorkloadChart';
 import { useStore } from '../core/store';
-import { Users, Filter, X, BarChart2 } from 'lucide-react';
+import { Users, X, BarChart2 } from 'lucide-react';
 import { KanbanBoard } from '../components/KanbanBoard';
 import { ProjectFilter } from '../components/ProjectFilter';
 import { AvatarMemberFilter } from '../components/AvatarMemberFilter';
