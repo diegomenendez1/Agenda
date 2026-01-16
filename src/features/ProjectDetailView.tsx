@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../core/store';
-import { ArrowLeft, Folder, Plus, LayoutList, Kanban as KanbanIcon, StickyNote, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Folder, Plus, LayoutList, Kanban as KanbanIcon, StickyNote, TrendingUp, Trash2 } from 'lucide-react';
 import { TaskItem } from '../components/TaskItem';
 import { BurndownChart } from '../components/BurndownChart';
 import type { TaskStatus } from '../core/types';
@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 export function ProjectDetailView() {
     const { projectId } = useParams<{ projectId: string }>();
     const navigate = useNavigate();
-    const { projects, tasks, notes, addTask, updateTask } = useStore();
+    const { projects, tasks, notes, addTask, updateTask, deleteProject } = useStore();
 
     const [newTaskTitle, setNewTaskTitle] = useState('');
     const [viewMode, setViewMode] = useState<'list' | 'board' | 'notes' | 'analytics'>('list');
@@ -53,6 +53,14 @@ export function ProjectDetailView() {
             status: 'todo'
         });
         setNewTaskTitle('');
+    };
+
+    const handleDelete = async () => {
+        if (!projectId || !project) return;
+        if (window.confirm(`Are you sure you want to delete "${project.name}"? This will remove the project from your view.`)) {
+            await deleteProject(projectId);
+            navigate('/projects');
+        }
     };
 
     // Kanban DnD Handlers
@@ -161,6 +169,14 @@ export function ProjectDetailView() {
                             <TrendingUp size={20} />
                         </button>
                     </div>
+
+                    <button
+                        onClick={handleDelete}
+                        className="p-2 ml-2 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors border border-transparent hover:border-red-500/20"
+                        title="Delete Project"
+                    >
+                        <Trash2 size={20} />
+                    </button>
                 </div>
 
                 {/* Progress Bar */}

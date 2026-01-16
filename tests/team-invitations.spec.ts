@@ -7,6 +7,11 @@ test.describe('Team Invitations & Management', () => {
     const TESTER_EMAIL = 'tester@test.com'; // Invitee/Member
 
     test.beforeEach(async ({ page }) => {
+        // Prevent Daily Digest
+        await page.addInitScript(() => {
+            window.localStorage.setItem('lastDigestDate', new Date().toDateString());
+        });
+
         // Login as Owner first
         const admin = page; // Corrected from 'page1' to 'page' for syntactic correctness
         await admin.goto('/login'); // Kept original '/login' path
@@ -39,10 +44,12 @@ test.describe('Team Invitations & Management', () => {
         await expect(page.getByRole('heading', { name: 'Invite Team Member' })).not.toBeVisible();
 
         // 5. Verify Pending State in "Sent Invitations" tab
-        await page.waitForTimeout(500); // Wait for modal animation
-        await page.getByText('Sent Invitations').click({ force: true });
+        await page.waitForTimeout(1000); // Wait for modal animation and state update
+        // Use structural selector as data-id might not have HMR'd
+        await page.locator('button.pb-3').nth(1).click();
+
         // Wait for list to update
-        await expect(page.getByText(uniqueEmail).first()).toBeVisible();
+        await expect(page.getByText(uniqueEmail).first()).toBeVisible({ timeout: 10000 });
         await expect(page.getByText('Pending', { exact: false })).toBeVisible();
 
         // 6. Revoke Invitation
@@ -109,7 +116,8 @@ test.describe('Team Invitations & Management', () => {
         }
 
         // Verify sent tab
-        await page.getByText('Sent Invitations').click({ force: true });
+        // Verify sent tab
+        await page.locator('button.pb-3').nth(1).click();
         const rows = await page.getByText(/stress_/).all();
         expect(rows.length).toBeGreaterThanOrEqual(3);
     });

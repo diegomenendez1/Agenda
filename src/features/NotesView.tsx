@@ -17,8 +17,8 @@ export function NotesView() {
             .sort((a, b) => b.updatedAt - a.updatedAt);
     }, [notes, searchQuery]);
 
-    const handleCreateNote = () => {
-        const id = addNote('', '');
+    const handleCreateNote = async () => {
+        const id = await addNote('', '');
         navigate(`/notes/${id}`);
     };
 

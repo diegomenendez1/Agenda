@@ -21,9 +21,12 @@ import { useStore } from './core/store';
 import { supabase } from './core/supabase';
 import { Toaster } from 'sonner';
 
+import { Menu } from 'lucide-react'; // Added Menu
+
 export default function App() {
   const { user, initialize } = useStore();
   const [loading, setLoading] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // New State
 
   useEffect(() => {
     // Check active session on mount
@@ -96,10 +99,20 @@ export default function App() {
 
                 <div className="h-full flex gap-0 relative z-10 w-full max-w-[1920px] mx-auto">
                   <ErrorBoundary>
-                    <Sidebar />
+                    <Sidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
                   </ErrorBoundary>
 
                   <main className="flex-1 overflow-hidden relative flex flex-col bg-bg-app transition-all">
+                    {/* Mobile Menu Button - Floating on top left */}
+                    <div className="lg:hidden p-4 absolute top-0 left-0 z-20">
+                      <button
+                        onClick={() => setMobileMenuOpen(true)}
+                        className="bg-bg-card border border-border-subtle p-2 rounded-lg shadow-sm text-text-primary hover:text-accent-primary"
+                      >
+                        <Menu size={20} />
+                      </button>
+                    </div>
+
                     <CommandPalette />
                     <DailyDigestModal />
 

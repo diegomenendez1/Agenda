@@ -150,7 +150,7 @@ export function InboxView() {
                                                     <CheckSquare size={14} strokeWidth={3} />
                                                 </div>
                                             ) : (
-                                                <div className="w-5 h-5 rounded border-2 border-border-highlight bg-white/50 group-hover:border-violet-400 group-hover:bg-white transition-colors" />
+                                                <div className="w-5 h-5 rounded border-2 border-border-highlight bg-bg-app/50 group-hover:border-violet-400 group-hover:bg-bg-card transition-colors" />
                                             )}
                                         </div>
                                     )}
@@ -267,11 +267,11 @@ export function InboxView() {
             {/* Bulk Actions Bar */}
             {isSelectionMode && (
                 <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] max-w-2xl z-50 animate-in slide-in-from-bottom-5 duration-300">
-                    <div className="bg-gray-900 text-white rounded-2xl p-4 shadow-2xl flex items-center justify-between border border-white/10 backdrop-blur-xl bg-opacity-95">
+                    <div className="bg-bg-card-hover text-text-primary rounded-2xl p-4 shadow-2xl flex items-center justify-between border border-border-highlight backdrop-blur-xl bg-opacity-95">
                         <div className="flex items-center gap-4">
                             <button
                                 onClick={clearSelection}
-                                className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/50 hover:text-white"
+                                className="p-2 hover:bg-bg-input rounded-full transition-colors text-text-muted hover:text-text-primary"
                             >
                                 <X size={20} />
                             </button>

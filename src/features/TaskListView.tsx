@@ -119,21 +119,20 @@ export function TaskListView() {
             "flex flex-col h-full bg-bg-app overflow-hidden px-6 pt-6 pb-2 md:px-8 md:pt-8 md:pb-2 transition-all duration-300"
         )}>
             {/* Header Section */}
-            <header className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-enter relative z-20">
+            <header className="mb-8 flex flex-col xl:flex-row xl:items-center justify-between gap-6 animate-enter relative z-20">
                 <div>
-                    <h1 className="text-3xl font-display font-bold flex items-center gap-3 tracking-tight text-text-primary">
-                        <CheckSquare className="w-8 h-8 text-accent-primary" />
+                    <h1 className="text-4xl font-display font-extrabold flex items-center gap-3 tracking-tight text-text-primary mb-2">
                         My Tasks
                     </h1>
-                    <p className="text-text-muted text-sm mt-1 ml-11">Manage your personal tasks and assignments.</p>
+                    <p className="text-text-muted text-lg font-light">Manage your personal tasks and assignments.</p>
                 </div>
 
-                <div className="flex gap-2 items-center">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                    {/* Primary Action */}
                     {viewMode === 'list' && (
                         <button
-                            className="btn-primary shadow-lg shadow-accent-primary/20 flex items-center gap-2"
+                            className="group relative overflow-hidden bg-violet-600 hover:bg-violet-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-violet-500/25 transition-all active:scale-95 flex items-center gap-2.5"
                             onClick={async () => {
-                                // Create a draft task
                                 const { addTask } = useStore.getState();
                                 const newId = await addTask({
                                     title: '',
@@ -141,129 +140,120 @@ export function TaskListView() {
                                     priority: 'medium',
                                     visibility: 'private'
                                 });
-
-                                // Hack: Small delay or direct read to ensure we get the task
                                 setTimeout(() => {
                                     const newTask = useStore.getState().tasks[newId];
                                     if (newTask) setEditingTask(newTask);
                                 }, 50);
                             }}
                         >
-                            <Plus size={18} />
-                            <span className="hidden sm:inline">New Task</span>
+                            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                            <Plus size={20} strokeWidth={2.5} />
+                            <span className="relative">New Task</span>
                         </button>
                     )}
-                </div>
 
-                <div className="flex items-center gap-4 bg-bg-card border border-border-subtle p-2 rounded-xl shadow-sm overflow-x-auto">
-                    {/* Filter Tabs - Unified Style with ProjectFilter */}
-                    <div className="flex gap-1">
-                        <button
-                            onClick={() => setFilter('all')}
-                            className={clsx(
-                                "px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 relative border",
-                                filter === 'all'
-                                    ? "bg-text-primary text-bg-card border-text-primary shadow-sm"
-                                    : "text-text-muted hover:text-text-primary hover:bg-bg-input border-transparent hover:border-border-subtle"
-                            )}
-                            title="All Tasks"
-                        >
-                            <ClipboardList size={14} />
-                            <span className="hidden sm:inline">All</span>
-                        </button>
-                        <button
-                            onClick={() => setFilter('today')}
-                            className={clsx(
-                                "px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 relative border",
-                                filter === 'today'
-                                    ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-                                    : "text-text-muted hover:text-text-primary hover:bg-bg-input border-transparent hover:border-border-subtle"
-                            )}
-                            title="Due Today"
-                        >
-                            <CheckCircle2 size={14} />
-                            <span className="hidden sm:inline">Today</span>
-                        </button>
-                        <button
-                            onClick={() => setFilter('upcoming')}
-                            className={clsx(
-                                "px-3 py-1.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2 relative border",
-                                filter === 'upcoming'
-                                    ? "bg-blue-500/10 text-blue-600 border-blue-500/20"
-                                    : "text-text-muted hover:text-text-primary hover:bg-bg-input border-transparent hover:border-border-subtle"
-                            )}
-                            title="Upcoming Tasks"
-                        >
-                            <Calendar size={14} />
-                            <span className="hidden sm:inline">Upcoming</span>
-                        </button>
-                    </div>
+                    {/* Unified Filter Bar */}
+                    <div className="flex items-center gap-1 p-1.5 bg-bg-surface/60 backdrop-blur-md border border-border-subtle rounded-2xl shadow-sm overflow-x-auto max-w-full">
+                        {/* Time Filters */}
+                        <div className="flex bg-bg-input/50 rounded-xl p-1 gap-1">
+                            <button
+                                onClick={() => setFilter('all')}
+                                className={clsx(
+                                    "px-3 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2",
+                                    filter === 'all'
+                                        ? "bg-bg-card text-text-primary shadow-sm ring-1 ring-border-subtle"
+                                        : "text-text-muted hover:text-text-secondary hover:bg-bg-card/50"
+                                )}
+                            >
+                                <span className={clsx(!filter || filter === 'all' ? "text-violet-500" : "opacity-50")}><ClipboardList size={16} /></span>
+                                <span className="hidden sm:inline">All</span>
+                            </button>
+                            <button
+                                onClick={() => setFilter('today')}
+                                className={clsx(
+                                    "px-3 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2",
+                                    filter === 'today'
+                                        ? "bg-bg-card text-emerald-600 shadow-sm ring-1 ring-emerald-500/20"
+                                        : "text-text-muted hover:text-text-secondary hover:bg-bg-card/50"
+                                )}
+                            >
+                                <span className={clsx(filter === 'today' ? "text-emerald-500" : "opacity-50")}><CheckCircle2 size={16} /></span>
+                                <span className="hidden sm:inline">Today</span>
+                            </button>
+                            <button
+                                onClick={() => setFilter('upcoming')}
+                                className={clsx(
+                                    "px-3 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2",
+                                    filter === 'upcoming'
+                                        ? "bg-bg-card text-blue-600 shadow-sm ring-1 ring-blue-500/20"
+                                        : "text-text-muted hover:text-text-secondary hover:bg-bg-card/50"
+                                )}
+                            >
+                                <span className={clsx(filter === 'upcoming' ? "text-blue-500" : "opacity-50")}><Calendar size={16} /></span>
+                                <span className="hidden sm:inline">Upcoming</span>
+                            </button>
+                        </div>
 
-                    <div className="h-6 w-px bg-border-subtle" />
+                        <div className="h-8 w-px bg-border-subtle/50 mx-1" />
 
-                    {/* Member Filter - Refactored to match TeamBoard */}
-                    <AvatarMemberFilter
-                        members={Object.values(team)}
-                        selectedMemberId={selectedMemberId}
-                        onSelectionChange={setSelectedMemberId}
-                    />
+                        {/* Member Filter - Removed Label */}
+                        <AvatarMemberFilter
+                            members={Object.values(team)}
+                            selectedMemberId={selectedMemberId}
+                            onSelectionChange={setSelectedMemberId}
+                            label="" // Remove the "FILTER BY" text
+                        />
 
-                    <div className="h-6 w-px bg-border-subtle" />
+                        {/* Project Filter */}
+                        <ProjectFilter
+                            projects={Object.values(projects)}
+                            selectedProjectIds={selectedProjectIds}
+                            onSelectionChange={setSelectedProjectIds}
+                        />
 
-                    {/* Project Filter */}
-                    <ProjectFilter
-                        projects={Object.values(projects)}
-                        selectedProjectIds={selectedProjectIds}
-                        onSelectionChange={setSelectedProjectIds}
-                    />
+                        <div className="h-8 w-px bg-border-subtle/50 mx-1" />
 
-                    <div className="h-6 w-px bg-border-subtle" />
+                        {/* View Toggles */}
+                        <div className="flex p-1 bg-bg-input/50 rounded-xl">
+                            <button
+                                onClick={() => handleSetViewMode('list')}
+                                className={clsx(
+                                    "p-1.5 rounded-lg transition-all duration-200",
+                                    viewMode === 'list'
+                                        ? "bg-bg-card text-violet-600 shadow-sm"
+                                        : "text-text-muted hover:text-text-secondary"
+                                )}
+                                title="List View"
+                            >
+                                <LayoutList size={18} />
+                            </button>
+                            <button
+                                onClick={() => handleSetViewMode('board')}
+                                className={clsx(
+                                    "p-1.5 rounded-lg transition-all duration-200",
+                                    viewMode === 'board'
+                                        ? "bg-bg-card text-violet-600 shadow-sm"
+                                        : "text-text-muted hover:text-text-secondary"
+                                )}
+                                title="Kanban Board"
+                            >
+                                <KanbanSquare size={18} />
+                            </button>
+                        </div>
 
-                    {/* View Toggles */}
-                    <div className="flex gap-1">
-                        <button
-                            onClick={() => handleSetViewMode('list')}
-                            className={clsx(
-                                "p-1.5 rounded-lg transition-all duration-200",
-                                viewMode === 'list'
-                                    ? "bg-accent-primary text-white shadow-sm"
-                                    : "text-text-muted hover:text-text-secondary hover:bg-bg-input"
-                            )}
-                            title="List View"
-                        >
-                            <LayoutList size={18} />
-                        </button>
-                        <button
-                            onClick={() => handleSetViewMode('board')}
-                            className={clsx(
-                                "p-1.5 rounded-lg transition-all duration-200",
-                                viewMode === 'board'
-                                    ? "bg-accent-primary text-white shadow-sm"
-                                    : "text-text-muted hover:text-text-secondary hover:bg-bg-input"
-                            )}
-                            title="Kanban Board"
-                        >
-                            <KanbanSquare size={18} />
-                        </button>
-                    </div>
+                        {/* Clear Actions */}
+                        {(() => {
+                            if (!user) return null;
+                            const isAdmin = user.role === 'owner' || user.role === 'admin';
+                            const hasClearableTasks = Object.values(tasks).some(t => {
+                                if (t.status !== 'done') return false;
+                                if (t.visibility === 'private') return t.ownerId === user.id;
+                                return t.ownerId === user.id || isAdmin || (t.assigneeIds && t.assigneeIds.includes(user.id));
+                            });
+                            const hasActiveFilters = filter !== 'all' || selectedProjectIds.length > 0 || selectedMemberId !== null;
 
-                    {/* Clear Completed Action */}
-                    {(() => {
-                        if (!user) return null;
-                        const isAdmin = user.role === 'owner' || user.role === 'admin';
-                        const hasClearableTasks = Object.values(tasks).some(t => {
-                            if (t.status !== 'done') return false;
-                            if (t.visibility === 'private') return t.ownerId === user.id;
-                            return t.ownerId === user.id || isAdmin || (t.assigneeIds && t.assigneeIds.includes(user.id));
-                        });
-
-                        // Also show 'Clear' if filters are active, consistent with TeamBoard
-                        const hasActiveFilters = filter !== 'all' || selectedProjectIds.length > 0 || selectedMemberId !== null;
-
-                        return (hasClearableTasks || hasActiveFilters) && (
-                            <>
-                                <div className="h-6 w-px bg-border-subtle" />
-                                <div className="flex items-center gap-1">
+                            return (hasClearableTasks || hasActiveFilters) && (
+                                <div className="flex items-center pl-2 border-l border-border-subtle/50 ml-2">
                                     {hasActiveFilters && (
                                         <button
                                             onClick={() => {
@@ -271,33 +261,29 @@ export function TaskListView() {
                                                 setSelectedProjectIds([]);
                                                 setSelectedMemberId(null);
                                             }}
-                                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-colors text-red-500 hover:bg-red-50 hover:text-red-600"
+                                            className="p-2 rounded-lg text-text-muted hover:bg-bg-input hover:text-text-primary transition-colors"
                                             title="Clear Filters"
                                         >
-                                            <X size={16} />
-                                            <span className="hidden md:inline">Clear</span>
+                                            <X size={18} />
                                         </button>
                                     )}
-
-                                    {hasClearableTasks && !hasActiveFilters && (
+                                    {hasClearableTasks && (
                                         <button
                                             onClick={() => {
                                                 if (window.confirm('¿Estás seguro de que quieres eliminar todas las tareas completadas?')) {
                                                     clearCompletedTasks();
                                                 }
                                             }}
-                                            className="ml-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 text-red-500 bg-red-50 hover:bg-red-100 hover:text-red-600 border border-red-200"
+                                            className="p-2 ml-1 rounded-lg text-text-muted hover:bg-red-500/10 hover:text-red-600 transition-colors"
                                             title="Clear Completed Tasks"
                                         >
-                                            <Trash2 size={14} />
-                                            <span>Clear</span>
+                                            <Trash2 size={18} />
                                         </button>
                                     )}
                                 </div>
-                            </>
-                        );
-                    })()}
-
+                            );
+                        })()}
+                    </div>
                 </div>
             </header>
 

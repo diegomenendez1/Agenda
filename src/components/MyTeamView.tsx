@@ -176,6 +176,7 @@ export function MyTeamView() {
                 </button>
                 <button
                     onClick={() => setActiveTab('invitations')}
+                    data-testid="tab-invitations"
                     className={clsx(
                         "pb-3 text-sm font-medium transition-colors relative",
                         activeTab === 'invitations' ? "text-accent-primary" : "text-text-muted hover:text-text-primary"

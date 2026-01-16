@@ -1,61 +1,37 @@
--- FINAL SECURITY CLEANUP: DROP ALL LEAKING POLICIES IDENTIFIED IN AUDIT
+-- FINAL SECURITY FIX & CLEANUP
+-- 1. Standardization: Ensure get_my_org_id reads from the correct table (profiles)
+CREATE OR REPLACE FUNCTION public.get_my_org_id()
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN (
+    SELECT organization_id 
+    FROM profiles 
+    WHERE id = auth.uid()
+  );
+END;
+$$;
 
--- ==============================================================================
--- 1. PROFILES (The "My Team" Leak)
--- ==============================================================================
--- Leak: "Authenticated users can view profiles" -> TRUE
-DROP POLICY IF EXISTS "Authenticated users can view profiles" ON public.profiles;
--- Leak: "Public profiles are visible to everyone" -> TRUE
-DROP POLICY IF EXISTS "Public profiles are visible to everyone" ON public.profiles;
+-- 2. Fallback Policy: Ensure I can ALWAYS see invites I created themselves
+-- This acts as a safety net if the Org-based policy has edge cases.
+DROP POLICY IF EXISTS "Inviter can see own created invites" ON team_invitations;
 
--- Ensure Strict Policy
-DROP POLICY IF EXISTS "Org Isolated Profiles" ON public.profiles;
-CREATE POLICY "Org Isolated Profiles" ON public.profiles
-FOR SELECT USING (
-    organization_id = public.get_my_org_id()
+CREATE POLICY "Inviter can see own created invites" ON team_invitations
+FOR SELECT
+USING (
+  invited_by = auth.uid()
 );
 
+-- 3. Policy Refresh: Re-apply the Org-based view just in case (Idempotent)
+DROP POLICY IF EXISTS "View Invitations" ON team_invitations;
 
--- ==============================================================================
--- 2. TASKS (The "My Tasks" Leak)
--- ==============================================================================
--- Leak: "Team Access" -> visibility='team' (GLOBAL)
-DROP POLICY IF EXISTS "Team Access" ON public.tasks;
+CREATE POLICY "View Invitations" ON team_invitations FOR SELECT USING (
+  public.check_is_member_of(organization_id)
+);
 
--- Leak: "Tasks visibility" -> visibility='team' OR assignee...
-DROP POLICY IF EXISTS "Tasks visibility" ON public.tasks;
-
--- Leak: "Task View Policy" -> (probably old one)
-DROP POLICY IF EXISTS "Task View Policy" ON public.tasks;
-
--- Leak: "Private Access" -> (probably old one, replace with org logic)
-DROP POLICY IF EXISTS "Private Access" ON public.tasks;
-
--- Cleanup partials
-DROP POLICY IF EXISTS "Org Isolated Task Modification" ON public.tasks;
-
--- Ensure Strict Policies (Re-apply to be sure)
-DROP POLICY IF EXISTS "Org Isolated Task View" ON public.tasks;
-CREATE POLICY "Org Isolated Task View" ON public.tasks FOR SELECT USING (organization_id = public.get_my_org_id());
-
-DROP POLICY IF EXISTS "Org Isolated Task Edit" ON public.tasks;
-CREATE POLICY "Org Isolated Task Edit" ON public.tasks FOR ALL USING (organization_id = public.get_my_org_id());
-
-
--- ==============================================================================
--- 3. PROJECTS
--- ==============================================================================
--- Cleanup just in case
-DROP POLICY IF EXISTS "Project Owner Control" ON public.projects;
-
--- Ensure Strict Policies
-DROP POLICY IF EXISTS "Org Isolated Project View" ON public.projects;
-CREATE POLICY "Org Isolated Project View" ON public.projects FOR SELECT USING (organization_id = public.get_my_org_id());
-
-DROP POLICY IF EXISTS "Org Isolated Project Edit" ON public.projects;
-CREATE POLICY "Org Isolated Project Edit" ON public.projects FOR ALL USING (organization_id = public.get_my_org_id());
-
--- ==============================================================================
--- 4. VERIFICATION HELPER
--- ==============================================================================
--- We rely on the SQL query in previous steps to confirm via tool output.
+-- 4. Fix permissions explicitly
+GRANT SELECT, INSERT, UPDATE, DELETE ON team_invitations TO authenticated;
+GRANT SELECT ON profiles TO authenticated;

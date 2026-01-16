@@ -62,6 +62,8 @@ interface Actions {
 
     // Projects
     addProject: (name: string, goal?: string, color?: string) => Promise<EntityId>;
+    updateProject: (id: EntityId, updates: { name?: string; goal?: string; color?: string; status?: 'active' | 'archived' }) => Promise<void>;
+    deleteProject: (id: EntityId) => Promise<void>;
 
     // Notes
     addNote: (title: string, body: string) => Promise<EntityId>;
@@ -355,7 +357,7 @@ export const useStore = create<Store>((set, get) => ({
         // Fetch All Data (Optimized with Time-Window Sync)
         const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
 
-        const [inboxRes, tasksRes, projectsRes, notesRes, teamRes, notificationsRes] = await Promise.all([
+        const [inboxRes, tasksRes, projectsRes, notesRes, teamRes, notificationsRes, invitationsRes] = await Promise.all([
             // Inbox: Active or created recently
             supabase.from('inbox_items').select('*').or(`processed.eq.false,created_at.gt.${thirtyDaysAgo}`),
 
@@ -369,7 +371,8 @@ export const useStore = create<Store>((set, get) => ({
             supabase.from('projects').select('*').eq('status', 'active'),
             supabase.from('notes').select('*'), // Notes are usually fewer, but can optimize later
             supabase.from('profiles').select('*'),
-            supabase.from('notifications').select('*').eq('user_id', user.id).limit(100) // Paging: limit to last 100
+            supabase.from('notifications').select('*').eq('user_id', user.id).limit(100),
+            supabase.from('team_invitations').select('*').order('created_at', { ascending: false }) // NEW: Fetch invites
         ]);
 
         const inbox: Record<string, any> = {};
@@ -439,8 +442,20 @@ export const useStore = create<Store>((set, get) => ({
             };
         });
 
+        // Hydrate Invitations
+        const activeInvitations = (invitationsRes?.data || []).map((i: any) => ({
+            id: i.id,
+            email: i.email,
+            role: i.role,
+            status: i.status as any,
+            teamId: i.team_id || 'default-team',
+            organizationId: i.organization_id,
+            invitedBy: i.invited_by,
+            createdAt: new Date(i.created_at).getTime(),
+            token: i.token
+        }));
 
-        set({ inbox, tasks, projects, notes, team, notifications });
+        set({ inbox, tasks, projects, notes, team, notifications, activeInvitations });
 
         // Enable Realtime Subscriptions
         supabase
@@ -1075,6 +1090,45 @@ export const useStore = create<Store>((set, get) => ({
             created_at: toSeconds(now)
         });
         return id;
+    },
+
+    updateProject: async (id, updates) => {
+        // Optimistic
+        set(state => {
+            const project = state.projects[id];
+            if (!project) return state;
+            return { projects: { ...state.projects, [id]: { ...project, ...updates } } };
+        });
+
+        const dbUpdates: any = {};
+        if (updates.name !== undefined) dbUpdates.name = updates.name;
+        if (updates.goal !== undefined) dbUpdates.goal = updates.goal;
+        if (updates.color !== undefined) dbUpdates.color = updates.color;
+        if (updates.status !== undefined) dbUpdates.status = updates.status;
+
+        await supabase.from('projects').update(dbUpdates).eq('id', id);
+    },
+
+    deleteProject: async (id) => {
+        // Optimistic
+        set(state => {
+            const { [id]: _, ...rest } = state.projects;
+
+            // Also clean up local tasks/notes for this project to prevent ghosts
+            const newTasks = { ...state.tasks };
+            Object.values(newTasks).forEach(t => {
+                if (t.projectId === id) delete newTasks[t.id];
+            });
+
+            const newNotes = { ...state.notes };
+            Object.values(newNotes).forEach(n => {
+                if (n.projectId === id) delete newNotes[n.id];
+            });
+
+            return { projects: rest, tasks: newTasks, notes: newNotes };
+        });
+
+        await supabase.from('projects').delete().eq('id', id);
     },
 
     addNote: async (title, body) => {

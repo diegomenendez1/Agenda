@@ -26,7 +26,7 @@ class LocalErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
     render() {
         if (this.state.hasError) {
             return (
-                <div className="flex flex-col items-center justify-center h-full p-10 text-red-600 bg-red-50/50">
+                <div className="flex flex-col items-center justify-center h-full p-10 text-red-600 bg-red-500/10">
                     <AlertCircle size={48} className="mb-4 text-red-500" />
                     <h2 className="font-bold text-lg mb-2">Calendar Error</h2>
                     <p className="text-sm text-text-muted mb-4 text-center max-w-md">
@@ -34,7 +34,7 @@ class LocalErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
                     </p>
                     <button
                         onClick={() => this.setState({ hasError: false })}
-                        className="px-4 py-2 bg-white border border-red-200 rounded shadow-sm hover:bg-red-50 text-sm font-medium"
+                        className="px-4 py-2 bg-bg-card border border-red-200 rounded shadow-sm hover:bg-red-500/10 text-sm font-medium"
                     >
                         Try Again
                     </button>
@@ -290,7 +290,7 @@ function CalendarContent() {
                                                         </div>
                                                         {/* Tiny Status indicator if not implicit by color */}
                                                         {!isDone && (
-                                                            <span className="text-[9px] uppercase font-bold opacity-80 tracking-tighter border border-white/20 px-0.5 rounded">
+                                                            <span className="text-[9px] uppercase font-bold opacity-80 tracking-tighter border border-border-subtle px-0.5 rounded">
                                                                 {task.status.replace('_', ' ')}
                                                             </span>
                                                         )}
@@ -300,7 +300,7 @@ function CalendarContent() {
                                                     {members.length > 0 && (
                                                         <div className="flex -space-x-1.5 shrink-0">
                                                             {members.slice(0, 3).map((member) => (
-                                                                <div key={member.id} className="w-4 h-4 rounded-full border border-white/30 bg-bg-card relative z-10" title={member.name}>
+                                                                <div key={member.id} className="w-4 h-4 rounded-full border border-border-subtle bg-bg-card relative z-10" title={member.name}>
                                                                     <img
                                                                         src={member.avatar || `https://ui-avatars.com/api/?name=${member.name}&background=random`}
                                                                         alt={member.name}
@@ -309,7 +309,7 @@ function CalendarContent() {
                                                                 </div>
                                                             ))}
                                                             {members.length > 3 && (
-                                                                <div className="w-4 h-4 rounded-full bg-white/20 border border-white/30 flex items-center justify-center text-[8px] font-bold text-white z-0">
+                                                                <div className="w-4 h-4 rounded-full bg-bg-input border border-border-subtle flex items-center justify-center text-[8px] font-bold text-text-primary z-0">
                                                                     +{members.length - 3}
                                                                 </div>
                                                             )}

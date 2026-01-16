@@ -14,15 +14,15 @@ interface AvatarMemberFilterProps {
 export function AvatarMemberFilter({ members, selectedMemberId, onSelectionChange, label = "Filter by:", limit = 5 }: AvatarMemberFilterProps) {
     return (
         <div className="flex items-center gap-2 px-2">
-            <span className="text-xs font-bold text-text-muted uppercase tracking-wider mr-2 hidden sm:block">{label}</span>
+            {label && <span className="text-xs font-bold text-text-muted uppercase tracking-wider mr-2 hidden sm:block">{label}</span>}
             <div className="flex -space-x-2 hover:space-x-1 transition-all duration-300 items-center">
                 <button
                     onClick={() => onSelectionChange(null)}
                     className={clsx(
                         "w-8 h-8 rounded-full border-2 flex items-center justify-center text-[10px] font-bold transition-all relative z-20 hover:scale-110 hover:z-30",
                         !selectedMemberId
-                            ? "bg-text-primary text-bg-card border-text-primary ring-2 ring-text-primary/20"
-                            : "bg-bg-card text-text-muted border-border-subtle hover:border-text-primary hover:text-text-primary"
+                            ? "bg-violet-600 text-white border-violet-600 shadow-md ring-2 ring-violet-500/20"
+                            : "bg-bg-card text-text-muted border-dashed border-border-subtle hover:border-violet-500 hover:text-violet-500"
                     )}
                     title="Show All Team Members"
                 >
