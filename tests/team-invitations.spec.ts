@@ -1,15 +1,18 @@
 import { test, expect } from '@playwright/test';
+import { TEST_CREDENTIALS } from './fixtures';
 
 test.describe('Team Invitations & Management', () => {
-    const INVITER_EMAIL = 'diegomenendez1@gmail.com'; // Owner
+    // const INVITER_EMAIL = TEST_CREDENTIALS.OWNER_EMAIL; // Unused
+
     const TESTER_EMAIL = 'tester@test.com'; // Invitee/Member
 
     test.beforeEach(async ({ page }) => {
         // Login as Owner first
-        await page.goto('/login');
-        await page.fill('input[type="email"]', INVITER_EMAIL);
-        await page.fill('input[type="password"]', 'Yali.202');
-        await page.click('button[type="submit"]');
+        const admin = page; // Corrected from 'page1' to 'page' for syntactic correctness
+        await admin.goto('/login'); // Kept original '/login' path
+        await admin.fill('input[type="email"]', TEST_CREDENTIALS.OWNER_EMAIL);
+        await admin.fill('input[type="password"]', TEST_CREDENTIALS.OWNER_PASSWORD);
+        await admin.click('button[type="submit"]');
         await expect(page).toHaveURL(/\/inbox/);
     });
 

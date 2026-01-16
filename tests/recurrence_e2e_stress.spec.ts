@@ -1,13 +1,18 @@
 
 import { test, expect } from '@playwright/test';
+import { TEST_CREDENTIALS } from './fixtures';
 import { format, addDays } from 'date-fns';
 
 test.describe('Recurrence E2E Stress & State Integrity', () => {
 
     test.beforeEach(async ({ page }) => {
-        await page.goto('/login');
-        await page.fill('input[type="email"]', 'diegomenendez1@gmail.com');
-        await page.fill('input[type="password"]', 'Yali.202');
+        // 1. Login
+        await page.goto('/');
+        const email = TEST_CREDENTIALS.OWNER_EMAIL;
+        const password = TEST_CREDENTIALS.OWNER_PASSWORD;
+
+        await page.fill('input[type="email"]', email);
+        await page.fill('input[type="password"]', password);
         await page.click('button[type="submit"]');
         await expect(page.locator('h1')).toContainText('Inbox', { timeout: 25000 });
 

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { TEST_CREDENTIALS } from './fixtures';
 
 test.describe('Notifications System Tests', () => {
 
@@ -11,9 +12,12 @@ test.describe('Notifications System Tests', () => {
         });
         await page.reload();
 
-        // Login - Using credentials provided by the user
-        await page.fill('input[type="email"]', 'diegomenendez1@gmail.com');
-        await page.fill('input[type="password"]', 'Yali.202');
+        // 1. Initial Login
+        await page.goto('/');
+        await page.waitForSelector('form');
+
+        await page.fill('input[type="email"]', TEST_CREDENTIALS.OWNER_EMAIL);
+        await page.fill('input[type="password"]', TEST_CREDENTIALS.OWNER_PASSWORD);
         await page.click('button[type="submit"]');
 
         // Wait for app to load

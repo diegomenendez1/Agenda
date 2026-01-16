@@ -331,6 +331,7 @@ export const useStore = create<Store>((set, get) => ({
 
         // Fetch Profile
         const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+
         if (profile) {
             // Load Private AI Context from new table
             const { data: aiData } = await supabase.from('user_ai_metadata').select('ai_context').eq('user_id', user.id).single();

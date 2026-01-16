@@ -1,5 +1,6 @@
 
 import { test, expect } from '@playwright/test';
+import { TEST_CREDENTIALS } from './fixtures';
 
 test.describe('Project Filtering & Stress Test', () => {
 
@@ -47,15 +48,13 @@ test.describe('Project Filtering & Stress Test', () => {
         await pageOwner.goto('http://localhost:5173/');
         await pageOwner.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
         await pageOwner.reload();
+        await pageOwner.waitForSelector('input[type="email"]');
 
-        if (await pageOwner.locator('input[type="email"]').isVisible()) {
-            await pageOwner.locator('input[type="email"]').fill('diegomenendez1@gmail.com');
-            await pageOwner.locator('input[type="password"]').fill('Yali.202');
-            await pageOwner.locator('button[type="submit"]').click();
-            await expect(pageOwner.locator('#cortex-sidebar-title')).toBeVisible({ timeout: 15000 });
-        } else {
-            await expect(pageOwner.locator('#cortex-sidebar-title')).toBeVisible({ timeout: 15000 });
-        }
+        // Login as Admin
+        await pageOwner.fill('input[type="email"]', TEST_CREDENTIALS.OWNER_EMAIL);
+        await pageOwner.fill('input[type="password"]', TEST_CREDENTIALS.OWNER_PASSWORD);
+        await pageOwner.click('button[type="submit"]');
+        await expect(pageOwner.locator('#cortex-sidebar-title')).toBeVisible({ timeout: 15000 });
 
         // --- TESTER LOGIN ---
         await pageTester.goto('http://localhost:5173/');

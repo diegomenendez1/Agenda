@@ -1,5 +1,6 @@
 
 import { test, expect } from '@playwright/test';
+import { TEST_CREDENTIALS } from './fixtures';
 
 const initialUsers = {
     primary: {

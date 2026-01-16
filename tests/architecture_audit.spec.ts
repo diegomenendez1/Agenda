@@ -1,5 +1,6 @@
 
 import { test, expect } from '@playwright/test';
+import { TEST_CREDENTIALS } from './fixtures';
 
 test.describe('SaaS Security & Architecture Audit', () => {
 
@@ -25,15 +26,16 @@ test.describe('SaaS Security & Architecture Audit', () => {
     });
 
     test('AC-002: AI Context Isolation check (Persistence)', async ({ page }) => {
-        page.on('console', msg => console.log('BROWSER LOG:', msg.text()));
 
         // Login as Admin (diegomenendez1@gmail.com)
         await page.goto('/');
+        const email = TEST_CREDENTIALS.OWNER_EMAIL;
+        const password = TEST_CREDENTIALS.OWNER_PASSWORD;
         await page.evaluate(() => localStorage.clear());
         await page.reload();
 
-        await page.fill('input[type="email"]', 'diegomenendez1@gmail.com');
-        await page.fill('input[type="password"]', 'Yali.202');
+        await page.fill('input[type="email"]', email);
+        await page.fill('input[type="password"]', password);
         await page.click('button[type="submit"]');
 
         await expect(page.locator('text=Inbox').first()).toBeVisible({ timeout: 20000 });
@@ -69,8 +71,8 @@ test.describe('SaaS Security & Architecture Audit', () => {
     test('AC-003: No Ghost Invitation flows in Workspace Admin', async ({ page }) => {
         // Login as Admin
         await page.goto('/');
-        await page.fill('input[type="email"]', 'Diegomenendez1@gmail.com');
-        await page.fill('input[type="password"]', 'Yali.202');
+        await page.fill('input[type="email"]', TEST_CREDENTIALS.OWNER_EMAIL);
+        await page.fill('input[type="password"]', TEST_CREDENTIALS.OWNER_PASSWORD);
         await page.click('button[type="submit"]');
 
         await page.goto('/admin');
@@ -87,8 +89,8 @@ test.describe('SaaS Security & Architecture Audit', () => {
     test('AC-004: My Team as central Invitational Hub', async ({ page }) => {
         // Login as Admin/Manager
         await page.goto('/');
-        await page.fill('input[type="email"]', 'Diegomenendez1@gmail.com');
-        await page.fill('input[type="password"]', 'Yali.202');
+        await page.fill('input[type="email"]', TEST_CREDENTIALS.OWNER_EMAIL);
+        await page.fill('input[type="password"]', TEST_CREDENTIALS.OWNER_PASSWORD);
         await page.click('button[type="submit"]');
 
         // Go to My Team
