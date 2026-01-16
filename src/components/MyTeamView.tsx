@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../core/store';
-import { Users, Mail, Clock, Shield, CheckCircle, XCircle, Plus, Search } from 'lucide-react';
+import { Users, Mail, Clock, Shield, CheckCircle, Plus, Search } from 'lucide-react';
 import { InviteMemberModal } from './InviteMemberModal';
 import { MemberManagementModal } from './MemberManagementModal';
 import clsx from 'clsx';
