@@ -16,7 +16,7 @@ interface EditTaskModalProps {
 
 export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edit' }: EditTaskModalProps) {
     const { updateTask, addTask, updateStatus, projects, deleteTask, unassignTask, team, user } = useStore();
-    const [showActivity, setShowActivity] = useState(false); // Default hidden
+    const [showActivity, setShowActivity] = useState(true); // Default visible
 
     // For creation mode, we might only have partial data
     const [title, setTitle] = useState(task.title || '');
