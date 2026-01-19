@@ -36,23 +36,22 @@ export function TeamBoardView() {
                 if (!t.projectId || !selectedProjectIds.includes(t.projectId)) return false;
             }
 
-            // 0. ABSOLUTE PRIVACY: If it's private and I'm not the owner or assignee, it's GONE.
-            // No exceptions for admins in this view to keep it clean.
-            const isOwner = t.ownerId === user?.id;
-            const isAssigned = t.assigneeIds?.includes(user?.id || '');
-
-            if (t.visibility === 'private' && !isOwner && !isAssigned) {
+            // 0. STRICT RULE: Team Board is for SHARED work only.
+            // Private tasks (even my own) are hidden here and appear only in "My Tasks".
+            if (t.visibility === 'private') {
                 return false;
             }
 
-            // 1. Core Definition
+            // 1. Access Logic for Shared Tasks
+            // If it's not private, it's implicitly 'team' or public.
+            const isOwner = t.ownerId === user?.id;
+            const isAssigned = t.assigneeIds?.includes(user?.id || '');
             const isShared = t.visibility === 'team' || (t.assigneeIds && t.assigneeIds.length > 0);
 
-            // 2. Access Logic
+            // Standard access checks
             if (isOwner || isAssigned) return true;
             if (user?.role === 'owner' || user?.role === 'admin') return true;
 
-            // 3. Final Fallback
             return isShared;
         });
     }, [tasks, team, user, selectedMemberId, selectedProjectIds]);
