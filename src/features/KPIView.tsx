@@ -7,6 +7,9 @@ import { DateRangePicker } from '../components/analytics/DateRangePicker';
 import { VelocityChart, WorkloadChart, StatusChart } from '../components/analytics/AnalyticsCharts';
 
 export function KPIView() {
+    const { projects } = useStore();
+    const { filter, setFilter, overviewMetrics, teamMetrics, activityHistory, filteredTasks } = useAnalytics();
+    const [activeTab, setActiveTab] = useState<'overview' | 'team' | 'projects'>('overview');
     const projectMetrics = Object.values(projects || {}).map(p => {
         const pTasks = filteredTasks.filter(t => t.projectId === p.id);
         const total = pTasks.length;

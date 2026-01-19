@@ -92,7 +92,7 @@ export function OnboardingView() {
                                             onClick={async () => {
                                                 setLoading(true);
                                                 try {
-                                                    await acceptInvitation(invite.token, user?.id || '');
+                                                    await acceptInvitation(invite.token || '', user?.id || '');
                                                     toast.success("Joined team successfully!");
                                                 } catch (e) {
                                                     console.error(e);

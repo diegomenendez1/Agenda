@@ -1,5 +1,5 @@
 
-import { TeamMember, EntityId } from './types';
+import type { TeamMember, EntityId } from './types';
 
 export interface TreeNode extends TeamMember {
     children: TreeNode[];

@@ -16,7 +16,7 @@ interface TeamOrganigramProps {
 
 export function TeamOrganigram({ members, currentUserId, onMemberClick, onUpdateManager, readOnly = false }: TeamOrganigramProps) {
     const roots = buildTree(members);
-    const [draggedId, setDraggedId] = useState<string | null>(null);
+    const [, setDraggedId] = useState<string | null>(null);
 
     const handleDragStart = (e: React.DragEvent, id: string) => {
         if (readOnly) return;

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../core/store';
-import { X, Building2, Check, ArrowRight } from 'lucide-react';
+import { Building2, X, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface CreateWorkspaceModalProps {
@@ -9,7 +9,7 @@ interface CreateWorkspaceModalProps {
 }
 
 export function CreateWorkspaceModal({ isOpen, onClose }: CreateWorkspaceModalProps) {
-    const { createOrganization, switchWorkspace, myWorkspaces } = useStore();
+    const { createOrganization } = useStore();
     const [orgName, setOrgName] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useStore } from '../core/store';
-import type { Task, Project, TeamMember } from '../core/types';
+
 import { isWithinInterval, startOfDay, endOfDay, subDays, format, eachDayOfInterval } from 'date-fns';
 
 export type DateRange = '7days' | '30days' | 'thisMonth' | 'custom';

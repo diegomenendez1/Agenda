@@ -10,7 +10,7 @@ interface DateRangePickerProps {
     onCustomChange?: (start: number, end: number) => void;
 }
 
-export function DateRangePicker({ value, onChange, customRange, onCustomChange }: DateRangePickerProps) {
+export function DateRangePicker({ value, onChange }: DateRangePickerProps) {
     const [isOpen, setIsOpen] = useState(false);
 
     const options: { label: string; value: DateRange }[] = [

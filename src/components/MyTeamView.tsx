@@ -1,13 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../core/store';
-import { Users, Mail, Shield, CheckCircle, Plus, Search } from 'lucide-react';
-import { X, Building2, Check } from 'lucide-react';
+import { Users, Mail, Shield, CheckCircle, Plus, Search, Clock } from 'lucide-react';
 import { InviteMemberModal } from './InviteMemberModal';
 import { MemberManagementModal } from './MemberManagementModal';
 import { TeamOrganigram } from './TeamOrganigram';
-import { getDescendants, buildTree, checkCycle } from '../core/hierarchyUtils';
-import type { TeamMember } from '../core/types';
-import type { TreeNode } from '../core/hierarchyUtils';
+import { getDescendants } from '../core/hierarchyUtils';
+// import type { TeamMember } from '../core/types'; // Unused
+// import type { TreeNode } from '../core/hierarchyUtils'; // Unused
 import clsx from 'clsx';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -30,9 +29,8 @@ export function MyTeamView() {
         const allMembers = Object.values(team);
 
         // Strict Visibility: Owners/Admins see everyone. Others see only their descendants (and themselves).
-        /* 
         const isExec = user.role === 'owner' || user.role === 'admin';
-        
+
         if (isExec) {
             return allMembers;
         }
@@ -40,8 +38,6 @@ export function MyTeamView() {
         // For managers/members, calculate strictly visible subtree
         const visibleIds = getDescendants(user.id, allMembers);
         return allMembers.filter(m => visibleIds.has(m.id));
-        */
-        return allMembers; // FALLBACK FOR DEBUGGING
     }, [team, user]);
 
     const filteredMembers = useMemo(() => {
@@ -87,7 +83,6 @@ export function MyTeamView() {
         }
     };
 
-    /*
     const handleUpdateManager = async (memberId: string, newManagerId: string) => {
         try {
             await updateTeamMember(memberId, { reportsTo: newManagerId });
@@ -97,7 +92,6 @@ export function MyTeamView() {
             toast.error("Failed to update reporting line");
         }
     };
-    */
 
     if (!user) return null;
 
@@ -205,7 +199,7 @@ export function MyTeamView() {
                         <div className="absolute bottom-0 left-0 w-full h-0.5 bg-accent-primary rounded-t-full" />
                     )}
                 </button>
-                {/* <button
+                <button
                     onClick={() => setActiveTab('hierarchy')}
                     className={clsx(
                         "pb-3 text-sm font-medium transition-colors relative",
@@ -213,10 +207,10 @@ export function MyTeamView() {
                     )}
                 >
                     Hierarchy
-                   {activeTab === 'hierarchy' && (
+                    {activeTab === 'hierarchy' && (
                         <div className="absolute bottom-0 left-0 w-full h-0.5 bg-accent-primary rounded-t-full" />
                     )}
-                </button> */}
+                </button>
                 <button
                     onClick={() => setActiveTab('invitations')}
                     data-testid="tab-invitations"
@@ -414,7 +408,7 @@ export function MyTeamView() {
                     </div>
                 )}
 
-                {/* {activeTab === 'hierarchy' && (
+                {activeTab === 'hierarchy' && (
                     <TeamOrganigram
                         members={myTeamMembers}
                         currentUserId={user.id}
@@ -422,7 +416,7 @@ export function MyTeamView() {
                         onUpdateManager={handleUpdateManager}
                         readOnly={!isExec && user.role !== 'manager'}
                     />
-                )} */}
+                )}
             </div>
 
             <InviteMemberModal
