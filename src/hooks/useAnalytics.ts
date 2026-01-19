@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useStore } from '../core/store';
 import type { Task, Project, TeamMember } from '../core/types';
-import { startOfWeek, endOfWeek, subWeeks, isWithinInterval, startOfDay, endOfDay, subDays, format, eachDayOfInterval } from 'date-fns';
+import { isWithinInterval, startOfDay, endOfDay, subDays, format, eachDayOfInterval } from 'date-fns';
 
 export type DateRange = '7days' | '30days' | 'thisMonth' | 'custom';
 
@@ -14,7 +14,7 @@ interface AnalyticsFilter {
 }
 
 export function useAnalytics() {
-    const { tasks, projects, team: teamMembers, user } = useStore();
+    const { tasks, team: teamMembers, user } = useStore();
     const [filter, setFilter] = useState<AnalyticsFilter>({ dateRange: '7days' });
 
     // Helper: Get Date Interval based on filter

@@ -1,10 +1,13 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../core/store';
-import { Users, Mail, Clock, Shield, CheckCircle, Plus, Search } from 'lucide-react';
+import { Users, Mail, Shield, CheckCircle, Plus, Search } from 'lucide-react';
+import { X, Building2, Check } from 'lucide-react';
 import { InviteMemberModal } from './InviteMemberModal';
 import { MemberManagementModal } from './MemberManagementModal';
-// import { TeamOrganigram } from './TeamOrganigram';
-// import { getDescendants } from '../core/hierarchyUtils';
+import { TeamOrganigram } from './TeamOrganigram';
+import { getDescendants, buildTree, checkCycle } from '../core/hierarchyUtils';
+import type { TeamMember } from '../core/types';
+import type { TreeNode } from '../core/hierarchyUtils';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -84,6 +87,7 @@ export function MyTeamView() {
         }
     };
 
+    /*
     const handleUpdateManager = async (memberId: string, newManagerId: string) => {
         try {
             await updateTeamMember(memberId, { reportsTo: newManagerId });
@@ -93,6 +97,7 @@ export function MyTeamView() {
             toast.error("Failed to update reporting line");
         }
     };
+    */
 
     if (!user) return null;
 

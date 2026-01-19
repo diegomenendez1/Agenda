@@ -1,9 +1,9 @@
-
 import React, { useState } from 'react';
-import { TeamMember, EntityId } from '../core/types';
-import { buildTree, TreeNode, checkCycle } from '../core/hierarchyUtils';
+import type { TeamMember } from '../core/types';
+import { buildTree, checkCycle } from '../core/hierarchyUtils';
+import type { TreeNode } from '../core/hierarchyUtils';
 import clsx from 'clsx';
-import { User, Shield, AlertCircle } from 'lucide-react';
+import { Shield } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface TeamOrganigramProps {

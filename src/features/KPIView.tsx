@@ -7,11 +7,6 @@ import { DateRangePicker } from '../components/analytics/DateRangePicker';
 import { VelocityChart, WorkloadChart, StatusChart } from '../components/analytics/AnalyticsCharts';
 
 export function KPIView() {
-    const { user, projects } = useStore();
-    const { filter, setFilter, overviewMetrics, teamMetrics, activityHistory, filteredTasks } = useAnalytics();
-    const [activeTab, setActiveTab] = useState<'overview' | 'team' | 'projects'>('overview');
-
-    // --- Derived Data for Project Tab (Safe Version) ---
     const projectMetrics = Object.values(projects || {}).map(p => {
         const pTasks = filteredTasks.filter(t => t.projectId === p.id);
         const total = pTasks.length;
@@ -145,10 +140,10 @@ export function KPIView() {
                                     <div className="flex justify-between items-start mb-4">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-lg bg-accent-primary/10 flex items-center justify-center text-xl">
-                                                {project.emoji || '📂'}
+                                                {(project as any).emoji || '📂'}
                                             </div>
                                             <div>
-                                                <h4 className="font-bold text-text-primary group-hover:text-accent-primary transition-colors">{project.title}</h4>
+                                                <h4 className="font-bold text-text-primary group-hover:text-accent-primary transition-colors">{project.name}</h4>
                                                 <div className="text-xs text-text-muted">{project.total} Tasks</div>
                                             </div>
                                         </div>
