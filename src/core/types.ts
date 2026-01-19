@@ -25,7 +25,7 @@ export interface UserProfile {
 export interface TeamMember {
     id: EntityId;
     name: string;
-    role: 'owner' | 'admin' | 'manager' | 'lead' | 'member'; // Enhanced roles
+    role: 'owner' | 'admin' | 'manager' | 'coordinator' | 'lead' | 'member'; // Enhanced roles
     avatar?: string;
     email: string;
     status?: 'active' | 'pending' | 'suspended';

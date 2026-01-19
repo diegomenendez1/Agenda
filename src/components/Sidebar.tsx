@@ -29,7 +29,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         { icon: Users, label: 'My Team', path: '/my-team' },
         { icon: Layers, label: 'Team Board', path: '/team' },
         { icon: Calendar, label: 'Calendar', path: '/calendar' },
-        { icon: Layers, label: 'Projects', path: '/projects' },
+
         { icon: TrendingUp, label: 'Analytics', path: '/kpis' },
         { icon: StickyNote, label: 'Notes', path: '/notes' },
     ];
@@ -230,7 +230,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                             <div className={clsx("mt-2 border-t border-border-subtle pt-2 flex justify-center", (!collapsed || isOpen) && "justify-start px-2")}>
                                 <button
                                     onClick={() => {
-                                        if (confirm("Are you sure you want to leave this team? You will lose access to shared projects.")) {
+                                        if (confirm("Are you sure you want to leave this team? You will lose access to shared items.")) {
                                             useStore.getState().leaveTeam();
                                             window.location.reload();
                                         }

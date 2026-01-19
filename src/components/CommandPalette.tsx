@@ -42,13 +42,7 @@ export function CommandPalette() {
             type: 'navigation',
             perform: () => navigate('/calendar')
         },
-        {
-            id: 'nav-projects',
-            label: 'Go to Projects',
-            icon: Layers,
-            type: 'navigation',
-            perform: () => navigate('/projects')
-        },
+
         {
             id: 'nav-notes',
             label: 'Go to Notes',

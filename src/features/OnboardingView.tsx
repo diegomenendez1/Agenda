@@ -38,9 +38,7 @@ export function OnboardingView() {
                 </div>
 
                 <h1 className="text-2xl font-bold text-center mb-2">Welcome to Agenda</h1>
-                <p className="text-text-secondary text-center mb-8">
-                    To get started, create a new workspace for your team tasks and projects.
-                </p>
+                To get started, create a new workspace for your team tasks.
 
                 <form onSubmit={handleCreate} className="space-y-4">
                     <div className="space-y-2">

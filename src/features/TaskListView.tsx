@@ -4,7 +4,7 @@ import { CheckCircle2, Calendar, ClipboardList, LayoutList, KanbanSquare, Trash2
 import { TaskItem } from '../components/TaskItem';
 import { KanbanBoard } from '../components/KanbanBoard';
 import { EditTaskModal } from '../components/EditTaskModal';
-import { ProjectFilter } from '../components/ProjectFilter';
+
 import { AvatarMemberFilter } from '../components/AvatarMemberFilter';
 import { isSameDay, isFuture } from 'date-fns';
 import { useSearchParams, useParams } from 'react-router-dom';
@@ -12,9 +12,9 @@ import clsx from 'clsx';
 import type { EntityId } from '../core/types';
 
 export function TaskListView() {
-    const { tasks, user, updateUserProfile, clearCompletedTasks, projects, team } = useStore();
+    const { tasks, user, updateUserProfile, clearCompletedTasks, team } = useStore();
     const [filter, setFilter] = useState<'all' | 'today' | 'upcoming'>('all');
-    const [selectedProjectIds, setSelectedProjectIds] = useState<EntityId[]>([]);
+
     const [selectedMemberId, setSelectedMemberId] = useState<EntityId | null>(null);
     const [searchParams, setSearchParams] = useSearchParams();
     const { taskId: pathTaskId } = useParams();
@@ -78,10 +78,7 @@ export function TaskListView() {
                 if (!isOwner) return false;
             }
 
-            // Project Filter
-            if (selectedProjectIds.length > 0) {
-                if (!task.projectId || !selectedProjectIds.includes(task.projectId)) return false;
-            }
+
 
             // Member Filter (Talent Filter)
             if (selectedMemberId) {
@@ -112,7 +109,7 @@ export function TaskListView() {
 
             return true;
         });
-    }, [tasks, filter, user, selectedProjectIds, selectedMemberId]);
+    }, [tasks, filter, user, selectedMemberId]);
 
     return (
         <div className={clsx(
@@ -204,12 +201,7 @@ export function TaskListView() {
                             label="" // Remove the "FILTER BY" text
                         />
 
-                        {/* Project Filter */}
-                        <ProjectFilter
-                            projects={Object.values(projects)}
-                            selectedProjectIds={selectedProjectIds}
-                            onSelectionChange={setSelectedProjectIds}
-                        />
+
 
                         <div className="h-8 w-px bg-border-subtle/50 mx-1" />
 
@@ -250,7 +242,7 @@ export function TaskListView() {
                                 if (t.visibility === 'private') return t.ownerId === user.id;
                                 return t.ownerId === user.id || isAdmin || (t.assigneeIds && t.assigneeIds.includes(user.id));
                             });
-                            const hasActiveFilters = filter !== 'all' || selectedProjectIds.length > 0 || selectedMemberId !== null;
+                            const hasActiveFilters = filter !== 'all' || selectedMemberId !== null;
 
                             return (hasClearableTasks || hasActiveFilters) && (
                                 <div className="flex items-center pl-2 border-l border-border-subtle/50 ml-2">
@@ -258,7 +250,6 @@ export function TaskListView() {
                                         <button
                                             onClick={() => {
                                                 setFilter('all');
-                                                setSelectedProjectIds([]);
                                                 setSelectedMemberId(null);
                                             }}
                                             className="p-2 rounded-lg text-text-muted hover:bg-bg-input hover:text-text-primary transition-colors"

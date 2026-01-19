@@ -4,8 +4,7 @@ import { Sparkles } from 'lucide-react';
 import { InboxView } from './features/InboxView';
 import { TaskListView } from './features/TaskListView';
 import { CalendarView } from './features/CalendarView';
-import { ProjectsView } from './features/ProjectsView';
-import { ProjectDetailView } from './features/ProjectDetailView';
+
 import { NotesView } from './features/NotesView';
 import { TeamBoardView } from './features/TeamBoardView';
 import { MyTeamView } from './components/MyTeamView';
@@ -127,8 +126,7 @@ export default function App() {
                           <Route path="/team" element={<TeamBoardView />} />
                           <Route path="/my-team" element={<MyTeamView />} />
                           <Route path="/calendar" element={<CalendarView />} />
-                          <Route path="/projects" element={<ProjectsView />} />
-                          <Route path="/projects/:projectId" element={<ProjectDetailView />} />
+
                           <Route path="/notes" element={<NotesView />} />
                           <Route path="/notes/:noteId" element={<NotesView />} />
                           <Route path="/kpis" element={<KPIView />} />

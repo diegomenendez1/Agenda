@@ -16,19 +16,19 @@ interface AIResponse {
     ai_priority: Priority;
     ai_date: string | null;
     ai_context: string;
-    ai_project_id?: string;
+
     ai_assignee_ids?: string[];
 }
 
 export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
-    const { convertInboxToTask, addTask, deleteInboxItem, projects, team, user } = useStore();
+    const { convertInboxToTask, addTask, deleteInboxItem, team, user } = useStore();
 
     // Form State
     const [title, setTitle] = useState(item.text);
     const [originalTitle] = useState(item.text);
     const [priority, setPriority] = useState<Priority>('medium');
     const [dueDate, setDueDate] = useState<string>('');
-    const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+
     const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
     const [context, setContext] = useState('');
     // Visibility derived from assignees now
@@ -78,7 +78,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                     source: item.source,
                     created_at: new Date(item.createdAt).toISOString(),
                     // Optimization: Send only minimal necessary data to reduce payload size
-                    available_projects: Object.values(projects).map(p => ({ id: p.id, name: p.name })),
+
                     // Security warning: We are sending team names. Filter out current user to avoid self-assignment loops.
                     available_team: Object.values(team)
                         .filter(m => m.id !== user?.id)
@@ -205,7 +205,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
 
         if (data.ai_date) setDueDate(data.ai_date.split('T')[0]);
         if (data.ai_context) setContext(data.ai_context);
-        if (data.ai_project_id) setSelectedProjectId(data.ai_project_id);
+
         if (data.ai_assignee_ids && Array.isArray(data.ai_assignee_ids)) {
             setAssigneeIds(data.ai_assignee_ids);
         }
@@ -229,7 +229,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
             await convertInboxToTask(item.id, {
                 title,
                 priority,
-                projectId: selectedProjectId || undefined,
+                projectId: undefined,
                 dueDate: dueDate ? new Date(dueDate).getTime() : undefined,
                 description: context,
                 assigneeIds,
@@ -263,7 +263,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                 await addTask({
                     title: data.ai_title,
                     priority: prio as Priority,
-                    projectId: data.ai_project_id,
+                    projectId: undefined,
                     dueDate: data.ai_date ? new Date(data.ai_date).getTime() : undefined,
                     description: data.ai_context,
                     assigneeIds: data.ai_assignee_ids || [],
@@ -363,7 +363,6 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                         <div className="animate-in fade-in slide-in-from-bottom-4 space-y-3">
                             {candidates.map((c, idx) => {
                                 const isSelected = selectedCandidates.includes(idx);
-                                const proj = c.ai_project_id ? projects[c.ai_project_id] : null;
                                 return (
                                     <div
                                         key={idx}
@@ -397,11 +396,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                                                             "bg-blue-500/10 text-blue-500 border-blue-500/20"
                                                 )}>{c.ai_priority}</span>
 
-                                                {proj && (
-                                                    <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold text-text-secondary bg-bg-subtle border border-border-subtle">
-                                                        <Folder size={10} /> {proj.name}
-                                                    </span>
-                                                )}
+
 
                                                 {(c.ai_assignee_ids?.length || 0) > 0 && (
                                                     <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold text-accent-primary bg-accent-primary/10 border border-accent-primary/20">
@@ -460,27 +455,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                             </div>
 
                             <div className="grid grid-cols-2 gap-5 animate-in slide-in-from-top-2">
-                                {/* Project Selector */}
-                                <div className="col-span-2 md:col-span-1">
-                                    <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
-                                        <Folder size={12} className="text-accent-secondary" /> Project
-                                    </label>
-                                    <div className="relative">
-                                        <select
-                                            value={selectedProjectId}
-                                            onChange={e => setSelectedProjectId(e.target.value)}
-                                            className="input w-full appearance-none bg-bg-input"
-                                        >
-                                            <option value="">No Project</option>
-                                            {Object.values(projects).map(p => (
-                                                <option key={p.id} value={p.id}>{p.name}</option>
-                                            ))}
-                                        </select>
-                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
-                                            <Folder size={14} />
-                                        </div>
-                                    </div>
-                                </div>
+
 
                                 {/* Due Date */}
                                 <div className="col-span-2 md:col-span-1">

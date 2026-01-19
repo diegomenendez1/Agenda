@@ -1,26 +1,16 @@
 import { useState } from 'react';
 import { useStore } from '../core/store';
-import { TrendingUp, Users, Folder, BarChart2, Activity, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { TrendingUp, Users, BarChart2, Activity, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import clsx from 'clsx';
 import { useAnalytics } from '../hooks/useAnalytics';
 import { DateRangePicker } from '../components/analytics/DateRangePicker';
 import { VelocityChart, WorkloadChart, StatusChart } from '../components/analytics/AnalyticsCharts';
 
 export function KPIView() {
-    const { projects } = useStore();
+
     const { filter, setFilter, overviewMetrics, teamMetrics, activityHistory, filteredTasks } = useAnalytics();
-    const [activeTab, setActiveTab] = useState<'overview' | 'team' | 'projects'>('overview');
-    const projectMetrics = Object.values(projects || {}).map(p => {
-        const pTasks = filteredTasks.filter(t => t.projectId === p.id);
-        const total = pTasks.length;
-        const completed = pTasks.filter(t => t.status === 'done').length;
-        return {
-            ...p,
-            total,
-            completed,
-            percentage: total > 0 ? Math.round((completed / total) * 100) : 0
-        };
-    }).sort((a, b) => b.total - a.total).filter(p => p.total > 0);
+    const [activeTab, setActiveTab] = useState<'overview' | 'team'>('overview');
+
 
     return (
         <div className="h-full flex flex-col bg-bg-app text-text-primary overflow-hidden">
@@ -46,7 +36,7 @@ export function KPIView() {
                 <div className="flex gap-6 border-b border-border-subtle">
                     <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={BarChart2} label="Overview" />
                     <TabButton active={activeTab === 'team'} onClick={() => setActiveTab('team')} icon={Users} label="Team Performance" />
-                    <TabButton active={activeTab === 'projects'} onClick={() => setActiveTab('projects')} icon={Folder} label="Projects" />
+
                 </div>
             </div>
 
@@ -136,44 +126,7 @@ export function KPIView() {
                     )}
 
                     {/* --- TAB: PROJECTS --- */}
-                    {activeTab === 'projects' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {projectMetrics.map(project => (
-                                <div key={project.id} className="glass-panel p-6 rounded-2xl border border-border-subtle shadow-sm hover:shadow-md transition-all group">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-lg bg-accent-primary/10 flex items-center justify-center text-xl">
-                                                {(project as any).emoji || '📂'}
-                                            </div>
-                                            <div>
-                                                <h4 className="font-bold text-text-primary group-hover:text-accent-primary transition-colors">{project.name}</h4>
-                                                <div className="text-xs text-text-muted">{project.total} Tasks</div>
-                                            </div>
-                                        </div>
-                                        <div className="text-2xl font-bold text-text-primary">{project.percentage}%</div>
-                                    </div>
 
-                                    {/* Progress Bar */}
-                                    <div className="h-2 w-full bg-bg-input rounded-full overflow-hidden mb-4">
-                                        <div
-                                            className="h-full bg-accent-primary transition-all duration-1000"
-                                            style={{ width: `${project.percentage}%` }}
-                                        />
-                                    </div>
-
-                                    <div className="flex justify-between text-xs text-text-muted">
-                                        <span>{project.completed} Completed</span>
-                                        <span>{project.total - project.completed} Remaining</span>
-                                    </div>
-                                </div>
-                            ))}
-                            {projectMetrics.length === 0 && (
-                                <div className="col-span-full py-12 text-center text-text-muted">
-                                    No active projects found for this period.
-                                </div>
-                            )}
-                        </div>
-                    )}
                 </div>
             </div>
         </div>

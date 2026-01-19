@@ -15,14 +15,14 @@ interface EditTaskModalProps {
 }
 
 export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edit' }: EditTaskModalProps) {
-    const { updateTask, addTask, updateStatus, projects, deleteTask, unassignTask, team, user } = useStore();
+    const { updateTask, addTask, updateStatus, deleteTask, unassignTask, team, user } = useStore();
     const [showActivity, setShowActivity] = useState(true); // Default visible
 
     // For creation mode, we might only have partial data
     const [title, setTitle] = useState(task.title || '');
     const [originalTitle] = useState(task.title || '');
     const [description, setDescription] = useState(task.description || '');
-    const [projectId, setProjectId] = useState<string>(task.projectId || '');
+
     const [priority, setPriority] = useState<Priority>(task.priority || 'medium');
     const [assigneeIds, setAssigneeIds] = useState<string[]>(task.assigneeIds || []);
 
@@ -42,7 +42,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
     useEffect(() => {
         setTitle(task.title || '');
         setDescription(task.description || '');
-        setProjectId(task.projectId || '');
+
         setPriority(task.priority || 'medium');
         setAssigneeIds(task.assigneeIds || []);
         setStatus(task.status || 'todo');
@@ -80,7 +80,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                     id: task.id,
                     text: task.title,
                     source: task.source || 'manual',
-                    available_projects: Object.values(projects).map(p => ({ id: p.id, name: p.name })),
+
                     available_team: Object.values(team)
                         .filter(m => m.id !== user?.id)
                         .map(m => ({ id: m.id, name: m.name }))
@@ -140,7 +140,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
             }
 
             if (data.ai_date) setDueDateStr(data.ai_date.split('T')[0]);
-            if (data.ai_project_id) setProjectId(data.ai_project_id);
+
             if (data.ai_assignee_ids && Array.isArray(data.ai_assignee_ids)) {
                 if (data.ai_assignee_ids.length > 0) {
                     setAssigneeIds(data.ai_assignee_ids);
@@ -201,7 +201,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
             title === task.title &&
             description === (task.description || '') &&
             status === task.status &&
-            projectId === (task.projectId || '') &&
+
             priority === task.priority &&
             dueDateStr === (task.dueDate && isValid(new Date(task.dueDate)) ? format(new Date(task.dueDate), "yyyy-MM-dd'T'HH:mm") : '') &&
             JSON.stringify(assigneeIds) === JSON.stringify(task.assigneeIds) &&
@@ -246,7 +246,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
         const commonData = {
             title,
             description,
-            projectId: projectId || undefined,
+            projectId: undefined,
             priority,
             dueDate,
             assigneeIds,
@@ -491,7 +491,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
 
                                 {/* Status & Project (No explicit Visibility selector) */}
                                 <div className="grid grid-cols-2 gap-5 animate-in slide-in-from-top-2">
-                                    <div className="col-span-2 md:col-span-1">
+                                    <div className="col-span-2">
                                         <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
                                             <ListTodo size={12} className="text-accent-secondary" /> Status
                                         </label>
@@ -507,27 +507,6 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                             <option value="review">Review</option>
                                             <option value="done">Done</option>
                                         </select>
-                                    </div>
-                                    <div className="col-span-2 md:col-span-1">
-                                        <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
-                                            <Folder size={12} className="text-accent-secondary" /> Project
-                                        </label>
-                                        <div className="relative">
-                                            <select
-                                                disabled={!canEdit}
-                                                value={projectId}
-                                                onChange={e => setProjectId(e.target.value)}
-                                                className={clsx("input w-full appearance-none bg-bg-input", !canEdit && "opacity-70 cursor-not-allowed")}
-                                            >
-                                                <option value="">No Project</option>
-                                                {Object.values(projects).map(p => (
-                                                    <option key={p.id} value={p.id}>{p.name}</option>
-                                                ))}
-                                            </select>
-                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
-                                                <Folder size={14} />
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
 
@@ -734,7 +713,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                                 completedAt: Date.now(),
                                                 title,
                                                 description,
-                                                projectId: projectId || undefined,
+                                                projectId: undefined,
                                                 priority,
                                                 dueDate: date && !isNaN(date.getTime()) ? date.getTime() : undefined,
                                                 assigneeIds,

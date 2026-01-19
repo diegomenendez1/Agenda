@@ -206,7 +206,7 @@ export function MyTeamView() {
                         activeTab === 'hierarchy' ? "text-accent-primary" : "text-text-muted hover:text-text-primary"
                     )}
                 >
-                    Hierarchy
+                    Team Structure
                     {activeTab === 'hierarchy' && (
                         <div className="absolute bottom-0 left-0 w-full h-0.5 bg-accent-primary rounded-t-full" />
                     )}

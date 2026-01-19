@@ -1,60 +1,73 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import clsx from 'clsx';
 
 import { WorkloadChart } from '../components/WorkloadChart';
 import { useStore } from '../core/store';
 import { Users, X, BarChart2 } from 'lucide-react';
 import { KanbanBoard } from '../components/KanbanBoard';
-import { ProjectFilter } from '../components/ProjectFilter';
+
 import { AvatarMemberFilter } from '../components/AvatarMemberFilter';
+import { InviteMemberModal } from '../components/InviteMemberModal';
+import { getDescendants } from '../core/hierarchyUtils';
 
 
 export function TeamBoardView() {
-    const { tasks, team, user, projects, fetchInvitations, activeInvitations, sendInvitation, revokeInvitation } = useStore();
+    const { tasks, team, user } = useStore();
     const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
-    const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([]);
+
     const [showWorkload, setShowWorkload] = useState(false);
     const [showInviteModal, setShowInviteModal] = useState(false);
-    const [inviteEmail, setInviteEmail] = useState('');
 
-    useEffect(() => {
-        fetchInvitations();
-    }, []);
+
 
     // Strict Filtering for "Selective Visibility"
     const taskList = useMemo(() => {
+        const allMembers = Object.values(team);
+
+        // STRICT ISOLATION LOGIC:
+        // 1. Calculate the "Visible Universe" of users for the current viewer.
+        //    - Admin/Owner: All users.
+        //    - Manager/Member: Self + All recursive descendants (direct reports tree).
+        const isExec = user?.role === 'owner' || user?.role === 'admin';
+        const myDescendants = user ? getDescendants(user.id, allMembers) : new Set<string>();
+
         return Object.values(tasks).filter(t => {
-            // 4. Feature: Team Member Filter (Moved to Top)
+            // 0. Base Access Check (Who can see this task?)
+            //    - I am the owner
+            //    - I am assigned
+            //    - I am an Admin/Owner
+            //    - The task owner is one of my DESCENDANTS (Strict Supervision)
+
+            const isOwner = t.ownerId === user?.id;
+            const isAssigned = t.assigneeIds?.includes(user?.id || '');
+            const isDownline = t.ownerId && myDescendants.has(t.ownerId) && t.ownerId !== user?.id; // Owned by someone below me
+
+            let hasAccess = false;
+            if (isExec) hasAccess = true;
+            else if (isOwner || isAssigned) hasAccess = true;
+            else if (isDownline) hasAccess = true; // Managers see downline tasks
+
+            if (!hasAccess) return false;
+
+            // 1. Visibility Scope Check (Private vs Team)
+            //    Even if I technically "could" see it (e.g. I'm admin), if it's Private and not mine/assigned, I shouldn't see it on Team Board?
+            //    Actually, standard rule: Private is strictly private unless assigned.
+            //    "Team Board" implies Shared Work.
+            //    We stick to: Private tasks are hidden here unless I am assigned (which makes it shared-private).
+            if (t.visibility === 'private' && !isAssigned && !isOwner) return false;
+
+            // 2. Feature: Team Member Filter
             if (selectedMemberId) {
                 const isMemberOwner = t.ownerId === selectedMemberId;
                 const isMemberAssigned = t.assigneeIds?.includes(selectedMemberId);
                 if (!isMemberOwner && !isMemberAssigned) return false;
             }
 
-            // 5. Feature: Project Filter (Moved to Top)
-            if (selectedProjectIds.length > 0) {
-                if (!t.projectId || !selectedProjectIds.includes(t.projectId)) return false;
-            }
 
-            // 0. STRICT RULE: Team Board is for SHARED work only.
-            // Private tasks (even my own) are hidden here and appear only in "My Tasks".
-            if (t.visibility === 'private') {
-                return false;
-            }
 
-            // 1. Access Logic for Shared Tasks
-            // If it's not private, it's implicitly 'team' or public.
-            const isOwner = t.ownerId === user?.id;
-            const isAssigned = t.assigneeIds?.includes(user?.id || '');
-            const isShared = t.visibility === 'team' || (t.assigneeIds && t.assigneeIds.length > 0);
-
-            // Standard access checks
-            if (isOwner || isAssigned) return true;
-            if (user?.role === 'owner' || user?.role === 'admin') return true;
-
-            return isShared;
+            return true;
         });
-    }, [tasks, team, user, selectedMemberId, selectedProjectIds]);
+    }, [tasks, team, user, selectedMemberId]); // Re-run when team changes to update descendants
 
     // NEW: Computed "My Direct Reports" for the Quick Filter UI
     const myDirectReports = useMemo(() => {
@@ -86,7 +99,13 @@ export function TeamBoardView() {
 
                     <div className="flex items-center gap-1 p-1.5 bg-bg-surface/60 backdrop-blur-md border border-border-subtle rounded-2xl shadow-sm overflow-x-auto max-w-full">
                         <AvatarMemberFilter
-                            members={Object.values(team)}
+                            members={Object.values(team).filter(m => {
+                                // Only show members I can see in the filter
+                                if (!user) return false;
+                                if (user.role === 'owner' || user.role === 'admin') return true;
+                                const myDescendants = getDescendants(user.id, Object.values(team));
+                                return myDescendants.has(m.id) || m.id === user.id;
+                            })}
                             selectedMemberId={selectedMemberId}
                             onSelectionChange={setSelectedMemberId}
                             label=""
@@ -103,20 +122,13 @@ export function TeamBoardView() {
                         )}
 
                         <div className="h-8 w-px bg-border-subtle/50 mx-1" />
-                        <ProjectFilter
-                            projects={Object.values(projects)}
-                            selectedProjectIds={selectedProjectIds}
-                            onSelectionChange={setSelectedProjectIds}
-                        />
+
 
                         {/* Clear & View Tools */}
                         <div className="flex items-center pl-2 border-l border-border-subtle/50 ml-2 gap-1">
-                            {(selectedMemberId || selectedProjectIds.length > 0) && (
+                            {selectedMemberId && (
                                 <button
-                                    onClick={() => {
-                                        setSelectedMemberId(null);
-                                        setSelectedProjectIds([]);
-                                    }}
+                                    onClick={() => setSelectedMemberId(null)}
                                     className="p-2 rounded-lg text-text-muted hover:bg-red-500/10 hover:text-red-600 transition-colors"
                                     title="Clear Filters"
                                 >
@@ -150,73 +162,10 @@ export function TeamBoardView() {
                 <KanbanBoard tasks={taskList} />
             </div>
 
-            {showInviteModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-bg-card rounded-xl shadow-2xl w-full max-w-md border border-border-subtle animate-in fade-in zoom-in-95">
-                        <div className="flex items-center justify-between p-4 border-b border-border-subtle">
-                            <h3 className="font-bold text-lg">Manage Team</h3>
-                            <button onClick={() => setShowInviteModal(false)}><X size={20} className="text-text-muted hover:text-text-primary" /></button>
-                        </div>
-                        <div className="p-6 space-y-6">
-                            <div>
-                                <label className="block text-xs font-bold uppercase text-text-muted mb-2">Invite New Member</label>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="email"
-                                        placeholder="colleague@example.com"
-                                        value={inviteEmail}
-                                        onChange={e => setInviteEmail(e.target.value)}
-                                        className="input flex-1"
-                                    />
-                                    <button
-                                        onClick={() => {
-                                            if (!inviteEmail) return;
-                                            sendInvitation(inviteEmail, 'member');
-                                            setInviteEmail('');
-                                        }}
-                                        className="bg-accent-primary text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-accent-primary-hover"
-                                    >
-                                        Send
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-bold uppercase text-text-muted mb-2">Pending Invitations</label>
-                                {activeInvitations && activeInvitations.length > 0 ? (
-                                    <div className="space-y-2">
-                                        {activeInvitations.map((invite: any) => (
-                                            <div key={invite.id} className="flex items-center justify-between bg-bg-input p-3 rounded-lg text-sm">
-                                                <div>
-                                                    <div className="font-bold text-text-primary">{invite.member_email || invite.manager_name}</div>
-                                                    <div className="text-[10px] text-text-muted capitalize">
-                                                        {invite.direction === 'sent' ? 'Sent to' : 'From'} • {invite.status}
-                                                    </div>
-                                                </div>
-                                                {invite.direction === 'sent' && (
-                                                    <button
-                                                        onClick={() => revokeInvitation(invite.id)}
-                                                        className="text-red-500 text-xs hover:underline"
-                                                    >
-                                                        Revoke
-                                                    </button>
-                                                )}
-                                                {invite.direction === 'received' && (
-                                                    <div className="text-xs text-accent-primary font-bold">Check Inbox</div>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-center p-4 bg-bg-app rounded-lg text-text-muted text-sm italic">
-                                        No pending invitations.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
+            <InviteMemberModal
+                isOpen={showInviteModal}
+                onClose={() => setShowInviteModal(false)}
+            />
+        </div >
     );
 }

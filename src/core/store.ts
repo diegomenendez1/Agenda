@@ -96,7 +96,7 @@ interface Actions {
 
     // Invitations
     fetchInvitations: () => Promise<void>;
-    sendInvitation: (email: string, role: string) => Promise<void>;
+    sendInvitation: (email: string, role: string, reportsTo?: string) => Promise<void>;
     revokeInvitation: (id: string) => Promise<void>;
     resendInvitation: (id: string) => Promise<void>; // NEW
     leaveTeam: () => Promise<void>;
@@ -209,20 +209,24 @@ export const useStore = create<Store>((set, get) => ({
         set({ activeInvitations: invites });
     },
 
-    sendInvitation: async (email, role) => {
+    sendInvitation: async (email, role, reportsTo) => {
         const { user } = get();
         if (!user) return;
 
-        const isAdmin = user.role === 'owner' || user.role === 'admin';
+        // Managers can also invite directly now
+        const canInviteDirectly = user.role === 'owner' || user.role === 'admin' || user.role === 'manager' || user.role === 'coordinator';
 
-        // Choose RPC based on role
-        if (isAdmin) {
+        if (canInviteDirectly) {
+            // New signature supports invite_reports_to
             const { error } = await supabase.rpc('invite_user_direct', {
                 invite_email: email,
-                invite_role: role
+                invite_role: role,
+                invite_reports_to: reportsTo || null
             });
-
             if (error) throw error;
+
+            // Success - Refetch invitations
+            await get().fetchInvitations();
         } else {
             const { error } = await supabase.rpc('request_invitation', {
                 invite_email: email
@@ -234,7 +238,7 @@ export const useStore = create<Store>((set, get) => ({
         // Refresh list
         await get().fetchInvitations();
 
-        toast.success(isAdmin ? 'Invitation sent' : 'Request sent for approval');
+        toast.success(canInviteDirectly ? 'Invitation sent' : 'Request sent for approval');
     },
 
     approveInvitation: async (id, role) => {

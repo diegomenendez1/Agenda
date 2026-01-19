@@ -282,9 +282,11 @@ export function MemberManagementModal({ isOpen, onClose, memberId }: MemberManag
                                             disabled={!canManage || isMe || isSaving}
                                             className="input w-40 text-sm py-1.5"
                                         >
-                                            <option value="user">Member</option>
+                                            <option value="member">Member</option>
+                                            <option value="coordinator">Coordinator</option>
+                                            <option value="manager">Manager</option>
                                             <option value="admin">Admin</option>
-                                            {/* Only Owners can make Owners, usually */}
+                                            {/* Only Owners can make Owners */}
                                             {user?.role === 'owner' && <option value="owner">Owner</option>}
                                         </select>
                                     </div>

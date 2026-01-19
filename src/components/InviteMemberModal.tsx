@@ -9,9 +9,10 @@ interface InviteMemberModalProps {
 }
 
 export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
-    const { sendInvitation, user } = useStore();
+    const { sendInvitation, user, team } = useStore();
     const [email, setEmail] = useState('');
     const [role, setRole] = useState('member'); // Default role
+    const [reportsTo, setReportsTo] = useState<string>('');
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -22,10 +23,11 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
         if (isOpen) {
             setEmail('');
             setRole('member');
+            setReportsTo(user?.role === 'manager' ? user.id : ''); // Default Managers to report to self
             setErrorMsg(null);
             setIsSuccess(false);
         }
-    }, [isOpen]);
+    }, [isOpen, user]);
 
     // Handle escape key
     useEffect(() => {
@@ -49,7 +51,7 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
                 throw new Error("Please enter a valid email address.");
             }
 
-            await sendInvitation(email, role);
+            await sendInvitation(email, role, reportsTo);
 
             setIsSuccess(true);
             setTimeout(() => {
@@ -140,21 +142,33 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
                             <select
                                 value={role}
                                 onChange={(e) => setRole(e.target.value)}
-                                disabled={!['admin', 'owner'].includes(user?.role || '')}
+                                disabled={!['admin', 'owner', 'manager', 'coordinator'].includes(user?.role || '')}
                                 className={clsx(
                                     "input w-full appearance-none",
-                                    !['admin', 'owner'].includes(user?.role || '') && "opacity-50 cursor-not-allowed bg-bg-input/50"
+                                    !['admin', 'owner', 'manager', 'coordinator'].includes(user?.role || '') && "opacity-50 cursor-not-allowed bg-bg-input/50"
                                 )}
                             >
                                 <option value="member">Member (Standard Access)</option>
-                                <option value="lead">Team Lead (Can Invite)</option>
-                                <option value="manager">Manager (Full Team Access)</option>
-                                <option value="admin">Admin (Global Settings)</option>
+                                {/* Manager can only invite Members/Coordinators. Admin/Owner can invite anyone. */}
+                                {['admin', 'owner', 'manager'].includes(user?.role || '') && (
+                                    <>
+                                        {/* Managers can invite Coordinators */}
+                                        <option value="coordinator">Coordinator (Sub-Manager)</option>
+
+                                        {['admin', 'owner'].includes(user?.role || '') && (
+                                            <>
+                                                <option value="lead">Team Lead (Can Invite)</option>
+                                                <option value="manager">Manager (Full Team Access)</option>
+                                                <option value="admin">Admin (Global Settings)</option>
+                                            </>
+                                        )}
+                                    </>
+                                )}
                             </select>
 
-                            {['admin', 'owner'].includes(user?.role || '') ? (
+                            {['admin', 'owner', 'manager', 'coordinator'].includes(user?.role || '') ? (
                                 <p className="text-[10px] text-text-muted mt-1 px-1">
-                                    <strong>Managers</strong> can see all tasks of their direct reports.
+                                    <strong>Managers/Coordinators</strong> can see tasks of their direct reports.
                                 </p>
                             ) : (
                                 <div className="mt-2 flex items-start gap-2 text-amber-500 bg-amber-500/10 p-2 rounded-lg text-xs">
@@ -167,6 +181,36 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
                             )}
                         </div>
                     </div>
+
+                    {/* Reports To Selection (New for Delegation) */}
+                    {['admin', 'owner', 'manager', 'coordinator'].includes(user?.role || '') && (
+                        <div>
+                            <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
+                                <Shield size={12} /> Reports To (Manager)
+                            </label>
+                            <select
+                                value={reportsTo}
+                                onChange={(e) => setReportsTo(e.target.value)}
+                                className="input w-full appearance-none"
+                            >
+                                <option value="">-- No Direct Manager --</option>
+                                {Object.values(team || {})
+                                    .filter(m => {
+                                        // Filter rules:
+                                        // 1. If I am Manager/Coordinator, I can only assign to MYSELF or my descendants
+                                        if (user?.role === 'manager' || user?.role === 'coordinator') {
+                                            return m.id === user.id;
+                                        }
+                                        return true; // Admin sees all
+                                    })
+                                    .map(m => (
+                                        <option key={m.id} value={m.id}>
+                                            {m.name} {m.id === user?.id ? '(You)' : ''}
+                                        </option>
+                                    ))}
+                            </select>
+                        </div>
+                    )}
 
                     {/* Footer Actions */}
                     <div className="pt-2 flex justify-end gap-3">
@@ -199,7 +243,7 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
                                 <>
                                     <Send size={18} />
                                     <span>
-                                        {['admin', 'owner'].includes(user?.role || '') ? 'Send Invitation' : 'Request Access'}
+                                        {['admin', 'owner', 'manager', 'coordinator'].includes(user?.role || '') ? 'Send Invitation' : 'Request Access'}
                                     </span>
                                 </>
                             )}
