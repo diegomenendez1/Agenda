@@ -24,6 +24,7 @@ import { Toaster } from 'sonner';
 import { Menu } from 'lucide-react'; // Added Menu
 
 export default function App() {
+  console.log('[App] Component rendering...');
   const { user, initialize } = useStore();
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // New State

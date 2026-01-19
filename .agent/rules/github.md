@@ -2,4 +2,4 @@
 trigger: always_on
 ---
 
-Siempre manten actualizado el repositorio local con github y viceversa
+Siempre que sea necesario actualiza el respectivo repositorio de github.
