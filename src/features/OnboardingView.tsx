@@ -5,7 +5,7 @@ import { Building2, ArrowRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function OnboardingView() {
-    const { createOrganization, user } = useStore();
+    const { createOrganization, user, activeInvitations, acceptInvitation } = useStore();
     const [name, setName] = useState(`${user?.name || 'My'}'s Workspace`);
     const [loading, setLoading] = useState(false);
 
@@ -72,12 +72,45 @@ export function OnboardingView() {
                         )}
                     </button>
 
-                    {/* Future: Join via Code */}
-                    {/* <div className="pt-4 text-center">
-                        <button type="button" className="text-sm text-text-secondary hover:text-text-primary">
-                            Have an invite code?
-                        </button>
-                    </div> */}
+                    {/* Pending Invitations Section */}
+                    {activeInvitations && activeInvitations.length > 0 && (
+                        <div className="pt-6 border-t border-white/10 mt-6">
+                            <h3 className="text-sm font-semibold text-text-primary mb-3">Pending Invitations</h3>
+                            <div className="space-y-2">
+                                {activeInvitations.map((invite) => (
+                                    <div key={invite.id} className="bg-bg-app p-3 rounded-xl border border-white/5 flex items-center justify-between">
+                                        <div>
+                                            <div className="font-medium text-sm text-text-primary">
+                                                {invite.teamId !== 'default-team' ? 'Join Team' : 'Invitation'}
+                                            </div>
+                                            <div className="text-xs text-text-secondary">
+                                                From: {invite.invitedBy || 'Admin'}
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                setLoading(true);
+                                                try {
+                                                    await acceptInvitation(invite.token, user?.id || '');
+                                                    toast.success("Joined team successfully!");
+                                                } catch (e) {
+                                                    console.error(e);
+                                                    toast.error("Failed to accept invitation");
+                                                } finally {
+                                                    setLoading(false);
+                                                }
+                                            }}
+                                            disabled={loading}
+                                            className="px-3 py-1.5 bg-accent-primary/10 text-accent-primary hover:bg-accent-primary/20 rounded-lg text-xs font-bold transition-colors"
+                                        >
+                                            Accept
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </form>
             </div>
         </div>
