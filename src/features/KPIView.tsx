@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useStore } from '../core/store';
+
 import { TrendingUp, Users, BarChart2, Activity, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import clsx from 'clsx';
 import { useAnalytics } from '../hooks/useAnalytics';
@@ -8,7 +8,7 @@ import { VelocityChart, WorkloadChart, StatusChart } from '../components/analyti
 
 export function KPIView() {
 
-    const { filter, setFilter, overviewMetrics, teamMetrics, activityHistory, filteredTasks } = useAnalytics();
+    const { filter, setFilter, overviewMetrics, teamMetrics, activityHistory } = useAnalytics();
     const [activeTab, setActiveTab] = useState<'overview' | 'team'>('overview');
 
 

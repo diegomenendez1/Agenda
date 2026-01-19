@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { StickyNote, Plus, Trash2, Search, FileText, Folder, MoreVertical } from 'lucide-react';
+import { StickyNote, Plus, Trash2, Search, FileText } from 'lucide-react';
 import { useStore } from '../core/store';
 import { useParams, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
