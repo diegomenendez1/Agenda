@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom';
-import { Inbox, CheckSquare, Calendar, Layers, StickyNote, Users, Sparkles, LogOut, ChevronRight, TrendingUp } from 'lucide-react';
+import { Inbox, CheckSquare, Calendar, Layers, StickyNote, Users, Sparkles, LogOut, ChevronRight, TrendingUp, Plus } from 'lucide-react';
 import { useStore } from '../core/store';
 import { supabase } from '../core/supabase';
 import { NotificationCenter } from './NotificationCenter';
 import clsx from 'clsx';
 import { useState } from 'react';
 import { PresenceIndicator } from './PresenceIndicator';
+import { CreateWorkspaceModal } from './CreateWorkspaceModal';
 
 interface SidebarProps {
     isOpen?: boolean;
@@ -13,8 +14,9 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
-    const { user } = useStore();
+    const { user, myWorkspaces } = useStore();
     const [collapsed, setCollapsed] = useState(false);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -70,21 +72,76 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                 </button>
 
                 <div className="flex flex-col h-full overflow-hidden">
-                    {/* Header */}
-                    <div className={clsx("flex items-center gap-3 px-6 py-8 transition-all duration-300", collapsed && "lg:px-0 lg:justify-center")}>
+                    {/* Header with Workspace Switcher */}
+                    <div className={clsx("relative flex items-center gap-3 px-6 py-8 transition-all duration-300", collapsed && "lg:px-0 lg:justify-center")}>
                         <div className="w-9 h-9 rounded-xl bg-accent-primary flex items-center justify-center shadow-lg shadow-accent-glow shrink-0 transition-transform hover:scale-105 cursor-pointer">
                             <Sparkles className="text-white w-5 h-5" />
                         </div>
                         {(!collapsed || isOpen) && (
-                            <div className="overflow-hidden flex flex-col justify-center animate-enter">
-                                <span id="cortex-sidebar-title" className="font-display font-bold text-lg tracking-tight leading-none text-text-primary">Cortex</span>
-                                <span className="text-[11px] text-text-muted font-medium tracking-wide uppercase mt-1">Workspace</span>
+                            <div className="overflow-hidden flex flex-col justify-center animate-enter relative group">
+                                {(myWorkspaces && myWorkspaces.length > 1) ? (
+                                    <div className="relative group/switcher">
+                                        <button className="text-left hover:bg-white/5 -ml-2 px-2 py-1 rounded-lg transition-colors">
+                                            <span id="cortex-sidebar-title" className="font-display font-bold text-lg tracking-tight leading-none text-text-primary flex items-center gap-2">
+                                                {myWorkspaces.find(w => w.id === user?.organizationId)?.name || 'My Workspace'}
+                                                <ChevronRight className="w-3 h-3 rotate-90 opacity-50" />
+                                            </span>
+                                            <span className="text-[11px] text-text-muted font-medium tracking-wide uppercase block mt-0.5">
+                                                Switch Workspace
+                                            </span>
+                                        </button>
+
+                                        {/* Dropdown Menu */}
+                                        <div className="absolute top-full left-0 mt-2 w-56 bg-bg-card border border-white/10 rounded-xl shadow-2xl p-2 opacity-0 invisible group-hover/switcher:opacity-100 group-hover/switcher:visible transition-all z-[100] translate-y-2 group-hover/switcher:translate-y-0">
+                                            <div className="text-xs font-semibold text-text-secondary px-2 py-1.5 uppercase tracking-wider">My Workspaces</div>
+                                            {myWorkspaces.map(ws => (
+                                                <button
+                                                    key={ws.id}
+                                                    onClick={() => useStore.getState().switchWorkspace(ws.id)}
+                                                    className={clsx(
+                                                        "w-full text-left px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-between",
+                                                        ws.id === user?.organizationId
+                                                            ? "bg-accent-primary/10 text-accent-primary font-medium"
+                                                            : "text-text-primary hover:bg-white/5"
+                                                    )}
+                                                >
+                                                    {ws.name}
+                                                    {ws.id === user?.organizationId && <div className="w-1.5 h-1.5 rounded-full bg-accent-primary" />}
+                                                </button>
+                                            ))}
+                                            <div className="h-px bg-white/10 my-1" />
+                                            <button
+                                                onClick={() => setIsCreateModalOpen(true)}
+                                                className="w-full text-left px-3 py-2 rounded-lg text-xs text-text-secondary hover:text-text-primary hover:bg-white/5 transition-colors flex items-center gap-2"
+                                            >
+                                                <Plus className="w-3 h-3" />
+                                                Create New Workspace
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <span id="cortex-sidebar-title" className="font-display font-bold text-lg tracking-tight leading-none text-text-primary">
+                                            {myWorkspaces?.find(w => w.id === user?.organizationId)?.name || 'Cortex'}
+                                        </span>
+                                        <span className="text-[11px] text-text-muted font-medium tracking-wide uppercase mt-1">Workspace</span>
+                                        {/* Allow creating new workspace even if only 1 exists */}
+                                        <button
+                                            onClick={() => setIsCreateModalOpen(true)}
+                                            className="absolute right-0 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-white/10 rounded"
+                                            title="Create New Workspace"
+                                        >
+                                            <Plus size={14} className="text-text-muted hover:text-text-primary" />
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         )}
                     </div>
 
                     {/* Nav */}
                     <nav className="flex flex-1 flex-col gap-1 px-3 mt-2 overflow-y-auto custom-scrollbar">
+                        {/* ... existing nav mapping ... */}
                         {navItems.map(item => (
                             <NavLink
                                 key={item.path}
@@ -126,6 +183,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
                     {/* Footer Area */}
                     <div className="p-4 border-t border-border-subtle relative z-10 bg-bg-sidebar mt-auto">
+                        {/* ... existing footer ... */}
                         {(!collapsed || isOpen) && (
                             <button
                                 className="flex items-center gap-3 px-3 py-2.5 w-full text-left bg-bg-card hover:bg-bg-card-hover transition-all rounded-lg border border-border-subtle mb-4 group shadow-sm active:translate-y-[1px]"
@@ -186,6 +244,11 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
                     </div>
                 </div>
+
+                <CreateWorkspaceModal
+                    isOpen={isCreateModalOpen}
+                    onClose={() => setIsCreateModalOpen(false)}
+                />
             </aside >
         </>
     );

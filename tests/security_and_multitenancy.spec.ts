@@ -9,10 +9,17 @@ test.describe('Security & Multi-tenancy', () => {
 
     test('New user is forced to Onboarding and cannot see existing data', async ({ page }) => {
         // 1. Sign Up as New User
-        await page.goto('http://localhost:5173/auth');
+        await page.goto('http://localhost:3001/auth');
+
+        // Switch to Sign Up mode
+        await page.click('text="Create an account"');
+
+        // Fill form
+        await page.fill('input[placeholder="Jane Doe"]', intruderName); // Full Name
         await page.fill('input[type="email"]', intruderEmail);
         await page.fill('input[type="password"]', 'password123');
-        await page.click('button:has-text("Sign Up")');
+
+        await page.click('button:has-text("Create Account")');
 
         // 2. Verify Onboarding Redirect
         // Should NOT go to /inbox, but to /onboarding (or show onboarding UI)
@@ -22,7 +29,7 @@ test.describe('Security & Multi-tenancy', () => {
         await expect(page.getByPlaceholder('e.g. Acme Corp')).toBeVisible();
 
         // 3. Verify Isolation (Try to navigate to /team bypassing onboarding)
-        await page.goto('http://localhost:5173/team');
+        await page.goto('http://localhost:3001/team');
         // Should be redirected back or show nothing because store.initialize won't fetch data without orgId
         // In our App.tsx, !organizationId renders <OnboardingView />, covering everything.
         await expect(page.getByText('Welcome to Agenda')).toBeVisible();
@@ -32,7 +39,7 @@ test.describe('Security & Multi-tenancy', () => {
         await page.click('button:has-text("Create Workspace")');
 
         // 5. Verify Landing
-        await expect(page.getByText('My Inbox')).toBeVisible(); // Should be successful now
+        await expect(page.getByText('Inbox', { exact: true })).toBeVisible(); // Should be successful now
 
         // 6. Verify Data State (Should be Empty)
         // There should be NO tasks from the 'diegomenendez1' main account

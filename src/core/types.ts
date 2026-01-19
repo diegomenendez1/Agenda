@@ -171,8 +171,17 @@ export interface AppState {
 
     activeInvitations: TeamInvitation[]; // List of pending invitations
     onlineUsers: EntityId[]; // List of user IDs currently online
+    myWorkspaces: Workspace[]; // NEW: List of workspaces user belongs to
     realtimeCheck?: any;
 }
+
+export interface Workspace {
+    id: EntityId;
+    name: string;
+    role: string; // 'owner' | 'admin' | 'member'
+    joinedAt: number;
+}
+
 
 export type ActivityType =
     | 'message'   // User comment

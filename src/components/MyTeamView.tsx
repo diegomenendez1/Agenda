@@ -3,32 +3,42 @@ import { useStore } from '../core/store';
 import { Users, Mail, Clock, Shield, CheckCircle, Plus, Search } from 'lucide-react';
 import { InviteMemberModal } from './InviteMemberModal';
 import { MemberManagementModal } from './MemberManagementModal';
+// import { TeamOrganigram } from './TeamOrganigram';
+// import { getDescendants } from '../core/hierarchyUtils';
 import clsx from 'clsx';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 export function MyTeamView() {
-    const { user, tasks, activeInvitations, team, revokeInvitation, resendInvitation } = useStore();
+    const { user, tasks, activeInvitations, team, revokeInvitation, resendInvitation, myWorkspaces, updateTeamMember } = useStore();
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+
+    // Derived State
+    const currentWorkspaceName = useMemo(() => {
+        return myWorkspaces?.find(w => w.id === user?.organizationId)?.name || 'Current Workspace';
+    }, [myWorkspaces, user?.organizationId]);
+
     const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<'members' | 'invitations' | 'approvals'>('members');
+    const [activeTab, setActiveTab] = useState<'members' | 'invitations' | 'approvals' | 'hierarchy'>('members');
     const [searchQuery, setSearchQuery] = useState('');
 
-    // Filter members that report to the current user (or all if admin/owner)
     const myTeamMembers = useMemo(() => {
-        if (!user) return [];
+        if (!user || !team) return [];
+        const allMembers = Object.values(team);
+
+        // Strict Visibility: Owners/Admins see everyone. Others see only their descendants (and themselves).
+        /* 
         const isExec = user.role === 'owner' || user.role === 'admin';
+        
+        if (isExec) {
+            return allMembers;
+        }
 
-        // Convert team object to array
-        const allMembers = Object.values(team || {});
-
-        if (isExec) return allMembers;
-
-        // For managers/leads, filter by reports_to relationship
-        // Note: Since we don't have the full hierarchy loaded deeply yet, 
-        // we'll simulate "My Team" as anyone in the same primary team/department
-        // or eventually use the reports_to field when populated.
-        // For now, let's show everyone to establish the UI structure.
-        return allMembers;
+        // For managers/members, calculate strictly visible subtree
+        const visibleIds = getDescendants(user.id, allMembers);
+        return allMembers.filter(m => visibleIds.has(m.id));
+        */
+        return allMembers; // FALLBACK FOR DEBUGGING
     }, [team, user]);
 
     const filteredMembers = useMemo(() => {
@@ -74,6 +84,16 @@ export function MyTeamView() {
         }
     };
 
+    const handleUpdateManager = async (memberId: string, newManagerId: string) => {
+        try {
+            await updateTeamMember(memberId, { reportsTo: newManagerId });
+            toast.success("Reporting line updated");
+        } catch (error) {
+            console.error("Failed to update manager:", error);
+            toast.error("Failed to update reporting line");
+        }
+    };
+
     if (!user) return null;
 
     return (
@@ -82,7 +102,12 @@ export function MyTeamView() {
             {/* Header Actions */}
             <div className="flex items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold font-display text-text-primary">My Team</h1>
+                    <h1 className="text-2xl font-bold font-display text-text-primary flex items-center gap-2">
+                        My Team
+                        <span className="text-lg font-medium text-text-muted bg-bg-card px-3 py-1 rounded-full border border-border-subtle">
+                            {currentWorkspaceName}
+                        </span>
+                    </h1>
                     <p className="text-text-muted">The central hub for team composition, invitations, and performance.</p>
                 </div>
 
@@ -100,6 +125,7 @@ export function MyTeamView() {
                     <button
                         onClick={() => setIsInviteModalOpen(true)}
                         className="btn btn-primary flex items-center gap-2"
+                        disabled={!isExec && user.role !== 'manager'}
                     >
                         <Plus size={18} />
                         <span>Invite Member</span>
@@ -174,6 +200,18 @@ export function MyTeamView() {
                         <div className="absolute bottom-0 left-0 w-full h-0.5 bg-accent-primary rounded-t-full" />
                     )}
                 </button>
+                {/* <button
+                    onClick={() => setActiveTab('hierarchy')}
+                    className={clsx(
+                        "pb-3 text-sm font-medium transition-colors relative",
+                        activeTab === 'hierarchy' ? "text-accent-primary" : "text-text-muted hover:text-text-primary"
+                    )}
+                >
+                    Hierarchy
+                   {activeTab === 'hierarchy' && (
+                        <div className="absolute bottom-0 left-0 w-full h-0.5 bg-accent-primary rounded-t-full" />
+                    )}
+                </button> */}
                 <button
                     onClick={() => setActiveTab('invitations')}
                     data-testid="tab-invitations"
@@ -370,6 +408,16 @@ export function MyTeamView() {
                         )}
                     </div>
                 )}
+
+                {/* {activeTab === 'hierarchy' && (
+                    <TeamOrganigram
+                        members={myTeamMembers}
+                        currentUserId={user.id}
+                        onMemberClick={(id) => setSelectedMemberId(id)}
+                        onUpdateManager={handleUpdateManager}
+                        readOnly={!isExec && user.role !== 'manager'}
+                    />
+                )} */}
             </div>
 
             <InviteMemberModal
@@ -382,6 +430,6 @@ export function MyTeamView() {
                 onClose={() => setSelectedMemberId(null)}
                 memberId={selectedMemberId}
             />
-        </div >
+        </div>
     );
 }

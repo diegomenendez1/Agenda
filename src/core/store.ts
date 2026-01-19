@@ -114,6 +114,10 @@ interface Actions {
     createOrganization: (name: string) => Promise<void>;
     approveInvitation: (id: string, role: string) => Promise<void>; // NEW
     rejectInvitation: (id: string) => Promise<void>; // NEW
+
+    // Workspaces - NEW
+    fetchWorkspaces: () => Promise<void>;
+    switchWorkspace: (orgId: string) => Promise<void>;
 }
 
 type Store = AppState & Actions;
@@ -130,9 +134,54 @@ export const useStore = create<Store>((set, get) => ({
     notifications: {}, // Notifications
     onlineUsers: [], // Real-time presence
     activeInvitations: [],
+    myWorkspaces: [], // NEW
     realtimeCheck: undefined,
 
     // --- Actions ---
+
+    fetchWorkspaces: async () => {
+        const { data, error } = await supabase.from('organization_members')
+            .select('organization_id, role, joined_at, organizations(name)')
+            .eq('user_id', await supabase.auth.getUser().then(({ data }) => data.user?.id));
+
+        if (error) {
+            console.error('Failed to fetch workspaces:', error);
+            return;
+        }
+
+        const workspaces = (data || []).map((m: any) => ({
+            id: m.organization_id,
+            name: m.organizations?.name || 'Unknown Workspace',
+            role: m.role,
+            joinedAt: new Date(m.joined_at).getTime()
+        }));
+
+        set({ myWorkspaces: workspaces });
+    },
+
+    switchWorkspace: async (orgId: string) => {
+        // Optimistic Update
+        const currentUser = get().user;
+        if (currentUser) {
+            set({ user: { ...currentUser, organizationId: orgId } });
+        }
+
+        // RPC Call to update session state in DB
+        const { error } = await supabase.rpc('switch_workspace', { target_org_id: orgId });
+
+        if (error) {
+            console.error(error);
+            toast.error("Failed to switch workspace");
+            // Revert? Hard to do without reloading, better to reload
+            window.location.reload();
+            return;
+        }
+
+        // Reload App Data for new Workspace context
+        await get().initialize();
+        toast.success("Switched workspace");
+        window.location.reload(); // Force full reload to ensure clean state
+    },
 
     fetchInvitations: async () => {
         const { data, error } = await supabase
@@ -336,6 +385,9 @@ export const useStore = create<Store>((set, get) => ({
     initialize: async () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
+
+        // Fetch Membership/Workspaces context
+        await get().fetchWorkspaces();
 
         // Fetch Profile
         const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
