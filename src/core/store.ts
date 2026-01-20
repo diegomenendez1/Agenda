@@ -38,6 +38,7 @@ const hydrateTask = (t: any): Task => ({
     source: t.source,
     estimatedMinutes: t.estimated_minutes,
     acceptedAt: fromSeconds(t.accepted_at),
+    acceptedBy: t.accepted_by, // NEW: Track who accepted
     organizationId: t.organization_id, // NEW
     organizationName: t.organization_name, // Hydrated from join
     inviterName: t.inviter_name // Hydrated from join
@@ -1058,6 +1059,7 @@ export const useStore = create<Store>((set, get) => ({
         if (updates.source !== undefined) dbUpdates.source = updates.source;
         if (updates.estimatedMinutes !== undefined) dbUpdates.estimated_minutes = updates.estimatedMinutes;
         if (updates.acceptedAt !== undefined) dbUpdates.accepted_at = updates.acceptedAt ? new Date(updates.acceptedAt).toISOString() : null;
+        if (updates.acceptedBy !== undefined) dbUpdates.accepted_by = updates.acceptedBy;
 
         await supabase.from('tasks').update(dbUpdates).eq('id', id);
 
