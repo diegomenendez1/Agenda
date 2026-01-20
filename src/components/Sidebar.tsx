@@ -27,7 +27,6 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         { icon: Inbox, label: 'Inbox', path: '/inbox' },
         { icon: CheckSquare, label: 'My Tasks', path: '/tasks' },
         { icon: Users, label: 'My Team', path: '/my-team' },
-        { icon: Layers, label: 'Team Board', path: '/team' },
         { icon: Calendar, label: 'Calendar', path: '/calendar' },
 
         { icon: TrendingUp, label: 'Analytics', path: '/kpis' },

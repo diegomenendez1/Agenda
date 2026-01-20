@@ -6,7 +6,6 @@ import { TaskListView } from './features/TaskListView';
 import { CalendarView } from './features/CalendarView';
 
 import { NotesView } from './features/NotesView';
-import { TeamBoardView } from './features/TeamBoardView';
 import { MyTeamView } from './components/MyTeamView';
 import { AuthView } from './features/AuthView';
 import { SettingsView } from './features/SettingsView';
@@ -123,7 +122,6 @@ export default function App() {
                           <Route path="/inbox" element={<InboxView />} />
                           <Route path="/tasks" element={<TaskListView />} />
                           <Route path="/tasks/:taskId" element={<TaskListView />} />
-                          <Route path="/team" element={<TeamBoardView />} />
                           <Route path="/my-team" element={<MyTeamView />} />
                           <Route path="/calendar" element={<CalendarView />} />
 

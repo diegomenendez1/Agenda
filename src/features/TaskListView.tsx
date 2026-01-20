@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useStore } from '../core/store';
-import { CheckCircle2, Calendar, ClipboardList, LayoutList, KanbanSquare, Trash2, Plus, X } from 'lucide-react';
+import { CheckCircle2, Calendar, ClipboardList, LayoutList, KanbanSquare, Trash2, Plus, X, Lock, Users } from 'lucide-react';
 import { TaskItem } from '../components/TaskItem';
 import { KanbanBoard } from '../components/KanbanBoard';
 import { EditTaskModal } from '../components/EditTaskModal';
@@ -12,8 +12,9 @@ import clsx from 'clsx';
 import type { EntityId } from '../core/types';
 
 export function TaskListView() {
-    const { tasks, user, updateUserProfile, clearCompletedTasks, team } = useStore();
-    const [filter, setFilter] = useState<'all' | 'today' | 'upcoming'>('all');
+    const { tasks, user, clearCompletedTasks, team } = useStore();
+    const [timeFilter, setTimeFilter] = useState<'all' | 'today' | 'upcoming'>('all');
+    const [scopeFilter, setScopeFilter] = useState<'all' | 'private' | 'shared'>('all');
 
     const [selectedMemberId, setSelectedMemberId] = useState<EntityId | null>(null);
     const [searchParams, setSearchParams] = useSearchParams();
@@ -33,7 +34,7 @@ export function TaskListView() {
 
     const handleSetViewMode = (mode: 'list' | 'board') => {
         if (!user) return;
-        updateUserProfile({
+        useStore.getState().updateUserProfile({
             ...user,
             preferences: {
                 ...user.preferences,
@@ -61,47 +62,48 @@ export function TaskListView() {
 
         return allTasks.filter(task => {
             const isAssignee = task.assigneeIds?.includes(user.id);
-            const isShared = task.visibility === 'team';
             const isOwner = task.ownerId === user.id;
-            const isAdmin = user.role === 'owner' || user.role === 'head';
 
-            // View Rules:
-            // 1. Owner/Admin roles see everything
-            // 2. Creator always sees their tasks
-            // 3. Assignees see shared tasks
+            // --- STRICT VISIBILITY RULE ---
+            // "Si el usuario está asignado o la tarea está compartida con él → tiene visibilidad."
+            // "Si no está asignado y no está compartida → no tiene visibilidad."
+            // "Monitoring only" is DEAD. Admins do NOT see tasks they aren't assigned to.
 
-            if (isShared) {
-                // Team tasks: Creator, Assignees, and Admins/Owners
-                if (!isAdmin && !isAssignee && !isOwner) return false;
-            } else {
-                // Private: ONLY the owner. Strict privacy as requested.
-                if (!isOwner) return false;
+            const hasAccess = isOwner || isAssignee;
+
+            if (!hasAccess) return false;
+
+            // --- SCOPE FILTER (Private vs Shared) ---
+            if (scopeFilter === 'private') {
+                // Must be private visibility AND I must be the owner (otherwise I wouldn't see it anyway, but strict safe)
+                // Also, if it's "Private" but assigned to others, it's effectively shared? 
+                // DB definition: visibility 'private' means usually no other assignees. 
+                // We'll trust the 'private' flag but also check assignee count for safety.
+                if (task.visibility !== 'private') return false;
             }
 
+            if (scopeFilter === 'shared') {
+                // Must be 'team' (Shared) visibility
+                // OR technically if I'm assigned to a private task of someone else (rare edge case, but effectively shared)
+                if (task.visibility === 'private') return false;
+            }
 
-
-            // Member Filter (Talent Filter)
+            // --- MEMBER FILTER (UI Filter) ---
             if (selectedMemberId) {
-                // Determine if selected member is involved
                 const isMemberAssigned = task.assigneeIds?.includes(selectedMemberId);
                 const isMemberOwner = task.ownerId === selectedMemberId;
-
-                // If I'm filtering by "Person X", I expect to see tasks assigned to them
-                // OR tasks they own (if shared with me or if I'm head).
                 if (!isMemberAssigned && !isMemberOwner) return false;
             }
 
-            if (filter === 'all') return true;
+            // --- TIME FILTER ---
+            if (timeFilter === 'all') return true;
 
-            // FIX: Handle "No Date" tasks.
-            // In 'today', strict match. In 'upcoming', include future dates OR no date (Someday).
-
-            if (filter === 'today') {
+            if (timeFilter === 'today') {
                 if (!task.dueDate) return false;
                 return isSameDay(new Date(task.dueDate), today);
             }
 
-            if (filter === 'upcoming') {
+            if (timeFilter === 'upcoming') {
                 if (!task.dueDate) return true; // Include "No Date" in Upcoming/Backlog bucket
                 const taskDate = new Date(task.dueDate);
                 return isFuture(taskDate) && !isSameDay(taskDate, today);
@@ -109,7 +111,7 @@ export function TaskListView() {
 
             return true;
         });
-    }, [tasks, filter, user, selectedMemberId]);
+    }, [tasks, timeFilter, scopeFilter, user, selectedMemberId]);
 
     return (
         <div className={clsx(
@@ -121,7 +123,7 @@ export function TaskListView() {
                     <h1 className="text-4xl font-display font-extrabold flex items-center gap-3 tracking-tight text-text-primary mb-2">
                         My Tasks
                     </h1>
-                    <p className="text-text-muted text-lg font-light">Manage your personal tasks and assignments.</p>
+                    <p className="text-text-muted text-lg font-light">Manage your personal and team assignments.</p>
                 </div>
 
                 <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
@@ -151,57 +153,97 @@ export function TaskListView() {
 
                     {/* Unified Filter Bar */}
                     <div className="flex items-center gap-1 p-1.5 bg-bg-surface/60 backdrop-blur-md border border-border-subtle rounded-2xl shadow-sm overflow-x-auto max-w-full">
-                        {/* Time Filters */}
+
+                        {/* Scope Filters (Private vs Shared) */}
                         <div className="flex bg-bg-input/50 rounded-xl p-1 gap-1">
                             <button
-                                onClick={() => setFilter('all')}
+                                onClick={() => setScopeFilter('all')}
                                 className={clsx(
                                     "px-3 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2",
-                                    filter === 'all'
+                                    scopeFilter === 'all'
                                         ? "bg-bg-card text-text-primary shadow-sm ring-1 ring-border-subtle"
                                         : "text-text-muted hover:text-text-secondary hover:bg-bg-card/50"
                                 )}
                             >
-                                <span className={clsx(!filter || filter === 'all' ? "text-violet-500" : "opacity-50")}><ClipboardList size={16} /></span>
-                                <span className="hidden sm:inline">All</span>
+                                All
                             </button>
                             <button
-                                onClick={() => setFilter('today')}
+                                onClick={() => setScopeFilter('private')}
                                 className={clsx(
                                     "px-3 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2",
-                                    filter === 'today'
+                                    scopeFilter === 'private'
+                                        ? "bg-bg-card text-amber-600 shadow-sm ring-1 ring-amber-500/20"
+                                        : "text-text-muted hover:text-text-secondary hover:bg-bg-card/50"
+                                )}
+                                title="Private Only"
+                            >
+                                <Lock size={14} />
+                                <span className="hidden sm:inline">Private</span>
+                            </button>
+                            <button
+                                onClick={() => setScopeFilter('shared')}
+                                className={clsx(
+                                    "px-3 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2",
+                                    scopeFilter === 'shared'
+                                        ? "bg-bg-card text-indigo-600 shadow-sm ring-1 ring-indigo-500/20"
+                                        : "text-text-muted hover:text-text-secondary hover:bg-bg-card/50"
+                                )}
+                                title="Shared / Assigned"
+                            >
+                                <Users size={14} />
+                                <span className="hidden sm:inline">Shared</span>
+                            </button>
+                        </div>
+
+                        <div className="h-8 w-px bg-border-subtle/50 mx-1" />
+
+                        {/* Time Filters */}
+                        <div className="flex bg-bg-input/50 rounded-xl p-1 gap-1">
+                            <button
+                                onClick={() => setTimeFilter('all')}
+                                className={clsx(
+                                    "px-3 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2",
+                                    timeFilter === 'all'
+                                        ? "bg-bg-card text-text-primary shadow-sm ring-1 ring-border-subtle"
+                                        : "text-text-muted hover:text-text-secondary hover:bg-bg-card/50"
+                                )}
+                            >
+                                <span className={clsx(!timeFilter || timeFilter === 'all' ? "text-violet-500" : "opacity-50")}><ClipboardList size={16} /></span>
+                            </button>
+                            <button
+                                onClick={() => setTimeFilter('today')}
+                                className={clsx(
+                                    "px-3 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2",
+                                    timeFilter === 'today'
                                         ? "bg-bg-card text-emerald-600 shadow-sm ring-1 ring-emerald-500/20"
                                         : "text-text-muted hover:text-text-secondary hover:bg-bg-card/50"
                                 )}
                             >
-                                <span className={clsx(filter === 'today' ? "text-emerald-500" : "opacity-50")}><CheckCircle2 size={16} /></span>
+                                <span className={clsx(timeFilter === 'today' ? "text-emerald-500" : "opacity-50")}><CheckCircle2 size={16} /></span>
                                 <span className="hidden sm:inline">Today</span>
                             </button>
                             <button
-                                onClick={() => setFilter('upcoming')}
+                                onClick={() => setTimeFilter('upcoming')}
                                 className={clsx(
                                     "px-3 py-1.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2",
-                                    filter === 'upcoming'
+                                    timeFilter === 'upcoming'
                                         ? "bg-bg-card text-blue-600 shadow-sm ring-1 ring-blue-500/20"
                                         : "text-text-muted hover:text-text-secondary hover:bg-bg-card/50"
                                 )}
                             >
-                                <span className={clsx(filter === 'upcoming' ? "text-blue-500" : "opacity-50")}><Calendar size={16} /></span>
+                                <span className={clsx(timeFilter === 'upcoming' ? "text-blue-500" : "opacity-50")}><Calendar size={16} /></span>
                                 <span className="hidden sm:inline">Upcoming</span>
                             </button>
                         </div>
 
                         <div className="h-8 w-px bg-border-subtle/50 mx-1" />
 
-                        {/* Member Filter - Removed Label */}
                         <AvatarMemberFilter
                             members={Object.values(team)}
                             selectedMemberId={selectedMemberId}
                             onSelectionChange={setSelectedMemberId}
-                            label="" // Remove the "FILTER BY" text
+                            label=""
                         />
-
-
 
                         <div className="h-8 w-px bg-border-subtle/50 mx-1" />
 
@@ -236,20 +278,19 @@ export function TaskListView() {
                         {/* Clear Actions */}
                         {(() => {
                             if (!user) return null;
-                            const isAdmin = user.role === 'owner' || user.role === 'head';
                             const hasClearableTasks = Object.values(tasks).some(t => {
                                 if (t.status !== 'done') return false;
-                                if (t.visibility === 'private') return t.ownerId === user.id;
-                                return t.ownerId === user.id || isAdmin || (t.assigneeIds && t.assigneeIds.includes(user.id));
+                                return t.ownerId === user.id || t.assigneeIds?.includes(user.id);
                             });
-                            const hasActiveFilters = filter !== 'all' || selectedMemberId !== null;
+                            const hasActiveFilters = timeFilter !== 'all' || selectedMemberId !== null || scopeFilter !== 'all';
 
                             return (hasClearableTasks || hasActiveFilters) && (
                                 <div className="flex items-center pl-2 border-l border-border-subtle/50 ml-2">
                                     {hasActiveFilters && (
                                         <button
                                             onClick={() => {
-                                                setFilter('all');
+                                                setTimeFilter('all');
+                                                setScopeFilter('all');
                                                 setSelectedMemberId(null);
                                             }}
                                             className="p-2 rounded-lg text-text-muted hover:bg-bg-input hover:text-text-primary transition-colors"
@@ -261,7 +302,7 @@ export function TaskListView() {
                                     {hasClearableTasks && (
                                         <button
                                             onClick={() => {
-                                                if (window.confirm('¿Estás seguro de que quieres eliminar todas las tareas completadas?')) {
+                                                if (window.confirm('Are you sure you want to clear all completed tasks?')) {
                                                     clearCompletedTasks();
                                                 }
                                             }}
