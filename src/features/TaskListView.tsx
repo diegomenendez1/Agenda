@@ -10,10 +10,9 @@ import { isSameDay, isFuture } from 'date-fns';
 import { useSearchParams, useParams } from 'react-router-dom';
 import clsx from 'clsx';
 import type { EntityId } from '../core/types';
-import { getDescendants } from '../core/hierarchyUtils';
-
 export function TaskListView() {
     const { tasks, user, clearCompletedTasks, team } = useStore();
+
     const [timeFilter, setTimeFilter] = useState<'all' | 'today' | 'upcoming'>('all');
     const [scopeFilter, setScopeFilter] = useState<'all' | 'private' | 'shared'>('all');
 
@@ -21,11 +20,6 @@ export function TaskListView() {
     const [searchParams, setSearchParams] = useSearchParams();
     const { taskId: pathTaskId } = useParams();
     const [editingTask, setEditingTask] = useState<any>(null);
-
-    const mySubtree = useMemo(() => {
-        if (!user || !team) return new Set<string>([user?.id || '']);
-        return getDescendants(user.id, Object.values(team));
-    }, [user, team]);
 
     // Deep Linking to Task
     useEffect(() => {

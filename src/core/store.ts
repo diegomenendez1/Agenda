@@ -1311,7 +1311,6 @@ export const useStore = create<Store>((set, get) => ({
         const userRole = state.user?.role;
         if (!currentUserId) return;
 
-        const isAdmin = userRole === 'owner' || userRole === 'head';
 
         // 1. Identification (Logic remains the same)
         const completedTaskIds = Object.values(state.tasks)

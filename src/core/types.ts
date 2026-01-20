@@ -102,6 +102,7 @@ export interface Task {
     source?: 'manual' | 'email' | 'voice' | 'system' | 'meeting';
     estimatedMinutes?: number;
     acceptedAt?: number;
+    acceptedBy?: EntityId;
     organizationName?: string; // Hydrated
     inviterName?: string; // Hydrated
 

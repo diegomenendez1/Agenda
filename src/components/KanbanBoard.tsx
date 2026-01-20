@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useStore } from '../core/store';
 import type { TaskStatus, Task } from '../core/types';
 import { clsx } from 'clsx';
-import { MoreHorizontal, Calendar, CheckCircle2, Lock, Flag, Clock, X, Trash2, Eye } from 'lucide-react';
+import { MoreHorizontal, Calendar, CheckCircle2, Lock, Flag, Clock, X, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { EditTaskModal } from './EditTaskModal';
 
@@ -147,12 +147,6 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                             {tasksByStatus[col.id].map(task => {
                                 // Strict ID comparison to avoid type mismatches
                                 // Strict ID comparison to avoid type mismatches
-                                const isAssignedToMe = Boolean(
-                                    user?.id && (
-                                        task.assigneeIds?.some(id => String(id) === String(user.id)) ||
-                                        String(task.ownerId) === String(user.id)
-                                    )
-                                );
 
                                 // Debug log kept for verification
                                 // console.log('DEBUG V2:', { taskId: task.id, assignees: task.assigneeIds, userId: user?.id, isAssigned: isAssignedToMe });

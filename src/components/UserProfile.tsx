@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../core/store';
 import { User, Save, Users, Check, X } from 'lucide-react';
-import { supabase } from '../core/supabase';
 
 export function UserProfile() {
     const { user, updateUserProfile } = useStore();

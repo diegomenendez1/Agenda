@@ -1,7 +1,5 @@
 import { useMemo, useState } from 'react';
 import { useStore } from '../core/store';
-import { getDescendants } from '../core/hierarchyUtils';
-
 import { isWithinInterval, startOfDay, endOfDay, subDays, format, eachDayOfInterval } from 'date-fns';
 
 export type DateRange = '7days' | '30days' | 'thisMonth' | 'custom';
@@ -49,8 +47,6 @@ export function useAnalytics() {
         if (!tasks) return [];
         const allTasks = Object.values(tasks);
 
-        const mySubtree = (user && teamMembers) ? getDescendants(user.id, Object.values(teamMembers)) : new Set([user?.id || '']);
-
         return allTasks.filter(task => {
             const isSameOrg = task.organizationId === user?.organizationId;
             if (!isSameOrg) return false;
@@ -68,7 +64,6 @@ export function useAnalytics() {
             if (filter.memberId && !task.assigneeIds?.includes(filter.memberId)) return false;
 
             // Date Range Filter (Created OR Completed within range)
-            // If it's done, check completedAt. If not done, check createdAt.
             const dateToCheck = task.createdAt;
             if (!isWithinInterval(new Date(dateToCheck), dateInterval)) return false;
 
@@ -102,13 +97,7 @@ export function useAnalytics() {
     const teamMetrics = useMemo(() => {
         const workload: Record<string, { total: number; completed: number; overdue: number }> = {};
 
-        // Initialize for all team members if user is head/owner
-        if ((user?.role === 'owner' || user?.role === 'head') && teamMembers) {
-            Object.values(teamMembers).forEach(member => {
-                workload[member.id] = { total: 0, completed: 0, overdue: 0 };
-            });
-        }
-
+        // Use involved team members (those who appear in tasks)
         filteredTasks.forEach(task => {
             task.assigneeIds?.forEach(assigneeId => {
                 if (!workload[assigneeId]) {
@@ -131,7 +120,7 @@ export function useAnalytics() {
                 performance: stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0
             };
         }).sort((a, b) => b.total - a.total); // Sort by busiest
-    }, [filteredTasks, teamMembers, user]);
+    }, [filteredTasks, teamMembers]);
 
     // 4. Activity History (for charts)
     const activityHistory = useMemo(() => {
