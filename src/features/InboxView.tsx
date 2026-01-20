@@ -73,7 +73,7 @@ export function InboxView() {
 
     const activeOrgId = useStore.getState().user?.organizationId;
     const inboxItems = Object.values(inbox)
-        .filter(item => item.organization_id === activeOrgId)
+        .filter(item => (item as any).organization_id === activeOrgId)
         .sort((a, b) => b.createdAt - a.createdAt);
 
     return (

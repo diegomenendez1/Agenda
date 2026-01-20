@@ -4,7 +4,6 @@ import { Users, Mail, Shield, CheckCircle, Plus, Search, Clock } from 'lucide-re
 import { InviteMemberModal } from './InviteMemberModal';
 import { MemberManagementModal } from './MemberManagementModal';
 import { TeamOrganigram } from './TeamOrganigram';
-import { getDescendants } from '../core/hierarchyUtils';
 // import type { TeamMember } from '../core/types'; // Unused
 // import type { TreeNode } from '../core/hierarchyUtils'; // Unused
 import clsx from 'clsx';
@@ -62,8 +61,8 @@ export function MyTeamView() {
     const { pendingInvites, approvalRequests, incomingInvites } = useMemo(() => {
         const pending = activeInvitations.filter(i => i.status === 'pending');
         return {
-            pendingInvites: pending.filter(i => i.organizationId === user.organizationId), // Sent by this org
-            incomingInvites: pending.filter(i => i.email?.toLowerCase() === user.email?.toLowerCase()), // Sent TO me (case-insensitive)
+            pendingInvites: pending.filter(i => i.organizationId === user?.organizationId), // Sent by this org
+            incomingInvites: pending.filter(i => i.email?.toLowerCase() === user?.email?.toLowerCase()), // Sent TO me (case-insensitive)
             approvalRequests: activeInvitations.filter(i => i.status === 'approval_needed')
         };
     }, [activeInvitations, user]);

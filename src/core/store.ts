@@ -43,6 +43,20 @@ const hydrateTask = (t: any): Task => ({
     inviterName: t.inviter_name // Hydrated from join
 });
 
+const hydrateInvitation = (i: any) => ({
+    id: i.id,
+    email: i.email,
+    role: i.role,
+    status: i.status as any,
+    teamId: i.team_id || 'default-team',
+    organizationId: i.organization_id,
+    invitedBy: i.invited_by,
+    inviterName: i.inviter?.full_name || 'Unknown',
+    organizationName: i.organization?.name || 'Unknown Workspace',
+    createdAt: i.created_at ? new Date(i.created_at).getTime() : Date.now(),
+    token: i.token
+});
+
 interface Actions {
     // Sync
     initialize: () => Promise<void>;
@@ -504,7 +518,11 @@ export const useStore = create<Store>((set, get) => ({
                         email: user.email || '',
                         avatar: user.user_metadata?.avatar_url,
                         role: currentUser?.role || 'member',
-                        preferences: currentUser?.preferences || {},
+                        preferences: {
+                            theme: 'light',
+                            autoPrioritize: true,
+                            ...(currentUser?.preferences || {})
+                        },
                         organizationId: currentUser?.organizationId || user.user_metadata?.organization_id
                     }
                 });

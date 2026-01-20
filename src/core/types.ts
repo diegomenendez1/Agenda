@@ -102,6 +102,8 @@ export interface Task {
     source?: 'manual' | 'email' | 'voice' | 'system' | 'meeting';
     estimatedMinutes?: number;
     acceptedAt?: number;
+    organizationName?: string; // Hydrated
+    inviterName?: string; // Hydrated
 
     // Recurrence
     recurrence?: RecurrenceConfig;

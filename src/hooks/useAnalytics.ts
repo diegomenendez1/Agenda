@@ -49,7 +49,7 @@ export function useAnalytics() {
         if (!tasks) return [];
         const allTasks = Object.values(tasks);
 
-        const mySubtree = (user && team) ? getDescendants(user.id, Object.values(team)) : new Set([user?.id || '']);
+        const mySubtree = (user && teamMembers) ? getDescendants(user.id, Object.values(teamMembers)) : new Set([user?.id || '']);
 
         return allTasks.filter(task => {
             const isSameOrg = task.organizationId === user?.organizationId;
