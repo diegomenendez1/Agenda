@@ -1308,7 +1308,6 @@ export const useStore = create<Store>((set, get) => ({
     clearCompletedTasks: async () => {
         const state = get();
         const currentUserId = state.user?.id;
-        const userRole = state.user?.role;
         if (!currentUserId) return;
 
 
