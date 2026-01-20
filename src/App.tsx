@@ -10,6 +10,7 @@ import { MyTeamView } from './components/MyTeamView';
 import { AuthView } from './features/AuthView';
 import { SettingsView } from './features/SettingsView';
 import { KPIView } from './features/KPIView';
+import { OnboardingView } from './features/OnboardingView';
 import { CommandPalette } from './components/CommandPalette';
 import { Sidebar } from './components/Sidebar';
 import { DailyDigestModal } from './components/DailyDigestModal';
@@ -68,7 +69,7 @@ export default function App() {
         <Route path="/auth" element={!user ? <AuthView /> : <Navigate to="/" />} />
 
         <Route path="/*" element={
-          !user ? <Navigate to="/auth" /> : (
+          !user ? <Navigate to="/auth" /> : !user.organizationId ? <OnboardingView /> : (
             <div className="flex h-screen w-screen overflow-hidden bg-bg-app text-text-primary">
 
               <div className="h-full flex gap-0 relative z-10 w-full max-w-[1920px] mx-auto">
