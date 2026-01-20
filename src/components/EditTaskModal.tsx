@@ -157,7 +157,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
     };
     // Permission Logic
     const isOwner = user?.id === task.ownerId || mode === 'create'; // Creator is owner
-    const isAdmin = user?.role === 'admin' || user?.role === 'owner'; // Global admin privileges
+    const isAdmin = user?.role === 'head' || user?.role === 'owner'; // Global admin privileges
     const canEdit = isOwner || isAdmin;
 
     // DEBUG LOG
@@ -443,7 +443,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                 {!canEdit && (
                                     <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-600 px-4 py-3 rounded-xl flex items-center gap-3 text-sm">
                                         <Lock size={16} />
-                                        <span>view only mode • Only the task owner or admins can edit details.</span>
+                                        <span>view only mode • Only the task owner or heads can edit details.</span>
                                     </div>
                                 )}
 

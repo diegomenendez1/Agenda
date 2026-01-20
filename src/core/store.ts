@@ -203,7 +203,7 @@ export const useStore = create<Store>((set, get) => ({
             organizationId: i.organization_id,
             invitedBy: i.invited_by,
             createdAt: new Date(i.created_at).getTime(),
-            token: i.token // Only admins see this usually, but strictly handled by RLS
+            token: i.token // Only heads see this usually, but strictly handled by RLS
         }));
 
         set({ activeInvitations: invites });
@@ -213,8 +213,8 @@ export const useStore = create<Store>((set, get) => ({
         const { user } = get();
         if (!user) return;
 
-        // Managers can also invite directly now
-        const canInviteDirectly = user.role === 'owner' || user.role === 'admin' || user.role === 'manager' || user.role === 'coordinator';
+        // Managers/Leads can also invite directly now
+        const canInviteDirectly = user.role === 'owner' || user.role === 'head' || user.role === 'lead';
 
         if (canInviteDirectly) {
             // New signature supports invite_reports_to
@@ -322,7 +322,7 @@ export const useStore = create<Store>((set, get) => ({
 
         const dbUpdates: any = {};
         if (updates.role !== undefined) dbUpdates.role = updates.role;
-        // Handle explicit null for removing manager
+        // Handle explicit null for removing reportsTo reference
         if (updates.reportsTo !== undefined) dbUpdates.reports_to = updates.reportsTo;
 
         const { error } = await supabase.from('profiles').update(dbUpdates).eq('id', memberId);
@@ -1084,7 +1084,7 @@ export const useStore = create<Store>((set, get) => ({
         const userRole = state.user?.role;
         if (!currentUserId) return;
 
-        const isAdmin = userRole === 'owner' || userRole === 'admin';
+        const isAdmin = userRole === 'owner' || userRole === 'head';
 
         // 1. Identification (Logic remains the same)
         const completedTaskIds = Object.values(state.tasks)
@@ -1301,7 +1301,7 @@ export const useStore = create<Store>((set, get) => ({
 
     updateAIContext: async (userId, context) => {
         console.log(`[STORE] Updating AI Context for ${userId}...`);
-        // 1. Persist in DB (Admin/Owner can do this now thanks to new RLS)
+        // 1. Persist in DB (Head/Owner can do this now thanks to new RLS)
         const { data, error } = await supabase
             .from('user_ai_metadata')
             .upsert({

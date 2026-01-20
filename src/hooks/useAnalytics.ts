@@ -50,7 +50,7 @@ export function useAnalytics() {
 
         return allTasks.filter(task => {
             // Role-based visibility
-            const isVisible = user?.role === 'owner' || user?.role === 'admin'
+            const isVisible = user?.role === 'owner' || user?.role === 'head'
                 ? true
                 : (task.ownerId === user?.id || task.assigneeIds?.includes(user?.id || ''));
 
@@ -97,8 +97,8 @@ export function useAnalytics() {
     const teamMetrics = useMemo(() => {
         const workload: Record<string, { total: number; completed: number; overdue: number }> = {};
 
-        // Initialize for all team members if user is admin/owner
-        if ((user?.role === 'owner' || user?.role === 'admin') && teamMembers) {
+        // Initialize for all team members if user is head/owner
+        if ((user?.role === 'owner' || user?.role === 'head') && teamMembers) {
             Object.values(teamMembers).forEach(member => {
                 workload[member.id] = { total: 0, completed: 0, overdue: 0 };
             });

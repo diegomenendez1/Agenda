@@ -26,9 +26,9 @@ export function TeamBoardView() {
 
         // STRICT ISOLATION LOGIC:
         // 1. Calculate the "Visible Universe" of users for the current viewer.
-        //    - Admin/Owner: All users.
-        //    - Manager/Member: Self + All recursive descendants (direct reports tree).
-        const isExec = user?.role === 'owner' || user?.role === 'admin';
+        //    - Head/Owner: All users.
+        //    - Lead/Member: Self + All recursive descendants (direct reports tree).
+        const isExec = user?.role === 'owner' || user?.role === 'head';
         const myDescendants = user ? getDescendants(user.id, allMembers) : new Set<string>();
 
         return Object.values(tasks).filter(t => {
@@ -50,7 +50,7 @@ export function TeamBoardView() {
             if (!hasAccess) return false;
 
             // 1. Visibility Scope Check (Private vs Team)
-            //    Even if I technically "could" see it (e.g. I'm admin), if it's Private and not mine/assigned, I shouldn't see it on Team Board?
+            //    Even if I technically "could" see it (e.g. I'm head), if it's Private and not mine/assigned, I shouldn't see it on Team Board?
             //    Actually, standard rule: Private is strictly private unless assigned.
             //    "Team Board" implies Shared Work.
             //    We stick to: Private tasks are hidden here unless I am assigned (which makes it shared-private).
@@ -102,7 +102,7 @@ export function TeamBoardView() {
                             members={Object.values(team).filter(m => {
                                 // Only show members I can see in the filter
                                 if (!user) return false;
-                                if (user.role === 'owner' || user.role === 'admin') return true;
+                                if (user.role === 'owner' || user.role === 'head') return true;
                                 const myDescendants = getDescendants(user.id, Object.values(team));
                                 return myDescendants.has(m.id) || m.id === user.id;
                             })}

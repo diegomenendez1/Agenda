@@ -23,7 +23,7 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
         if (isOpen) {
             setEmail('');
             setRole('member');
-            setReportsTo(user?.role === 'manager' ? user.id : ''); // Default Managers to report to self
+            setReportsTo(user?.role === 'lead' ? user.id : ''); // Default Lead to report to self
             setErrorMsg(null);
             setIsSuccess(false);
         }
@@ -142,40 +142,36 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
                             <select
                                 value={role}
                                 onChange={(e) => setRole(e.target.value)}
-                                disabled={!['admin', 'owner', 'manager', 'coordinator'].includes(user?.role || '')}
+                                disabled={!['head', 'owner', 'lead'].includes(user?.role || '')}
                                 className={clsx(
                                     "input w-full appearance-none",
-                                    !['admin', 'owner', 'manager', 'coordinator'].includes(user?.role || '') && "opacity-50 cursor-not-allowed bg-bg-input/50"
+                                    !['head', 'owner', 'lead'].includes(user?.role || '') && "opacity-50 cursor-not-allowed bg-bg-input/50"
                                 )}
                             >
-                                <option value="member">Member (Standard Access)</option>
-                                {/* Manager can only invite Members/Coordinators. Admin/Owner can invite anyone. */}
-                                {['admin', 'owner', 'manager'].includes(user?.role || '') && (
+                                <option value="member">Member</option>
+                                {/* Head/Owner can invite anyone. Lead can invite Members. */}
+                                {['head', 'owner', 'lead'].includes(user?.role || '') && (
                                     <>
-                                        {/* Managers can invite Coordinators */}
-                                        <option value="coordinator">Coordinator (Sub-Manager)</option>
-
-                                        {['admin', 'owner'].includes(user?.role || '') && (
+                                        {['head', 'owner'].includes(user?.role || '') && (
                                             <>
-                                                <option value="lead">Team Lead (Can Invite)</option>
-                                                <option value="manager">Manager (Full Team Access)</option>
-                                                <option value="admin">Admin (Global Settings)</option>
+                                                <option value="lead">Team Lead</option>
+                                                <option value="head">Head (Strategy)</option>
                                             </>
                                         )}
                                     </>
                                 )}
                             </select>
 
-                            {['admin', 'owner', 'manager', 'coordinator'].includes(user?.role || '') ? (
+                            {['head', 'owner', 'lead'].includes(user?.role || '') ? (
                                 <p className="text-[10px] text-text-muted mt-1 px-1">
-                                    <strong>Managers/Coordinators</strong> can see tasks of their direct reports.
+                                    <strong>Leads</strong> can see tasks of their direct reports.
                                 </p>
                             ) : (
                                 <div className="mt-2 flex items-start gap-2 text-amber-500 bg-amber-500/10 p-2 rounded-lg text-xs">
                                     <AlertTriangle size={12} className="mt-0.5" />
                                     <span>
                                         As a member, you can <strong>request</strong> to invite someone.
-                                        An Admin must approve this request and assign the final role.
+                                        A Head or Owner must approve this request and assign the final role.
                                     </span>
                                 </div>
                             )}
@@ -183,7 +179,7 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
                     </div>
 
                     {/* Reports To Selection (New for Delegation) */}
-                    {['admin', 'owner', 'manager', 'coordinator'].includes(user?.role || '') && (
+                    {['head', 'owner', 'lead'].includes(user?.role || '') && (
                         <div>
                             <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
                                 <Shield size={12} /> Reports To (Manager)
@@ -197,11 +193,11 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
                                 {Object.values(team || {})
                                     .filter(m => {
                                         // Filter rules:
-                                        // 1. If I am Manager/Coordinator, I can only assign to MYSELF or my descendants
-                                        if (user?.role === 'manager' || user?.role === 'coordinator') {
+                                        // 1. If I am Lead, I can only assign to MYSELF or my descendants
+                                        if (user?.role === 'lead') {
                                             return m.id === user.id;
                                         }
-                                        return true; // Admin sees all
+                                        return true; // Head/Owner sees all
                                     })
                                     .map(m => (
                                         <option key={m.id} value={m.id}>
@@ -243,7 +239,7 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
                                 <>
                                     <Send size={18} />
                                     <span>
-                                        {['admin', 'owner', 'manager', 'coordinator'].includes(user?.role || '') ? 'Send Invitation' : 'Request Access'}
+                                        {['head', 'owner', 'lead'].includes(user?.role || '') ? 'Send Invitation' : 'Request Access'}
                                     </span>
                                 </>
                             )}

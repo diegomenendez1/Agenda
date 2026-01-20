@@ -63,7 +63,7 @@ export function TaskListView() {
             const isAssignee = task.assigneeIds?.includes(user.id);
             const isShared = task.visibility === 'team';
             const isOwner = task.ownerId === user.id;
-            const isAdmin = user.role === 'owner' || user.role === 'admin';
+            const isAdmin = user.role === 'owner' || user.role === 'head';
 
             // View Rules:
             // 1. Owner/Admin roles see everything
@@ -87,7 +87,7 @@ export function TaskListView() {
                 const isMemberOwner = task.ownerId === selectedMemberId;
 
                 // If I'm filtering by "Person X", I expect to see tasks assigned to them
-                // OR tasks they own (if shared with me or if I'm admin).
+                // OR tasks they own (if shared with me or if I'm head).
                 if (!isMemberAssigned && !isMemberOwner) return false;
             }
 
@@ -236,7 +236,7 @@ export function TaskListView() {
                         {/* Clear Actions */}
                         {(() => {
                             if (!user) return null;
-                            const isAdmin = user.role === 'owner' || user.role === 'admin';
+                            const isAdmin = user.role === 'owner' || user.role === 'head';
                             const hasClearableTasks = Object.values(tasks).some(t => {
                                 if (t.status !== 'done') return false;
                                 if (t.visibility === 'private') return t.ownerId === user.id;

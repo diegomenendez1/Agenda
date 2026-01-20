@@ -30,7 +30,7 @@ export function MemberManagementModal({ isOpen, onClose, memberId }: MemberManag
     }, [team, memberId]);
 
     const isMe = user?.id === member?.id;
-    const canManage = user?.role === 'owner' || user?.role === 'admin';
+    const canManage = user?.role === 'owner' || user?.role === 'head';
 
     // Workload Stats
     const stats = useMemo(() => {
@@ -163,10 +163,10 @@ export function MemberManagementModal({ isOpen, onClose, memberId }: MemberManag
                             <div className={clsx(
                                 "absolute -bottom-2 -right-2 p-1.5 rounded-full bg-bg-card border-4 border-bg-card",
                                 member.role === 'owner' ? "text-amber-500" :
-                                    member.role === 'admin' ? "text-accent-primary" : "text-emerald-500"
+                                    member.role === 'head' ? "text-accent-primary" : "text-emerald-500"
                             )}>
                                 {member.role === 'owner' ? <Shield size={16} fill="currentColor" /> :
-                                    member.role === 'admin' ? <Shield size={16} /> : <User size={16} />}
+                                    member.role === 'head' ? <Shield size={16} /> : <User size={16} />}
                             </div>
                         </div>
                     </div>
@@ -283,9 +283,8 @@ export function MemberManagementModal({ isOpen, onClose, memberId }: MemberManag
                                             className="input w-40 text-sm py-1.5"
                                         >
                                             <option value="member">Member</option>
-                                            <option value="coordinator">Coordinator</option>
-                                            <option value="manager">Manager</option>
-                                            <option value="admin">Admin</option>
+                                            <option value="lead">Lead</option>
+                                            <option value="head">Head</option>
                                             {/* Only Owners can make Owners */}
                                             {user?.role === 'owner' && <option value="owner">Owner</option>}
                                         </select>

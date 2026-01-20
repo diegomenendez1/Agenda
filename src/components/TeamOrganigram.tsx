@@ -118,7 +118,7 @@ function OrgNode({ node, currentUserId, onMemberClick, onDragStart, onDragOver, 
                     <div className={clsx(
                         "w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0",
                         node.role === 'owner' ? "bg-amber-500/10 text-amber-500" :
-                            node.role === 'admin' ? "bg-accent-primary/10 text-accent-primary" :
+                            node.role === 'head' ? "bg-accent-primary/10 text-accent-primary" :
                                 "bg-bg-input text-text-muted"
                     )}>
                         {node.avatar ? (

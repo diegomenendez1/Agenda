@@ -82,7 +82,7 @@ export function OnboardingView() {
                                                 {invite.teamId !== 'default-team' ? 'Join Team' : 'Invitation'}
                                             </div>
                                             <div className="text-xs text-text-secondary">
-                                                From: {invite.invitedBy || 'Admin'}
+                                                From: {invite.invitedBy || 'Head'}
                                             </div>
                                         </div>
                                         <button

@@ -28,14 +28,14 @@ export function MyTeamView() {
         if (!user || !team) return [];
         const allMembers = Object.values(team);
 
-        // Strict Visibility: Owners/Admins see everyone. Others see only their descendants (and themselves).
-        const isExec = user.role === 'owner' || user.role === 'admin';
+        // Strict Visibility: Owners/Heads see everyone. Others see only their descendants (and themselves).
+        const isExec = user.role === 'owner' || user.role === 'head';
 
         if (isExec) {
             return allMembers;
         }
 
-        // For managers/members, calculate strictly visible subtree
+        // For leads/members, calculate strictly visible subtree
         const visibleIds = getDescendants(user.id, allMembers);
         return allMembers.filter(m => visibleIds.has(m.id));
     }, [team, user]);
@@ -75,7 +75,7 @@ export function MyTeamView() {
     }, [activeInvitations]);
 
     const { approveInvitation, rejectInvitation } = useStore();
-    const isExec = user?.role === 'owner' || user?.role === 'admin';
+    const isExec = user?.role === 'owner' || user?.role === 'head';
 
     const handleRevoke = async (inviteId: string) => {
         if (confirm('Are you sure you want to revoke this invitation?')) {
@@ -124,7 +124,7 @@ export function MyTeamView() {
                     <button
                         onClick={() => setIsInviteModalOpen(true)}
                         className="btn btn-primary flex items-center gap-2"
-                        disabled={!isExec && user.role !== 'manager'}
+                        disabled={!isExec && user.role !== 'lead'}
                     >
                         <Plus size={18} />
                         <span>Invite Member</span>
@@ -414,7 +414,7 @@ export function MyTeamView() {
                         currentUserId={user.id}
                         onMemberClick={(id) => setSelectedMemberId(id)}
                         onUpdateManager={handleUpdateManager}
-                        readOnly={!isExec && user.role !== 'manager'}
+                        readOnly={!isExec && user.role !== 'lead'}
                     />
                 )}
             </div>

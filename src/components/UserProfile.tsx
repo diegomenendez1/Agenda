@@ -89,8 +89,8 @@ export function UserProfile() {
 
                     <div className="h-px bg-border-subtle" />
 
-                    {/* AI Assistant Context - Restricted to Admin/Owner */}
-                    {(user?.role === 'owner' || user?.role === 'admin') && (
+                    {/* AI Assistant Context - Restricted to Head/Owner */}
+                    {(user?.role === 'owner' || user?.role === 'head') && (
                         <div className="space-y-4">
                             <div className="flex items-center gap-2">
                                 <h3 className="text-lg font-semibold text-text-primary">AI Assistant Context</h3>
@@ -108,7 +108,7 @@ export function UserProfile() {
                         </div>
                     )}
 
-                    {(user?.role === 'owner' || user?.role === 'admin') && <div className="h-px bg-border-subtle" />}
+                    {(user?.role === 'owner' || user?.role === 'head') && <div className="h-px bg-border-subtle" />}
 
                     {/* Preferences Section */}
                     <div className="space-y-4">
