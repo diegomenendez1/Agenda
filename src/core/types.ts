@@ -40,9 +40,11 @@ export interface TeamInvitation {
     email: string;
     role: 'owner' | 'head' | 'lead' | 'member';
     invitedBy: EntityId; // User ID of the inviter
-    invitedByName?: string;
+    invitedByName?: string; // Legacy?
+    inviterName?: string; // Hydrated name
     teamId: EntityId;
     organizationId: EntityId; // NEW
+    organizationName?: string; // Hydrated name
     status: 'pending' | 'accepted' | 'declined' | 'revoked' | 'approval_needed';
     createdAt: number;
     token?: string; // For link-based invites

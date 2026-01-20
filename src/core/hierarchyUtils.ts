@@ -117,9 +117,8 @@ export function getDescendants(rootId: EntityId, members: TeamMember[]): Set<Ent
 
     traverse(rootNode);
 
-    // CRITICAL FIX: Also include the root user's direct manager!
-    // Why? Users need to see who they report to in the organigram, not just who reports to them.
-    // We find the node in the original 'members' list to get their reportsTo
+    // RESTORE CONTEXT: Also include the root user's direct manager!
+    // This allows leads/members to see their boss in the tree, but not their boss's boss.
     const rootMember = members.find(m => m.id === rootId);
     if (rootMember?.reportsTo) {
         descendants.add(rootMember.reportsTo);

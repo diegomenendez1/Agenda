@@ -12,8 +12,10 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 export function MyTeamView() {
-    const { user, tasks, activeInvitations, team, revokeInvitation, resendInvitation, myWorkspaces, updateTeamMember } = useStore();
+    const { user, tasks, activeInvitations, team, revokeInvitation, resendInvitation, myWorkspaces, updateTeamMember, renameWorkspace } = useStore();
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [tempWorkspaceName, setTempWorkspaceName] = useState('');
 
     // Derived State
     const currentWorkspaceName = useMemo(() => {
@@ -26,18 +28,8 @@ export function MyTeamView() {
 
     const myTeamMembers = useMemo(() => {
         if (!user || !team) return [];
-        const allMembers = Object.values(team);
-
-        // Strict Visibility: Owners/Heads see everyone. Others see only their descendants (and themselves).
-        const isExec = user.role === 'owner' || user.role === 'head';
-
-        if (isExec) {
-            return allMembers;
-        }
-
-        // For leads/members, calculate strictly visible subtree
-        const visibleIds = getDescendants(user.id, allMembers);
-        return allMembers.filter(m => visibleIds.has(m.id));
+        // Company Directory: Everyone in the org can see the full team list and structure.
+        return Object.values(team);
     }, [team, user]);
 
     const filteredMembers = useMemo(() => {
@@ -71,7 +63,7 @@ export function MyTeamView() {
         const pending = activeInvitations.filter(i => i.status === 'pending');
         return {
             pendingInvites: pending.filter(i => i.organizationId === user.organizationId), // Sent by this org
-            incomingInvites: pending.filter(i => i.email === user.email), // Sent TO me (could be this org or others)
+            incomingInvites: pending.filter(i => i.email?.toLowerCase() === user.email?.toLowerCase()), // Sent TO me (case-insensitive)
             approvalRequests: activeInvitations.filter(i => i.status === 'approval_needed')
         };
     }, [activeInvitations, user]);
@@ -105,9 +97,36 @@ export function MyTeamView() {
                 <div>
                     <h1 className="text-2xl font-bold font-display text-text-primary flex items-center gap-2">
                         My Team
-                        <span className="text-lg font-medium text-text-muted bg-bg-card px-3 py-1 rounded-full border border-border-subtle">
-                            {currentWorkspaceName}
-                        </span>
+                        {isEditingName ? (
+                            <form
+                                onSubmit={(e) => {
+                                    e.preventDefault();
+                                    if (!tempWorkspaceName.trim()) return;
+                                    renameWorkspace(user.organizationId, tempWorkspaceName.trim());
+                                    setIsEditingName(false);
+                                }}
+                                className="flex items-center gap-2"
+                            >
+                                <input
+                                    autoFocus
+                                    value={tempWorkspaceName}
+                                    onChange={(e) => setTempWorkspaceName(e.target.value)}
+                                    onBlur={() => setIsEditingName(false)} // Optional: save on blur or cancel
+                                    className="text-lg font-medium text-text-primary bg-bg-card px-3 py-1 rounded-full border border-accent-primary outline-none min-w-[200px]"
+                                />
+                            </form>
+                        ) : (
+                            <span
+                                onClick={() => {
+                                    setTempWorkspaceName(currentWorkspaceName);
+                                    setIsEditingName(true);
+                                }}
+                                className="text-lg font-medium text-text-muted bg-bg-card px-3 py-1 rounded-full border border-border-subtle cursor-pointer hover:border-accent-primary hover:text-text-primary transition-colors"
+                                title="Click to rename workspace (Local Alias)"
+                            >
+                                {currentWorkspaceName}
+                            </span>
+                        )}
                     </h1>
                     <p className="text-text-muted">The central hub for team composition, invitations, and performance.</p>
                 </div>
@@ -163,7 +182,7 @@ export function MyTeamView() {
                                         Join a new workspace as <span className="capitalize font-bold text-violet-600">{invite.role}</span>
                                     </div>
                                     <div className="text-sm text-text-muted mt-1">
-                                        Invited on {format(invite.createdAt, 'MMM d, yyyy')}
+                                        Invited by <strong>{invite.inviterName || 'Unknown'}</strong> to <strong>{invite.organizationName || 'Workspace'}</strong> • {format(invite.createdAt, 'MMM d, yyyy')}
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
@@ -317,7 +336,8 @@ export function MyTeamView() {
                         {filteredMembers.length === 0 ? (
                             <div className="p-12 text-center text-text-muted">
                                 <Users size={48} className="mx-auto mb-4 opacity-20" />
-                                <p>No team members found matching "{searchQuery}".</p>
+                                <p className="text-lg font-medium text-text-primary">No team members found</p>
+                                <p className="mt-1">Try adjusting your search or ensure you are in the correct workspace.</p>
                             </div>
                         ) : (
                             filteredMembers.map((member) => {
@@ -388,7 +408,7 @@ export function MyTeamView() {
                                                 <span>•</span>
                                                 <span className="flex items-center gap-1">
                                                     <Clock size={12} />
-                                                    Sent {format(invite.createdAt, 'MMM d, yyyy')}
+                                                    Sent {format(invite.createdAt, 'MMM d, yyyy')} by {invite.inviterName || 'You'}
                                                 </span>
                                             </div>
                                         </div>
@@ -437,7 +457,7 @@ export function MyTeamView() {
                                         <div>
                                             <h3 className="font-medium text-text-primary">{req.email}</h3>
                                             <div className="flex items-center gap-2 text-sm text-text-muted">
-                                                <span>Requested by <strong>{req.invitedByName || 'Unknown'}</strong></span>
+                                                <span>Requested by <strong>{req.inviterName || 'Manager'}</strong></span>
                                                 <span>•</span>
                                                 <span className="flex items-center gap-1">
                                                     <Clock size={12} />

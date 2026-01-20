@@ -9,7 +9,6 @@ import { NotesView } from './features/NotesView';
 import { MyTeamView } from './components/MyTeamView';
 import { AuthView } from './features/AuthView';
 import { SettingsView } from './features/SettingsView';
-import { OnboardingView } from './features/OnboardingView'; // NEW
 import { KPIView } from './features/KPIView';
 import { CommandPalette } from './components/CommandPalette';
 import { Sidebar } from './components/Sidebar';
@@ -69,50 +68,49 @@ export default function App() {
         <Route path="/auth" element={!user ? <AuthView /> : <Navigate to="/" />} />
 
         <Route path="/*" element={
-          !user ? <Navigate to="/auth" /> :
-            !user.organizationId ? <OnboardingView /> : ( // NEW: Enforce Organization
-              <div className="flex h-screen w-screen overflow-hidden bg-bg-app text-text-primary">
+          !user ? <Navigate to="/auth" /> : (
+            <div className="flex h-screen w-screen overflow-hidden bg-bg-app text-text-primary">
 
-                <div className="h-full flex gap-0 relative z-10 w-full max-w-[1920px] mx-auto">
-                  <ErrorBoundary>
-                    <Sidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
-                  </ErrorBoundary>
+              <div className="h-full flex gap-0 relative z-10 w-full max-w-[1920px] mx-auto">
+                <ErrorBoundary>
+                  <Sidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
+                </ErrorBoundary>
 
-                  <main className="flex-1 overflow-hidden relative flex flex-col bg-bg-app transition-all">
-                    {/* Mobile Menu Button - Floating on top left */}
-                    <div className="lg:hidden p-4 absolute top-0 left-0 z-20">
-                      <button
-                        onClick={() => setMobileMenuOpen(true)}
-                        className="bg-bg-card border border-border-subtle p-2 rounded-lg shadow-sm text-text-primary hover:text-accent-primary"
-                      >
-                        <Menu size={20} />
-                      </button>
-                    </div>
+                <main className="flex-1 overflow-hidden relative flex flex-col bg-bg-app transition-all">
+                  {/* Mobile Menu Button - Floating on top left */}
+                  <div className="lg:hidden p-4 absolute top-0 left-0 z-20">
+                    <button
+                      onClick={() => setMobileMenuOpen(true)}
+                      className="bg-bg-card border border-border-subtle p-2 rounded-lg shadow-sm text-text-primary hover:text-accent-primary"
+                    >
+                      <Menu size={20} />
+                    </button>
+                  </div>
 
-                    <CommandPalette />
-                    <DailyDigestModal />
+                  <CommandPalette />
+                  <DailyDigestModal />
 
-                    <div className="flex-1 overflow-auto custom-scrollbar relative">
-                      <ErrorBoundary>
-                        <Routes>
-                          <Route path="/" element={<Navigate to="/inbox" replace />} />
-                          <Route path="/inbox" element={<InboxView />} />
-                          <Route path="/tasks" element={<TaskListView />} />
-                          <Route path="/tasks/:taskId" element={<TaskListView />} />
-                          <Route path="/my-team" element={<MyTeamView />} />
-                          <Route path="/calendar" element={<CalendarView />} />
+                  <div className="flex-1 overflow-auto custom-scrollbar relative">
+                    <ErrorBoundary>
+                      <Routes>
+                        <Route path="/" element={<Navigate to="/inbox" replace />} />
+                        <Route path="/inbox" element={<InboxView />} />
+                        <Route path="/tasks" element={<TaskListView />} />
+                        <Route path="/tasks/:taskId" element={<TaskListView />} />
+                        <Route path="/my-team" element={<MyTeamView />} />
+                        <Route path="/calendar" element={<CalendarView />} />
 
-                          <Route path="/notes" element={<NotesView />} />
-                          <Route path="/notes/:noteId" element={<NotesView />} />
-                          <Route path="/kpis" element={<KPIView />} />
-                          <Route path="/settings" element={<SettingsView />} />
-                        </Routes>
-                      </ErrorBoundary>
-                    </div>
-                  </main>
-                </div>
+                        <Route path="/notes" element={<NotesView />} />
+                        <Route path="/notes/:noteId" element={<NotesView />} />
+                        <Route path="/kpis" element={<KPIView />} />
+                        <Route path="/settings" element={<SettingsView />} />
+                      </Routes>
+                    </ErrorBoundary>
+                  </div>
+                </main>
               </div>
-            )
+            </div>
+          )
         } />
       </Routes>
     </Router>

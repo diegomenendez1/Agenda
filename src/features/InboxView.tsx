@@ -71,7 +71,10 @@ export function InboxView() {
         setIsSelectionMode(false);
     };
 
-    const inboxItems = Object.values(inbox).sort((a, b) => b.createdAt - a.createdAt);
+    const activeOrgId = useStore.getState().user?.organizationId;
+    const inboxItems = Object.values(inbox)
+        .filter(item => item.organization_id === activeOrgId)
+        .sort((a, b) => b.createdAt - a.createdAt);
 
     return (
         <div className="flex flex-col h-full w-full max-w-5xl mx-auto p-6 md:p-10 transition-all duration-300 relative">

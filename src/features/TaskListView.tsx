@@ -10,6 +10,7 @@ import { isSameDay, isFuture } from 'date-fns';
 import { useSearchParams, useParams } from 'react-router-dom';
 import clsx from 'clsx';
 import type { EntityId } from '../core/types';
+import { getDescendants } from '../core/hierarchyUtils';
 
 export function TaskListView() {
     const { tasks, user, clearCompletedTasks, team } = useStore();
@@ -20,6 +21,11 @@ export function TaskListView() {
     const [searchParams, setSearchParams] = useSearchParams();
     const { taskId: pathTaskId } = useParams();
     const [editingTask, setEditingTask] = useState<any>(null);
+
+    const mySubtree = useMemo(() => {
+        if (!user || !team) return new Set<string>([user?.id || '']);
+        return getDescendants(user.id, Object.values(team));
+    }, [user, team]);
 
     // Deep Linking to Task
     useEffect(() => {
@@ -61,24 +67,24 @@ export function TaskListView() {
         const today = new Date();
 
         return allTasks.filter(task => {
-            const isAssignee = task.assigneeIds?.includes(user.id);
+            const isSameOrg = task.organizationId === user.organizationId;
+            if (!isSameOrg) return false;
+
             const isOwner = task.ownerId === user.id;
+            const isAssignee = task.assigneeIds?.includes(user.id);
+            const isGlobalViewer = user.role === 'owner' || user.role === 'head';
 
-            // --- STRICT VISIBILITY RULE ---
-            // "Si el usuario está asignado o la tarea está compartida con él → tiene visibilidad."
-            // "Si no está asignado y no está compartida → no tiene visibilidad."
-            // "Monitoring only" is DEAD. Admins do NOT see tasks they aren't assigned to.
+            // Hierarchical Visibility:
+            // 1. Owners/Heads see everything.
+            // 2. Leads/Members see tasks they own, are assigned to, or that belong to their reports (subtree).
+            const isManagedTask = mySubtree.has(task.ownerId || '') || task.assigneeIds?.some(id => mySubtree.has(id));
 
-            const hasAccess = isOwner || isAssignee;
+            const hasAccess = isGlobalViewer || isOwner || isAssignee || isManagedTask;
 
             if (!hasAccess) return false;
 
             // --- SCOPE FILTER (Private vs Shared) ---
             if (scopeFilter === 'private') {
-                // Must be private visibility AND I must be the owner (otherwise I wouldn't see it anyway, but strict safe)
-                // Also, if it's "Private" but assigned to others, it's effectively shared? 
-                // DB definition: visibility 'private' means usually no other assignees. 
-                // We'll trust the 'private' flag but also check assignee count for safety.
                 if (task.visibility !== 'private') return false;
             }
 

@@ -127,10 +127,13 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                                         {/* Allow creating new workspace even if only 1 exists */}
                                         <button
                                             onClick={() => setIsCreateModalOpen(true)}
-                                            className="absolute right-0 top-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-white/10 rounded"
+                                            className={clsx(
+                                                "absolute right-0 top-1 p-1 hover:bg-white/10 rounded transition-all",
+                                                !user?.organizationId ? "opacity-100 scale-110 text-accent-primary animate-pulse" : "opacity-0 group-hover:opacity-100 text-text-muted hover:text-text-primary"
+                                            )}
                                             title="Create New Workspace"
                                         >
-                                            <Plus size={14} className="text-text-muted hover:text-text-primary" />
+                                            <Plus size={14} />
                                         </button>
                                     </>
                                 )}

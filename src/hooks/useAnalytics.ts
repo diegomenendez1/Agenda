@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useStore } from '../core/store';
+import { getDescendants } from '../core/hierarchyUtils';
 
 import { isWithinInterval, startOfDay, endOfDay, subDays, format, eachDayOfInterval } from 'date-fns';
 
@@ -48,12 +49,18 @@ export function useAnalytics() {
         if (!tasks) return [];
         const allTasks = Object.values(tasks);
 
-        return allTasks.filter(task => {
-            // Role-based visibility
-            const isVisible = user?.role === 'owner' || user?.role === 'head'
-                ? true
-                : (task.ownerId === user?.id || task.assigneeIds?.includes(user?.id || ''));
+        const mySubtree = (user && team) ? getDescendants(user.id, Object.values(team)) : new Set([user?.id || '']);
 
+        return allTasks.filter(task => {
+            const isSameOrg = task.organizationId === user?.organizationId;
+            if (!isSameOrg) return false;
+
+            const isOwner = task.ownerId === user?.id;
+            const isAssignee = task.assigneeIds?.includes(user?.id || '');
+            const isGlobalViewer = user?.role === 'owner' || user?.role === 'head';
+            const isManagedTask = mySubtree.has(task.ownerId || '') || task.assigneeIds?.some(id => mySubtree.has(id));
+
+            const isVisible = isGlobalViewer || isOwner || isAssignee || isManagedTask;
             if (!isVisible) return false;
 
             // Project Filter

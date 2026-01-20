@@ -69,6 +69,7 @@ function CalendarContent() {
         if (!tasks) return [];
         const weekEnd = addDays(weekStart, 7);
         return Object.values(tasks).filter(task => {
+            if (task.organizationId !== useStore.getState().user?.organizationId) return false;
             if (!task.dueDate) return false;
             try {
                 const taskDate = new Date(task.dueDate);

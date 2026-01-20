@@ -344,6 +344,8 @@ export function MemberManagementModal({ isOpen, onClose, memberId }: MemberManag
                                 </div>
                             </div>
 
+
+
                             {/* AI Context */}
                             <div className="bg-bg-card rounded-xl border border-border-subtle shadow-sm overflow-hidden">
                                 <div className="p-4 border-b border-border-subtle bg-bg-input/30 flex justify-between items-center">
@@ -427,7 +429,7 @@ export function MemberManagementModal({ isOpen, onClose, memberId }: MemberManag
                         </div>
                     )}
                 </div>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }
