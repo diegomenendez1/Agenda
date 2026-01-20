@@ -7,13 +7,12 @@ import { clsx } from 'clsx';
 export function UserProfile() {
     const { user, updateUserProfile } = useStore();
     const [name, setName] = useState('');
-    const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
+
     const [aiContext, setAiContext] = useState('');
 
     useEffect(() => {
         if (user) {
             setName(user.name);
-            setTheme(user.preferences?.theme || 'system');
             setAiContext(user.preferences?.aiContext || '');
         }
     }, [user]);
@@ -26,7 +25,7 @@ export function UserProfile() {
             // Role is preserved from the existing user object, not editable here
             preferences: {
                 ...user.preferences,
-                theme,
+                theme: 'light',
                 aiContext
             }
         });
@@ -110,30 +109,7 @@ export function UserProfile() {
 
                     {(user?.role === 'owner' || user?.role === 'head') && <div className="h-px bg-border-subtle" />}
 
-                    {/* Preferences Section */}
-                    <div className="space-y-4">
-                        <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
-                            <Palette size={18} />
-                            Appearance
-                        </h3>
-                        <div className="grid grid-cols-3 gap-3 max-w-md">
-                            {(['light', 'dark', 'system'] as const).map((t) => (
-                                <button
-                                    key={t}
-                                    onClick={() => setTheme(t)}
-                                    className={clsx(
-                                        "px-4 py-3 rounded-xl border text-sm font-medium transition-all capitalize flex flex-col items-center gap-2",
-                                        theme === t
-                                            ? "bg-accent-primary/5 border-accent-primary text-accent-primary ring-1 ring-accent-primary"
-                                            : "bg-bg-input border-border-subtle text-text-muted hover:bg-bg-surface hover:text-text-primary"
-                                    )}
-                                >
-                                    {/* Simple icons for themes could go here */}
-                                    {t}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+                    {/* (Appearance section removed) */}
 
                     <div className="pt-8 flex justify-end border-t border-border-subtle mt-8">
                         <button

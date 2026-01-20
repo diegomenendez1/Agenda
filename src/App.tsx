@@ -49,32 +49,9 @@ export default function App() {
   }, [initialize]);
 
   useEffect(() => {
-    // Theme Switcher Logic
-    const theme = user?.preferences?.theme || 'light';
-    const root = window.document.documentElement;
-
-    const applyTheme = (t: string) => {
-      if (t === 'dark') {
-        root.classList.add('dark');
-      } else {
-        root.classList.remove('dark');
-      }
-    };
-
-    if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      applyTheme(systemTheme);
-
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleChange = (e: MediaQueryListEvent) => {
-        applyTheme(e.matches ? 'dark' : 'light');
-      };
-      mediaQuery.addEventListener('change', handleChange);
-      return () => mediaQuery.removeEventListener('change', handleChange);
-    } else {
-      applyTheme(theme);
-    }
-  }, [user?.preferences?.theme]);
+    // Force light mode
+    document.documentElement.classList.remove('dark');
+  }, []);
 
 
   if (loading) {
@@ -87,7 +64,7 @@ export default function App() {
 
   return (
     <Router>
-      <Toaster position="bottom-right" richColors theme={user?.preferences?.theme === 'dark' ? 'dark' : 'light'} />
+      <Toaster position="bottom-right" richColors theme="light" />
       <Routes>
         <Route path="/auth" element={!user ? <AuthView /> : <Navigate to="/" />} />
 
