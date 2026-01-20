@@ -73,19 +73,8 @@ export function TaskListView() {
             const isOwner = task.ownerId === user.id;
             const isAssignee = task.assigneeIds?.includes(user.id);
 
-            // 1. If I am the owner or a direct assignee, I ALWAYS have access.
-            if (isOwner || isAssignee) return true;
-
-            // 2. If the task is PRIVATE and I'm not the owner/assignee, NO ONE (not even admins) should see it.
-            if (task.visibility === 'private') return false;
-
-            // 3. For shared tasks (visibility === 'team'), apply hierarchical visibility:
-            const isGlobalViewer = user.role === 'owner' || user.role === 'head';
-            const isManagedTask = mySubtree.has(task.ownerId || '') || task.assigneeIds?.some(id => mySubtree.has(id));
-
-            const hasAccess = isGlobalViewer || isManagedTask;
-
-            if (!hasAccess) return false;
+            // Access is strictly for Owner or Assignees
+            if (!isOwner && !isAssignee) return false;
 
             // --- SCOPE FILTER (Private vs Shared) ---
             if (scopeFilter === 'private') {

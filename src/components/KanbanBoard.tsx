@@ -165,26 +165,13 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                         className={clsx(
                                             "p-4 rounded-xl transition-all duration-200 group relative cursor-pointer",
                                             "active:scale-[0.98]",
-
-                                            // Assignment Styles (Visual Distinction - DEBUG MODE HIGH CONTRAST)
-                                            isAssignedToMe
-                                                ? "bg-bg-card border border-border-subtle shadow-sm hover:shadow-lg hover:shadow-accent-primary/5 opacity-100"
-                                                : "bg-slate-100/40 dark:bg-slate-800/20 border-2 border-dashed border-slate-300/60 dark:border-slate-700/60 opacity-60 hover:opacity-100 hover:bg-bg-card hover:border-solid hover:border-border-subtle hover:shadow-md",
-
-                                            // Priority Borders
+                                            "bg-bg-card border border-border-subtle shadow-sm hover:shadow-lg hover:shadow-accent-primary/5 opacity-100",
                                             getPriorityBorder(task.priority),
-
-                                            // Status Styles
                                             task.status === 'done' && "opacity-50 grayscale-[0.8]",
                                             task.status === 'backlog' && "cursor-default",
                                         )}
                                         onClick={() => setEditingTask(task)}
                                     >
-                                        {!isAssignedToMe && (
-                                            <div className="mb-3 px-2 py-1 bg-slate-200/50 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider rounded-md w-fit flex items-center gap-1.5 border border-slate-300/50">
-                                                <Eye size={12} /> Monitoring Only
-                                            </div>
-                                        )}
                                         <div className="flex justify-between items-start mb-3">
                                             <div className="flex flex-col gap-1 pr-6 w-full">
 

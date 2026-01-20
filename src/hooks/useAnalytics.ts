@@ -58,19 +58,8 @@ export function useAnalytics() {
             const isOwner = task.ownerId === user?.id;
             const isAssignee = task.assigneeIds?.includes(user?.id || '');
 
-            // 1. Always visible to Owner or Assignee
-            if (isOwner || isAssignee) {
-                // Keep going for further filters (project, member, date)
-            } else {
-                // 2. If PRIVATE and not owner/assignee, it's invisible to everyone else
-                if (task.visibility === 'private') return false;
-
-                // 3. For shared tasks, check hierarchical access
-                const isGlobalViewer = user?.role === 'owner' || user?.role === 'head';
-                const isManagedTask = mySubtree.has(task.ownerId || '') || task.assigneeIds?.some(id => mySubtree.has(id));
-
-                if (!isGlobalViewer && !isManagedTask) return false;
-            }
+            // Only visible if user is involved (Owner or Assignee)
+            if (!isOwner && !isAssignee) return false;
 
             // Project Filter
             if (filter.projectId && task.projectId !== filter.projectId) return false;

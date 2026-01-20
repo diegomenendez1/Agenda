@@ -1317,11 +1317,7 @@ export const useStore = create<Store>((set, get) => ({
                 if (t.status !== 'done') return false;
                 const isOwner = t.ownerId === currentUserId;
                 const isAssignee = t.assigneeIds && t.assigneeIds.includes(currentUserId);
-                const isTeamTask = t.visibility === 'team';
-
-                if (isOwner) return true;
-                if (isTeamTask && (isAdmin || isAssignee)) return true;
-                return false;
+                return isOwner || isAssignee;
             })
             .map(t => t.id);
 
