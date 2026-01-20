@@ -126,86 +126,43 @@ export function UserProfile() {
 }
 
 function TeamInvitations() {
-    const { user } = useStore();
-    const [invites, setInvites] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { activeInvitations, acceptPendingInvitation, declinePendingInvitation } = useStore();
 
-    useEffect(() => {
-        if (user) fetchInvites();
-    }, [user]);
-
-    const fetchInvites = async () => {
-        const { data } = await supabase
-            .from('team_memberships')
-            .select(`
-                id,
-                status,
-                manager:manager_id (full_name, avatar_url, email)
-            `)
-            .eq('member_id', user?.id)
-            .eq('status', 'pending');
-
-        if (data) setInvites(data);
-        setLoading(false);
-    };
-
-    const handleRespond = async (id: string, accept: boolean) => {
-        try {
-            const { error } = await supabase.rpc('respond_to_team_invite', {
-                membership_id: id,
-                accept
-            });
-            if (error) throw error;
-
-            // Remove from list
-            setInvites(invites.filter(i => i.id !== id));
-
-            // If accepted, maybe reload window or team store? 
-            // Ideally we initiate a store refresh for 'team'
-            if (accept) {
-                // simple reload for now
-                window.location.reload();
-            }
-        } catch (err) {
-            console.error(err);
-            alert('Error processing response');
-        }
-    };
-
-    if (loading || invites.length === 0) return null;
+    if (!activeInvitations || activeInvitations.length === 0) return null;
 
     return (
-        <div className="bg-accent-primary/5 border border-accent-primary/20 rounded-xl p-4 animate-in fade-in slide-in-from-top-2">
+        <div className="bg-accent-primary/5 border border-accent-primary/20 rounded-xl p-4 animate-enter mb-8">
             <h3 className="text-sm font-bold text-accent-primary flex items-center gap-2 mb-3">
                 <Users size={16} />
                 Team Invitations
             </h3>
             <div className="space-y-3">
-                {invites.map((invite) => (
+                {activeInvitations.map((invite) => (
                     <div key={invite.id} className="flex items-center justify-between bg-bg-card p-3 rounded-lg border border-border-subtle shadow-sm">
                         <div className="flex items-center gap-3">
-                            <img
-                                src={invite.manager.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(invite.manager.full_name)}&background=random`}
-                                className="w-8 h-8 rounded-full bg-bg-input"
-                            />
+                            <div className="w-10 h-10 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary font-bold">
+                                {invite.organizationName?.charAt(0) || 'W'}
+                            </div>
                             <div>
                                 <p className="text-sm font-medium text-text-primary">
-                                    <span className="font-bold">{invite.manager.full_name}</span> invites you to join their team.
+                                    Join <span className="font-bold text-accent-primary">{invite.organizationName}</span>
                                 </p>
-                                <p className="text-xs text-text-muted">Lead • {invite.manager.email}</p>
+                                <p className="text-xs text-text-muted">
+                                    Invited by {invite.inviterName} • {invite.role}
+                                </p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={() => handleRespond(invite.id, false)}
+                                onClick={() => declinePendingInvitation(invite.id)}
                                 className="p-2 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
                                 title="Decline"
                             >
                                 <X size={16} />
                             </button>
                             <button
-                                onClick={() => handleRespond(invite.id, true)}
-                                className="px-3 py-1.5 bg-accent-primary text-white text-xs font-bold rounded-lg shadow-md shadow-accent-primary/20 hover:bg-accent-primary-hover transition-all flex items-center gap-1.5"
+                                onClick={() => acceptPendingInvitation(invite.id)}
+                                className="px-4 py-2 bg-accent-primary text-white text-xs font-bold rounded-lg shadow-md shadow-accent-primary/20 hover:bg-accent-primary-hover transition-all flex items-center gap-1.5"
                             >
                                 <Check size={14} />
                                 Accept
