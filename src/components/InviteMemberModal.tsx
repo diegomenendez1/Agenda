@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Mail, Shield, AlertTriangle, Check, Loader2, Send } from 'lucide-react';
 import { useStore } from '../core/store';
+import { getAssignableRoles, canAssignManager } from '../core/permissions';
 import clsx from 'clsx';
 
 interface InviteMemberModalProps {
@@ -23,7 +24,7 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
         if (isOpen) {
             setEmail('');
             setRole('member');
-            setReportsTo(user?.role === 'lead' ? user.id : ''); // Default Lead to report to self
+            setReportsTo(user?.id || ''); // Default: Report to the person inviting you (Cascade logic)
             setErrorMsg(null);
             setIsSuccess(false);
         }
@@ -142,24 +143,17 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
                             <select
                                 value={role}
                                 onChange={(e) => setRole(e.target.value)}
-                                disabled={!['head', 'owner', 'lead'].includes(user?.role || '')}
+                                disabled={!user?.role || user.role === 'member'}
                                 className={clsx(
                                     "input w-full appearance-none",
-                                    !['head', 'owner', 'lead'].includes(user?.role || '') && "opacity-50 cursor-not-allowed bg-bg-input/50"
+                                    (!user?.role || user.role === 'member') && "opacity-50 cursor-not-allowed bg-bg-input/50"
                                 )}
                             >
-                                <option value="member">Member</option>
-                                {/* Head/Owner can invite anyone. Lead can invite Members. */}
-                                {['head', 'owner', 'lead'].includes(user?.role || '') && (
-                                    <>
-                                        {['head', 'owner'].includes(user?.role || '') && (
-                                            <>
-                                                <option value="lead">Team Lead</option>
-                                                <option value="head">Head (Strategy)</option>
-                                            </>
-                                        )}
-                                    </>
-                                )}
+                                {getAssignableRoles(user?.role || 'member').map(r => (
+                                    <option key={r} value={r}>
+                                        {r.charAt(0).toUpperCase() + r.slice(1)}
+                                    </option>
+                                ))}
                             </select>
 
                             {['head', 'owner', 'lead'].includes(user?.role || '') ? (
@@ -193,11 +187,9 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
                                 {Object.values(team || {})
                                     .filter(m => {
                                         // Filter rules:
-                                        // 1. If I am Lead, I can only assign to MYSELF or my descendants
-                                        if (user?.role === 'lead') {
-                                            return m.id === user.id;
-                                        }
-                                        return true; // Head/Owner sees all
+                                        // 1. Strict Hierarchy: I can only assign to myself or below.
+                                        // 2. Head cannot assign to Owner. Lead cannot assign to Head.
+                                        return canAssignManager(user?.role || 'member', m.role);
                                     })
                                     .map(m => (
                                         <option key={m.id} value={m.id}>

@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { X, Flag, ArrowRight, Sparkles, Loader2, Clock, User, Check, Eye, EyeOff, ListTodo } from 'lucide-react';
 import { useStore } from '../core/store';
 import type { InboxItem, Priority } from '../core/types';
 import { fetchWithRetry } from '../core/api';
 import clsx from 'clsx';
 import { format } from 'date-fns';
+import { getDescendants } from '../core/hierarchyUtils';
 
 interface ProcessItemModalProps {
     item: InboxItem;
@@ -22,6 +23,22 @@ interface AIResponse {
 
 export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
     const { convertInboxToTask, addTask, deleteInboxItem, team, user } = useStore();
+
+    // VISIBILITY LOGIC (Refactored)
+    const visibleMemberIds = useMemo(() => {
+        if (!user) return new Set<string>();
+
+        // Owners see everyone
+        if (user.role === 'owner') return null;
+
+        // strict visibility: Down + 1 Up
+        const ids = getDescendants(user.id, Object.values(team));
+
+        // Debug
+        console.log('DEBUG: Assignments (ProcessItem) for', user.role, user.id, 'Visible:', Array.from(ids));
+
+        return ids;
+    }, [user, team]);
 
     // Form State
     const [title, setTitle] = useState(item.text);
@@ -79,9 +96,19 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                     created_at: new Date(item.createdAt).toISOString(),
                     // Optimization: Send only minimal necessary data to reduce payload size
 
-                    // Security warning: We are sending team names. Filter out current user to avoid self-assignment loops.
+                    // Security warning: We are sending team names. Filter out current user AND RESPECT VISIBILITY to avoid hallucinating assignments
                     available_team: Object.values(team)
                         .filter(m => m.id !== user?.id)
+                        .filter(m => {
+                            // Re-calculate simply or assume backend will handle? 
+                            // Safer to filter here so AI doesn't suggest hidden people.
+                            if (!user || user.role === 'owner') return true;
+                            // We don't have access to the hook variable inside this callback easily if defined outside render? 
+                            // Wait, visibleMemberIds is in scope of the component, handleAutoProcess is inside the component.
+                            // So we can use visibleMemberIds!
+                            if (!visibleMemberIds) return true;
+                            return visibleMemberIds.has(m.id);
+                        })
                         .map(m => ({ id: m.id, name: m.name })),
                     // Context injection for better AI decision making
                     team_context: (() => {
@@ -486,6 +513,10 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                         {Object.values(team)
                                             .filter(member => member.id !== user?.id)
+                                            .filter(member => {
+                                                if (!visibleMemberIds) return true;
+                                                return visibleMemberIds.has(member.id);
+                                            })
                                             .map(member => {
                                                 const isSelected = assigneeIds.includes(member.id);
 

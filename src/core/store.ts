@@ -114,6 +114,8 @@ interface Actions {
     createOrganization: (name: string) => Promise<void>;
     approveInvitation: (id: string, role: string) => Promise<void>; // NEW
     rejectInvitation: (id: string) => Promise<void>; // NEW
+    acceptPendingInvitation: (inviteId: string) => Promise<void>; // NEW for authenticated user acceptance
+    declinePendingInvitation: (inviteId: string) => Promise<void>; // NEW for authenticated user decline
 
     // Workspaces - NEW
     fetchWorkspaces: () => Promise<void>;
@@ -265,11 +267,61 @@ export const useStore = create<Store>((set, get) => ({
         toast.success('Invitation rejected/deleted');
     },
 
+    acceptPendingInvitation: async (inviteId) => {
+        try {
+            const { error } = await supabase.rpc('accept_invitation', {
+                invite_id: inviteId
+            });
+
+            if (error) throw error;
+
+            toast.success("Joined team successfully!");
+            // Reload app to switch context or show new data
+            await get().initialize();
+            window.location.reload(); // Force reload to ensure context switch
+        } catch (error) {
+            console.error("Failed to accept invitation:", error);
+            toast.error("Failed to join team");
+        }
+    },
+
+    declinePendingInvitation: async (inviteId) => {
+        try {
+            const { error } = await supabase.rpc('decline_invitation', {
+                invite_id: inviteId
+            });
+            if (error) throw error;
+
+            // Remove from local list
+            set(state => ({
+                activeInvitations: state.activeInvitations.filter(i => i.id !== inviteId)
+            }));
+
+            toast.success("Invitation declined");
+        } catch (error) {
+            console.error("Failed to decline invitation:", error);
+            toast.error("Failed to decline invitation");
+        }
+    },
+
     revokeInvitation: async (id) => {
         set(state => ({
             activeInvitations: state.activeInvitations.filter(i => i.id !== id)
         }));
-        // await supabase.from('team_invitations').delete().eq('id', id);
+
+        const { error } = await supabase.from('team_invitations').delete().eq('id', id);
+
+        if (error) {
+            console.error("Failed to revoke invitation:", error);
+            // Revert on failure (optional but recommended)
+            set(state => ({
+                activeInvitations: state.activeInvitations // Ideally would need to re-fetch or keep prev state
+            }));
+            await get().fetchInvitations(); // Re-sync to be safe
+            toast.error("Failed to revoke invitation");
+        } else {
+            toast.success("Invitation revoked");
+        }
     },
 
     resendInvitation: async (id) => {

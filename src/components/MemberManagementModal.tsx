@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../core/store';
+import { canManageRole, canAssignManager } from '../core/permissions';
 import {
     X, Shield, Mail, CheckCircle, Clock,
     BarChart2, Zap, AlertTriangle, Save,
@@ -30,7 +31,15 @@ export function MemberManagementModal({ isOpen, onClose, memberId }: MemberManag
     }, [team, memberId]);
 
     const isMe = user?.id === member?.id;
-    const canManage = user?.role === 'owner' || user?.role === 'head';
+
+    // Permission Logic: STRICT HIERARCHY
+    const canManage = useMemo(() => {
+        if (!user || !member) return false;
+        // Cannot manage self
+        if (user.id === member.id) return false;
+
+        return canManageRole(user.role, member.role);
+    }, [user, member]);
 
     // Workload Stats
     const stats = useMemo(() => {
@@ -318,6 +327,13 @@ export function MemberManagementModal({ isOpen, onClose, memberId }: MemberManag
                                             <option value="">-- No Manager --</option>
                                             {Object.values(team || {})
                                                 .filter(m => m.id !== member.id) // Cannot report to self
+                                                .filter(m => {
+                                                    // Ensure user has permission to assign this manager
+                                                    // OR if this person is ALREADY the manager, show them so the UI reflects reality.
+                                                    if (m.id === member.reportsTo) return true;
+
+                                                    return canAssignManager(user?.role || 'member', m.role);
+                                                })
                                                 .map(m => (
                                                     <option key={m.id} value={m.id}>
                                                         {m.name}

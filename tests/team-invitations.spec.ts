@@ -4,7 +4,7 @@ import { TEST_CREDENTIALS } from './fixtures';
 test.describe('Team Invitations & Management', () => {
     // const INVITER_EMAIL = TEST_CREDENTIALS.OWNER_EMAIL; // Unused
 
-    const TESTER_EMAIL = 'tester@test.com'; // Invitee/Member
+    const TESTER_EMAIL = TEST_CREDENTIALS.MEMBER_EMAIL; // Invitee/Member
 
     test.beforeEach(async ({ page }) => {
         // Prevent Daily Digest
@@ -60,6 +60,11 @@ test.describe('Team Invitations & Management', () => {
 
         // 7. Verify Removal
         await expect(page.getByText(uniqueEmail)).not.toBeVisible();
+
+        // 8. Verify Persistence after Reload
+        await page.reload();
+        await page.locator('button.pb-3').nth(1).click(); // Switch to "Sent Invitations" again
+        await expect(page.getByText(uniqueEmail)).not.toBeVisible();
     });
 
     test('Non-owner can leave the team', async ({ browser }) => {
@@ -72,7 +77,7 @@ test.describe('Team Invitations & Management', () => {
         // 1. Login as Member
         await page.goto('/login');
         await page.fill('input[type="email"]', TESTER_EMAIL);
-        await page.fill('input[type="password"]', '123456');
+        await page.fill('input[type="password"]', TEST_CREDENTIALS.MEMBER_PASSWORD);
         await page.click('button[type="submit"]');
         await expect(page).toHaveURL(/\/inbox/);
 

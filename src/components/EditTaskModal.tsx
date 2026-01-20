@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { X, Flag, Clock, Trash2, User, Lock, Sparkles, ArrowRight, Layout, AlertTriangle, Search, Loader2, Check, ListTodo } from 'lucide-react';
 import { useStore } from '../core/store';
 import { ActivityFeed } from './ActivityFeed';
@@ -6,6 +6,7 @@ import type { Task, Priority, TaskStatus, RecurrenceConfig } from '../core/types
 import { fetchWithRetry } from '../core/api';
 import clsx from 'clsx';
 import { format, isValid } from 'date-fns';
+import { getDescendants } from '../core/hierarchyUtils';
 
 interface EditTaskModalProps {
     task: Partial<Task> | Task; // Allow partial for creation
@@ -17,6 +18,22 @@ interface EditTaskModalProps {
 export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edit' }: EditTaskModalProps) {
     const { updateTask, addTask, updateStatus, deleteTask, unassignTask, team, user } = useStore();
     const [showActivity, setShowActivity] = useState(true); // Default visible
+
+    // VISIBILITY LOGIC (Refactored)
+    const visibleMemberIds = useMemo(() => {
+        if (!user) return new Set<string>();
+
+        // Owners see everyone
+        if (user.role === 'owner') return null;
+
+        // strict visibility: Down + 1 Up
+        const ids = getDescendants(user.id, Object.values(team));
+
+        // Debug
+        console.log('DEBUG: Assignments for', user.role, user.id, 'Visible:', Array.from(ids));
+
+        return ids;
+    }, [user, team]);
 
     // For creation mode, we might only have partial data
     const [title, setTitle] = useState(task.title || '');
@@ -600,6 +617,10 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                                             {Object.values(team)
                                                 .filter(member => member.id !== user?.id)
+                                                .filter(member => {
+                                                    if (!visibleMemberIds) return true;
+                                                    return visibleMemberIds.has(member.id);
+                                                })
                                                 .filter(member => member.name.toLowerCase().includes(assigneeSearch.toLowerCase()))
                                                 .map(member => {
                                                     const isSelected = assigneeIds.includes(member.id);

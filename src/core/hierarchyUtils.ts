@@ -56,6 +56,14 @@ export function buildTree(members: TeamMember[]): TreeNode[] {
         }
     });
 
+    // Custom Sorting for Roots: Owner MUST be first
+    const rolePriority = { 'owner': 0, 'head': 1, 'lead': 2, 'member': 3 };
+    roots.sort((a, b) => {
+        const pA = rolePriority[a.role as keyof typeof rolePriority] ?? 99;
+        const pB = rolePriority[b.role as keyof typeof rolePriority] ?? 99;
+        return pA - pB;
+    });
+
     // 3. Calculate Depths (BFS)
     // Use Set to prevent re-visiting if multiple paths exist (shouldn't in tree, but safety)
     const queue = roots.map(n => ({ node: n, depth: 0 }));
@@ -108,6 +116,15 @@ export function getDescendants(rootId: EntityId, members: TeamMember[]): Set<Ent
     };
 
     traverse(rootNode);
+
+    // CRITICAL FIX: Also include the root user's direct manager!
+    // Why? Users need to see who they report to in the organigram, not just who reports to them.
+    // We find the node in the original 'members' list to get their reportsTo
+    const rootMember = members.find(m => m.id === rootId);
+    if (rootMember?.reportsTo) {
+        descendants.add(rootMember.reportsTo);
+    }
+
     return descendants;
 }
 

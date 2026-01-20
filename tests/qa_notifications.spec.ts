@@ -2,8 +2,8 @@ import { test, expect } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 import path from 'path';
+import { TEST_CREDENTIALS } from './fixtures';
 
-// Load env vars
 // Load env vars
 dotenv.config();
 
@@ -24,13 +24,13 @@ test.describe('QA: Notification System & Realtime', () => {
     test.beforeAll(async () => {
         // Authenticate in Node context to get the User ID for injection
         const { data, error } = await supabase.auth.signInWithPassword({
-            email: 'tester@test.com',
-            password: '123456'
+            email: TEST_CREDENTIALS.MEMBER_EMAIL,
+            password: TEST_CREDENTIALS.MEMBER_PASSWORD
         });
 
         if (error || !data.user) {
             console.error("Test Login Failed:", error);
-            throw new Error('Could not login as tester@test.com to prepare tests. Check credentials.');
+            throw new Error(`Could not login as ${TEST_CREDENTIALS.MEMBER_EMAIL} to prepare tests. Check credentials.`);
         }
         testUserId = data.user.id;
 
@@ -56,8 +56,8 @@ test.describe('QA: Notification System & Realtime', () => {
         await page.reload();
 
         // 3. Login Flow (UI)
-        await page.fill('input[type="email"]', 'tester@test.com');
-        await page.fill('input[type="password"]', '123456');
+        await page.fill('input[type="email"]', TEST_CREDENTIALS.MEMBER_EMAIL);
+        await page.fill('input[type="password"]', TEST_CREDENTIALS.MEMBER_PASSWORD);
         await page.click('button[type="submit"]');
 
         // 4. Wait for Inbox to ensure loaded

@@ -67,14 +67,16 @@ export function MyTeamView() {
         return stats;
     }, [tasks]);
 
-    const { pendingInvites, approvalRequests } = useMemo(() => {
+    const { pendingInvites, approvalRequests, incomingInvites } = useMemo(() => {
+        const pending = activeInvitations.filter(i => i.status === 'pending');
         return {
-            pendingInvites: activeInvitations.filter(i => i.status === 'pending'),
+            pendingInvites: pending.filter(i => i.organizationId === user.organizationId), // Sent by this org
+            incomingInvites: pending.filter(i => i.email === user.email), // Sent TO me (could be this org or others)
             approvalRequests: activeInvitations.filter(i => i.status === 'approval_needed')
         };
-    }, [activeInvitations]);
+    }, [activeInvitations, user]);
 
-    const { approveInvitation, rejectInvitation } = useStore();
+    const { approveInvitation, rejectInvitation, acceptPendingInvitation, declinePendingInvitation, leaveTeam } = useStore();
     const isExec = user?.role === 'owner' || user?.role === 'head';
 
     const handleRevoke = async (inviteId: string) => {
@@ -121,6 +123,20 @@ export function MyTeamView() {
                             className="pl-9 pr-4 py-2 bg-bg-card border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/20 w-64"
                         />
                     </div>
+
+                    {user.role !== 'owner' && (
+                        <button
+                            onClick={() => {
+                                if (confirm("Are you sure you want to leave this team? You will lose access to all data.")) {
+                                    leaveTeam();
+                                }
+                            }}
+                            className="btn btn-ghost text-red-500 hover:bg-red-500/10 hover:text-red-600 flex items-center gap-2"
+                        >
+                            <span>Leave Team</span>
+                        </button>
+                    )}
+
                     <button
                         onClick={() => setIsInviteModalOpen(true)}
                         className="btn btn-primary flex items-center gap-2"
@@ -131,6 +147,49 @@ export function MyTeamView() {
                     </button>
                 </div>
             </div>
+
+            {/* Incoming Invitations Alert */}
+            {incomingInvites.length > 0 && (
+                <div className="bg-violet-500/10 border border-violet-500/20 rounded-xl p-4 mb-6 animate-in slide-in-from-top-2">
+                    <h3 className="text-lg font-bold text-violet-600 flex items-center gap-2 mb-3">
+                        <Mail className="w-5 h-5" />
+                        You have {incomingInvites.length} pending invitation{incomingInvites.length > 1 ? 's' : ''}
+                    </h3>
+                    <div className="grid gap-3">
+                        {incomingInvites.map(invite => (
+                            <div key={invite.id} className="bg-bg-card p-4 rounded-lg border border-border-subtle flex items-center justify-between shadow-sm">
+                                <div>
+                                    <div className="font-medium text-text-primary">
+                                        Join a new workspace as <span className="capitalize font-bold text-violet-600">{invite.role}</span>
+                                    </div>
+                                    <div className="text-sm text-text-muted mt-1">
+                                        Invited on {format(invite.createdAt, 'MMM d, yyyy')}
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => {
+                                            if (confirm("Are you sure you want to decline this invitation?")) {
+                                                declinePendingInvitation(invite.id);
+                                            }
+                                        }}
+                                        className="text-text-muted hover:text-red-500 hover:bg-red-500/10 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                                    >
+                                        Decline
+                                    </button>
+                                    <button
+                                        onClick={() => acceptPendingInvitation(invite.id)}
+                                        className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-violet-500/20 flex items-center gap-2"
+                                    >
+                                        <CheckCircle size={18} />
+                                        Accept & Join
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
