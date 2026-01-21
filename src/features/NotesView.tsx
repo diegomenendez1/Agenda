@@ -13,7 +13,7 @@ export function NotesView() {
 
     const notesList = useMemo(() => {
         return Object.values(notes)
-            .filter(n => n.title.toLowerCase().includes(searchQuery.toLowerCase()) || n.body.toLowerCase().includes(searchQuery.toLowerCase()))
+            .filter(n => (n.title || '').toLowerCase().includes(searchQuery.toLowerCase()) || (n.body || '').toLowerCase().includes(searchQuery.toLowerCase()))
             .sort((a, b) => b.updatedAt - a.updatedAt);
     }, [notes, searchQuery]);
 

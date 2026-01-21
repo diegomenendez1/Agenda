@@ -621,7 +621,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                                     if (!visibleMemberIds) return true;
                                                     return visibleMemberIds.has(member.id);
                                                 })
-                                                .filter(member => member.name.toLowerCase().includes(assigneeSearch.toLowerCase()))
+                                                .filter(member => (member.name || '').toLowerCase().includes(assigneeSearch.toLowerCase()))
                                                 .map(member => {
                                                     const isSelected = assigneeIds.includes(member.id);
                                                     // Cascade Logic:
@@ -655,7 +655,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                                                 <img src={member.avatar} alt={member.name} className="w-8 h-8 rounded-full border border-border-subtle" />
                                                             ) : (
                                                                 <div className="w-8 h-8 rounded-full bg-accent-secondary/20 flex items-center justify-center text-xs font-bold uppercase text-accent-primary">
-                                                                    {member.name.charAt(0)}
+                                                                    {member.name?.charAt(0) || '?'}
                                                                 </div>
                                                             )}
                                                             <div className="flex-1 min-w-0">

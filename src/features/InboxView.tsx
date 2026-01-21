@@ -74,6 +74,7 @@ export function InboxView() {
     const activeOrgId = useStore.getState().user?.organizationId;
     const inboxItems = Object.values(inbox)
         .filter(item => (item as any).organization_id === activeOrgId)
+        .filter(item => item.text && item.text.trim().length > 0) // Filter out empty/ghost items
         .sort((a, b) => b.createdAt - a.createdAt);
 
     return (

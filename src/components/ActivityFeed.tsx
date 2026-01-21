@@ -58,7 +58,7 @@ export function ActivityFeed({ taskId }: ActivityFeedProps) {
     };
 
     const filteredMembers = mentionQuery !== null
-        ? Object.values(team).filter(m => m.name.toLowerCase().includes(mentionQuery.toLowerCase()))
+        ? Object.values(team).filter(m => (m.name || '').toLowerCase().includes(mentionQuery.toLowerCase()))
         : [];
 
     const handleSendComment = async (e: React.FormEvent) => {

@@ -229,20 +229,32 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                                                 </button>
                                                             </div>
                                                         ) : task.ownerId === user?.id ? (
-                                                            <>
-                                                                <div className="w-full py-2 bg-bg-input border border-border-subtle text-text-muted text-[10px] font-bold uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 cursor-default opacity-80">
-                                                                    <Clock size={14} /> Waiting for Team
-                                                                </div>
+                                                            (task.assigneeIds && task.assigneeIds.length > 0) ? (
+                                                                <>
+                                                                    <div className="w-full py-2 bg-bg-input border border-border-subtle text-text-muted text-[10px] font-bold uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 cursor-default opacity-80">
+                                                                        <Clock size={14} /> Waiting for Team
+                                                                    </div>
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            updateStatus(task.id, 'todo');
+                                                                        }}
+                                                                        className="w-full py-2 bg-bg-surface hover:bg-indigo-50 text-text-muted hover:text-indigo-600 border border-border-subtle hover:border-indigo-200 text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2"
+                                                                    >
+                                                                        <CheckCircle2 size={14} /> Skip & Start
+                                                                    </button>
+                                                                </>
+                                                            ) : (
                                                                 <button
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
                                                                         updateStatus(task.id, 'todo');
                                                                     }}
-                                                                    className="w-full py-2 bg-bg-surface hover:bg-indigo-50 text-text-muted hover:text-indigo-600 border border-border-subtle hover:border-indigo-200 text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2"
+                                                                    className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2 shadow-md shadow-indigo-500/20 active:scale-95"
                                                                 >
-                                                                    <CheckCircle2 size={14} /> Skip & Start
+                                                                    <CheckCircle2 size={14} /> Start Task
                                                                 </button>
-                                                            </>
+                                                            )
                                                         ) : null}
                                                     </div>
                                                 )}

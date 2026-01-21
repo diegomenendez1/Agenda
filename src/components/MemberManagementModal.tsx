@@ -165,7 +165,7 @@ export function MemberManagementModal({ isOpen, onClose, memberId }: MemberManag
                                     <img src={member.avatar} alt={member.name} className="w-full h-full rounded-xl object-cover" />
                                 ) : (
                                     <div className="w-full h-full rounded-xl bg-accent-primary/10 flex items-center justify-center text-accent-primary text-3xl font-bold">
-                                        {member.name.charAt(0)}
+                                        {member.name?.charAt(0) || '?'}
                                     </div>
                                 )}
                             </div>

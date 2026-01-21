@@ -35,8 +35,9 @@ export function MyTeamView() {
         if (!searchQuery) return myTeamMembers;
         const lowerQuery = searchQuery.toLowerCase();
         return myTeamMembers.filter(m =>
-            m.name.toLowerCase().includes(lowerQuery) ||
-            m.email.toLowerCase().includes(lowerQuery)
+            (m.name || '').toLowerCase().includes(lowerQuery) ||
+            (m.email || '').toLowerCase().includes(lowerQuery) ||
+            m.role.toLowerCase().includes(lowerQuery)
         );
     }, [myTeamMembers, searchQuery]);
 
@@ -349,7 +350,7 @@ export function MyTeamView() {
                                                 {member.avatar ? (
                                                     <img src={member.avatar} alt={member.name} className="w-full h-full rounded-full object-cover" />
                                                 ) : (
-                                                    member.name.charAt(0)
+                                                    (member.name || '?').charAt(0)
                                                 )}
                                             </div>
                                             <div>

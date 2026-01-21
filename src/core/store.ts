@@ -6,6 +6,7 @@ import { calculateNextDueDate, shouldRecur } from './recurrenceUtils';
 import { toast } from 'sonner';
 
 const activeToggles = new Set<string>();
+const recentlyDeletedInboxIds = new Set<string>(); // Anti-Resurrection Set
 
 const toSeconds = (ms?: number) => ms ? Math.round(ms / 1000) : null;
 const fromSeconds = (s?: any) => {
@@ -666,7 +667,7 @@ export const useStore = create<Store>((set, get) => ({
             (teamRes.data as any[])?.forEach((t: any) => {
                 team[t.id] = {
                     id: t.id,
-                    name: t.full_name,
+                    name: t.full_name || t.email || 'Unknown',
                     email: t.email,
                     role: t.role,
                     avatar: t.avatar_url,
@@ -737,10 +738,22 @@ export const useStore = create<Store>((set, get) => ({
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'inbox_items' }, (payload: any) => {
                     const i = payload.new;
                     if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                        // Anti-Resurrection: Check if we locally deleted this ID recently
+                        if (recentlyDeletedInboxIds.has(i.id)) {
+                            console.log(`[Store] Blocked resurrection of deleted item ${i.id}`);
+                            return;
+                        }
+
                         const activeOrgId = get().user?.organizationId;
                         if (i.organization_id !== activeOrgId) return;
+                        // Strict Privacy: Only show your own inbox items
+                        if (i.user_id !== get().user?.id) return;
 
-                        set(state => ({ inbox: { ...state.inbox, [i.id]: i } }));
+                        const hydrated = {
+                            ...i,
+                            createdAt: i.created_at ? fromSeconds(i.created_at) || Date.now() : Date.now()
+                        };
+                        set(state => ({ inbox: { ...state.inbox, [i.id]: hydrated } }));
                     } else if (payload.eventType === 'DELETE') {
                         set(state => {
                             const { [payload.old.id]: _, ...rest } = state.inbox;
@@ -754,7 +767,13 @@ export const useStore = create<Store>((set, get) => ({
                         const activeOrgId = get().user?.organizationId;
                         if (p.organization_id !== activeOrgId) return;
 
-                        set(state => ({ projects: { ...state.projects, [p.id]: p } }));
+                        const hydrated = {
+                            ...p,
+                            createdAt: p.created_at ? fromSeconds(p.created_at) || Date.now() : Date.now(),
+                            deadline: fromSeconds(p.deadline),
+                            organizationId: p.organization_id
+                        };
+                        set(state => ({ projects: { ...state.projects, [p.id]: hydrated } }));
                     } else if (payload.eventType === 'DELETE') {
                         set(state => {
                             const { [payload.old.id]: _, ...rest } = state.projects;
@@ -768,7 +787,14 @@ export const useStore = create<Store>((set, get) => ({
                         const activeOrgId = get().user?.organizationId;
                         if (n.organization_id !== activeOrgId) return;
 
-                        set(state => ({ notes: { ...state.notes, [n.id]: { ...n, projectId: n.project_id } } }));
+                        const hydrated = {
+                            ...n,
+                            projectId: n.project_id,
+                            createdAt: fromSeconds(n.created_at) || Date.now(),
+                            updatedAt: fromSeconds(n.updated_at) || Date.now(),
+                            organizationId: n.organization_id
+                        };
+                        set(state => ({ notes: { ...state.notes, [n.id]: hydrated } }));
                     } else if (payload.eventType === 'DELETE') {
                         set(state => {
                             const { [payload.old.id]: _, ...rest } = state.notes;
@@ -897,6 +923,7 @@ export const useStore = create<Store>((set, get) => ({
 
 
     addInboxItem: async (text, source = 'manual') => {
+        if (!text || !text.trim()) return;
         const id = uuidv4();
         // Optimistic
         const userId = get().user?.id;
@@ -918,6 +945,7 @@ export const useStore = create<Store>((set, get) => ({
     },
 
     deleteInboxItem: async (id) => {
+        recentlyDeletedInboxIds.add(id); // Track for anti-resurrection
         // Optimistic
         set(state => {
             const { [id]: _, ...rest } = state.inbox;
@@ -928,6 +956,7 @@ export const useStore = create<Store>((set, get) => ({
 
     deleteInboxItems: async (ids) => {
         if (ids.length === 0) return;
+        ids.forEach(id => recentlyDeletedInboxIds.add(id)); // Track for anti-resurrection
         // Optimistic
         set(state => {
             const newInbox = { ...state.inbox };

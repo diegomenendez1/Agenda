@@ -124,7 +124,7 @@ function OrgNode({ node, currentUserId, onMemberClick, onDragStart, onDragOver, 
                         {node.avatar ? (
                             <img src={node.avatar} alt={node.name} className="w-full h-full rounded-full object-cover" />
                         ) : (
-                            node.name.charAt(0)
+                            (node.name || '?').charAt(0)
                         )}
                     </div>
                     <div className="min-w-0 flex-1">
