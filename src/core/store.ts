@@ -1804,17 +1804,11 @@ export const useStore = create<Store>((set, get) => ({
         const task = state.tasks[taskId];
         if (!task) return;
 
+        // Snapshot for rollback
+        const previousTask = { ...task };
+
         // Filter out the user
         const newAssignees = (task.assigneeIds || []).filter(id => id !== userId);
-
-        // Determine new visibility
-        // If there are still OTHER assignees (besides owner), it stays 'team'.
-        // If the only person left is the owner (or no one), it effectively becomes private to the owner unless explicitly set otherwise.
-        // However, we usually keep 'team' if there are multiple people.
-        // If assignees is empty, it's effectively private or backlog.
-        // Let's refine: If assigneeIds is empty, visibility could be 'private'.
-        // But if the owner wants it shared, they might have set it manually? 
-        // For now, let's stick to the rule: if assigneeIds has people != ownerId, it's team. Else private.
         const ownerId = task.ownerId;
         const hasOtherAssignees = newAssignees.filter(id => id !== ownerId).length > 0;
         const newVisibility = hasOtherAssignees ? 'team' : 'private';
@@ -1832,29 +1826,38 @@ export const useStore = create<Store>((set, get) => ({
             }
         }));
 
-        // Database Update
-        await supabase.from('tasks').update({
-            assignee_ids: newAssignees,
-            visibility: newVisibility,
-            updated_at: new Date().toISOString()
-        }).eq('id', taskId);
+        try {
+            // Database Update via RPC (Bypasses RLS check-modify loop)
+            const { error } = await supabase.rpc('remove_task_assignee', {
+                task_id: taskId,
+                target_user_id: userId
+            });
 
-        // Activity Log
-        // Get user name for better log
-        const leavingUser = state.team[userId] || state.user;
-        const leaverName = leavingUser?.name || 'A user';
+            if (error) throw error;
 
-        await state.logActivity(taskId, 'assignment', `${leaverName} left the task`);
+            // Activity Log
+            const leavingUser = state.team[userId] || state.user;
+            const leaverName = leavingUser?.name || 'A user';
 
-        // Notify Owner if the one leaving is not the owner
-        if (userId !== ownerId) {
-            state.sendNotification(
-                ownerId,
-                'assignment',
-                'Assignee Left',
-                `${leaverName} removed themselves from "${task.title}"`,
-                `/tasks?taskId=${taskId}`
-            );
+            await state.logActivity(taskId, 'assignment', `${leaverName} left the task`);
+
+            // Notify Owner if the one leaving is not the owner
+            if (userId !== ownerId) {
+                state.sendNotification(
+                    ownerId,
+                    'assignment',
+                    'Assignee Left',
+                    `${leaverName} removed themselves from "${task.title}"`,
+                    `/tasks?taskId=${taskId}`
+                );
+            }
+        } catch (error: any) {
+            console.error("Failed to unassign task:", error);
+            toast.error("Failed to leave task: " + error.message);
+            // Rollback
+            set(state => ({
+                tasks: { ...state.tasks, [taskId]: previousTask }
+            }));
         }
     }
 }));

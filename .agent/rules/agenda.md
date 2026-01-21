@@ -38,3 +38,6 @@ trigger: always_on
 
 ## 7. Integridad y Aislamiento de Soluciones
 - **Aislamiento del Problema:** Es muy importante no dañar funcionalidades que ya operan correctamente al intentar solucionar un problema. Las soluciones deben ser aisladas al problema en cuestión. No es aceptable dañar partes del proceso que funcionan bien por arreglar solo un fragmento específico. Priorizar la estabilidad y evitar regresiones.
+
+## 8. Pruebas Obligatorias (Testing)
+- **Validación Automatizada:** Siempre que se realicen cambios en el código, es OBLIGATORIO realizar pruebas de usuario mediante código para asegurar una funcionalidad correcta en todos los aspectos del cambio. No se deben dar por finalizados cambios sin haberlos probado exhaustivamente para prevenir errores en partes interconectadas de la aplicación.

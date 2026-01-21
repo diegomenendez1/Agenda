@@ -125,9 +125,14 @@ export function UserProfile() {
 }
 
 function TeamInvitations() {
-    const { activeInvitations, acceptPendingInvitation, declinePendingInvitation } = useStore();
+    const { user, activeInvitations, acceptPendingInvitation, declinePendingInvitation } = useStore();
 
-    if (!activeInvitations || activeInvitations.length === 0) return null;
+    const myInvitations = activeInvitations.filter(i =>
+        i.status === 'pending' &&
+        i.email?.toLowerCase() === user?.email?.toLowerCase()
+    );
+
+    if (!myInvitations || myInvitations.length === 0) return null;
 
     return (
         <div className="bg-accent-primary/5 border border-accent-primary/20 rounded-xl p-4 animate-enter mb-8">
@@ -136,7 +141,7 @@ function TeamInvitations() {
                 Team Invitations
             </h3>
             <div className="space-y-3">
-                {activeInvitations.map((invite) => (
+                {myInvitations.map((invite) => (
                     <div key={invite.id} className="flex items-center justify-between bg-bg-card p-3 rounded-lg border border-border-subtle shadow-sm">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-accent-primary/10 flex items-center justify-center text-accent-primary font-bold">
