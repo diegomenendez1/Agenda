@@ -357,22 +357,35 @@ export const useStore = create<Store>((set, get) => ({
     },
 
     revokeInvitation: async (id) => {
+        // 1. Optimistic Update
+        const previousInvitations = get().activeInvitations;
         set(state => ({
             activeInvitations: state.activeInvitations.filter(i => i.id !== id)
         }));
 
-        const { error } = await supabase.from('team_invitations').delete().eq('id', id);
+        try {
+            // 2. Use RPC for safe deletion
+            const { data: success, error } = await supabase.rpc('delete_invitation', {
+                target_invite_id: id
+            });
 
-        if (error) {
-            console.error("Failed to revoke invitation:", error);
-            // Revert on failure (optional but recommended)
-            set(state => ({
-                activeInvitations: state.activeInvitations // Ideally would need to re-fetch or keep prev state
-            }));
-            await get().fetchInvitations(); // Re-sync to be safe
-            toast.error("Failed to revoke invitation");
-        } else {
+            if (error) throw error;
+
+            // 3. Verify Success
+            if (success === false) {
+                throw new Error("Permission denied or invitation validation failed");
+            }
+
             toast.success("Invitation revoked");
+        } catch (error: any) {
+            console.error("Failed to revoke invitation:", error);
+
+            // 4. Rollback on failure
+            set({ activeInvitations: previousInvitations });
+            toast.error(error.message || "Failed to revoke invitation");
+
+            // 5. Re-sync to ensure consistency
+            await get().fetchInvitations();
         }
     },
 
@@ -826,8 +839,8 @@ export const useStore = create<Store>((set, get) => ({
                                 ...state.team,
                                 [p.id]: {
                                     id: p.id,
-                                    name: p.full_name,
-                                    email: p.email,
+                                    name: p.full_name || p.email || 'Unknown', // Safe Fallback
+                                    email: p.email || '',
                                     role: p.role,
                                     avatar: p.avatar_url,
                                     reportsTo: p.reports_to
@@ -837,8 +850,21 @@ export const useStore = create<Store>((set, get) => ({
                         // If it's the current user, update 'user' state too
                         const currentUser = get().user;
                         if (currentUser && currentUser.id === p.id) {
-                            set({ user: { ...currentUser, name: p.full_name, role: p.role, avatar: p.avatar_url, organizationId: p.organization_id } });
+                            set({
+                                user: {
+                                    ...currentUser,
+                                    name: p.full_name || p.email?.split('@')[0] || 'User',
+                                    role: p.role,
+                                    avatar: p.avatar_url,
+                                    organizationId: p.organization_id
+                                }
+                            });
                         }
+                    } else if (payload.eventType === 'DELETE') {
+                        set(state => {
+                            const { [payload.old.id]: _, ...rest } = state.team;
+                            return { team: rest };
+                        });
                     }
                 })
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'team_invitations' }, () => {

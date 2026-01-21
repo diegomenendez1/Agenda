@@ -35,3 +35,6 @@ trigger: always_on
 - **Prevención de Desastres:** Está estrictamente prohibido ejecutar operaciones destructivas (`DROP`, `TRUNCATE`, `DELETE` masivos) sin una confirmación doble y validación de impacto.
 - **Fuga de Información (Data Leak):** Se debe garantizar que ninguna consulta o script exponga información de usuarios reales en logs, terminales o respuestas públicas.
 - **Estabilidad del Backend:** Cualquier cambio en la lógica del backend (RPCs, triggers, políticas RLS) debe ser probado primero mediante simulaciones (scripts de test) para evitar caídas del servicio.
+
+## 7. Integridad y Aislamiento de Soluciones
+- **Aislamiento del Problema:** Es muy importante no dañar funcionalidades que ya operan correctamente al intentar solucionar un problema. Las soluciones deben ser aisladas al problema en cuestión. No es aceptable dañar partes del proceso que funcionan bien por arreglar solo un fragmento específico. Priorizar la estabilidad y evitar regresiones.

@@ -12,6 +12,9 @@ test.describe('Team Invitations & Management', () => {
             window.localStorage.setItem('lastDigestDate', new Date().toDateString());
         });
 
+        // Debug console
+        page.on('console', msg => console.log('BROWSER:', msg.text()));
+
         // Login as Owner first
         const admin = page; // Corrected from 'page1' to 'page' for syntactic correctness
         await admin.goto('/login'); // Kept original '/login' path
@@ -46,24 +49,25 @@ test.describe('Team Invitations & Management', () => {
         // 5. Verify Pending State in "Sent Invitations" tab
         await page.waitForTimeout(1000); // Wait for modal animation and state update
         // Use structural selector as data-id might not have HMR'd
-        await page.locator('button.pb-3').nth(1).click();
+        await page.getByTestId('tab-invitations').click();
 
         // Wait for list to update
-        await expect(page.getByText(uniqueEmail).first()).toBeVisible({ timeout: 10000 });
-        await expect(page.getByText('Pending', { exact: false })).toBeVisible();
+        const newInviteRow = page.locator('div.p-4').filter({ hasText: uniqueEmail }).filter({ hasText: 'Pending' }).first();
+        await expect(newInviteRow).toBeVisible({ timeout: 10000 });
 
         // 6. Revoke Invitation
         page.once('dialog', dialog => dialog.accept());
-        // Find the revoke button for this specific email
-        const inviteRow = page.locator('div', { hasText: uniqueEmail }).last();
-        await inviteRow.getByText('Revoke').click();
+        await newInviteRow.getByText('Revoke').click();
+
+        // Wait for success toast to ensure network (RPC) completed
+        await expect(page.getByText('Invitation revoked')).toBeVisible();
 
         // 7. Verify Removal
         await expect(page.getByText(uniqueEmail)).not.toBeVisible();
 
         // 8. Verify Persistence after Reload
         await page.reload();
-        await page.locator('button.pb-3').nth(1).click(); // Switch to "Sent Invitations" again
+        await page.getByTestId('tab-invitations').click(); // Switch to "Sent Invitations" again
         await expect(page.getByText(uniqueEmail)).not.toBeVisible();
     });
 
@@ -122,7 +126,7 @@ test.describe('Team Invitations & Management', () => {
 
         // Verify sent tab
         // Verify sent tab
-        await page.locator('button.pb-3').nth(1).click();
+        await page.getByTestId('tab-invitations').click();
         const rows = await page.getByText(/stress_/).all();
         expect(rows.length).toBeGreaterThanOrEqual(3);
     });

@@ -542,14 +542,14 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                                                             <img src={member.avatar} alt={member.name} className="w-8 h-8 rounded-full border border-border-subtle" />
                                                         ) : (
                                                             <div className="w-8 h-8 rounded-full bg-accent-secondary/20 flex items-center justify-center text-xs font-bold uppercase text-accent-primary">
-                                                                {member.name?.charAt(0) || '?'}
+                                                                {(member.name || member.email || '?').charAt(0).toUpperCase()}
                                                             </div>
                                                         )}
                                                         <div className="flex-1 min-w-0">
                                                             <div className={clsx("text-sm font-medium truncate", isSelected ? "text-accent-primary" : "text-text-primary")}>
-                                                                {member.name}
+                                                                {member.name || member.email || 'Unknown User'}
                                                             </div>
-                                                            <div className="text-[10px] opacity-70 truncate text-text-muted">{member.email}</div>
+                                                            <div className="text-[10px] opacity-70 truncate text-text-muted">{member.email || 'No email'}</div>
                                                         </div>
                                                         {isSelected && <div className="w-2 h-2 rounded-full bg-accent-primary shadow-sm shadow-accent-primary/50" />}
                                                     </button>
