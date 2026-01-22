@@ -514,6 +514,9 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                                         {Object.values(team)
                                             .filter(member => member.id !== user?.id)
                                             .filter(member => {
+                                                // Filter out invalid members or ghosts
+                                                if (!member.email && (!member.name || member.name === 'Unknown' || member.name === 'Unknown User')) return false;
+
                                                 if (!visibleMemberIds) return true;
                                                 return visibleMemberIds.has(member.id);
                                             })

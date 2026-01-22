@@ -101,6 +101,7 @@ interface Actions {
 
     // Activities
     logActivity: (taskId: EntityId, type: string, content: string, metadata?: any) => Promise<void>;
+    updateActivity: (id: EntityId, content: string) => Promise<void>;
     fetchActivities: (taskId: EntityId) => Promise<void>;
 
     // Notifications
@@ -678,6 +679,12 @@ export const useStore = create<Store>((set, get) => ({
 
             const team: Record<string, any> = {};
             (teamRes.data as any[])?.forEach((t: any) => {
+                // Defensive check: Skip users with no identifier
+                if (!t.full_name && !t.email) {
+                    console.warn('[Store] Skipping invalid profile (no name/email):', t.id);
+                    return;
+                }
+
                 team[t.id] = {
                     id: t.id,
                     name: t.full_name || t.email || 'Unknown',
@@ -830,6 +837,11 @@ export const useStore = create<Store>((set, get) => ({
                                 const { [p.id]: _, ...rest } = state.team;
                                 return { team: rest };
                             });
+                            return;
+                        }
+
+                        // Defensive check: Skip users with no identifier
+                        if (!p.full_name && !p.email) {
                             return;
                         }
 
@@ -1671,6 +1683,30 @@ export const useStore = create<Store>((set, get) => ({
             content,
             metadata
         });
+    },
+
+    updateActivity: async (id, content) => {
+        // Optimistic
+        set(state => {
+            const activity = state.activities[id];
+            if (!activity) return state;
+            return {
+                activities: {
+                    ...state.activities,
+                    [id]: { ...activity, content }
+                }
+            };
+        });
+
+        const { error } = await supabase.from('activity_logs').update({ content }).eq('id', id);
+
+        if (error) {
+            console.error("Failed to update activity:", error);
+            toast.error("Failed to update message");
+            // Revert logic could be added here if needed, but for text edits strictly it's often OK to just error
+        } else {
+            toast.success("Message updated");
+        }
     },
 
     fetchActivities: async (taskId) => {

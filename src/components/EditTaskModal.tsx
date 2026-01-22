@@ -617,6 +617,8 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
                                             {Object.values(team)
                                                 .filter(member => member.id !== user?.id)
+                                                // Filter out invalid/ghost users
+                                                .filter(member => member.email && member.name !== 'Unknown')
                                                 .filter(member => {
                                                     if (!visibleMemberIds) return true;
                                                     return visibleMemberIds.has(member.id);
