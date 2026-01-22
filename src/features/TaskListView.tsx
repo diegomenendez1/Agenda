@@ -1,8 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useStore } from '../core/store';
-import { CheckCircle2, Calendar, ClipboardList, LayoutList, KanbanSquare, Trash2, Plus, X, Lock, Users } from 'lucide-react';
+import { CheckCircle2, Calendar, ClipboardList, LayoutList, KanbanSquare, Trash2, Plus, X, Lock, Users, Table } from 'lucide-react';
 import { TaskItem } from '../components/TaskItem';
 import { KanbanBoard } from '../components/KanbanBoard';
+import { TaskTable } from '../components/TaskTable';
+
 import { EditTaskModal } from '../components/EditTaskModal';
 
 import { AvatarMemberFilter } from '../components/AvatarMemberFilter';
@@ -32,7 +34,8 @@ export function TaskListView() {
     // Persistent View Mode
     const viewMode = user?.preferences?.taskViewMode || 'list';
 
-    const handleSetViewMode = (mode: 'list' | 'board') => {
+    const handleSetViewMode = (mode: 'list' | 'board' | 'table') => {
+
         if (!user) return;
         useStore.getState().updateUserProfile({
             ...user,
@@ -255,6 +258,18 @@ export function TaskListView() {
                                 <LayoutList size={18} />
                             </button>
                             <button
+                                onClick={() => handleSetViewMode('table')}
+                                className={clsx(
+                                    "p-1.5 rounded-lg transition-all duration-200",
+                                    viewMode === 'table'
+                                        ? "bg-bg-card text-violet-600 shadow-sm"
+                                        : "text-text-muted hover:text-text-secondary"
+                                )}
+                                title="Table View"
+                            >
+                                <Table size={18} />
+                            </button>
+                            <button
                                 onClick={() => handleSetViewMode('board')}
                                 className={clsx(
                                     "p-1.5 rounded-lg transition-all duration-200",
@@ -316,6 +331,10 @@ export function TaskListView() {
                 {viewMode === 'board' ? (
                     <div className="h-full overflow-x-auto pb-4">
                         <KanbanBoard tasks={filteredTasks} />
+                    </div>
+                ) : viewMode === 'table' ? (
+                    <div className="max-w-6xl mx-auto w-full pb-20">
+                        <TaskTable tasks={filteredTasks} />
                     </div>
                 ) : filteredTasks.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-64 text-text-muted border-2 border-dashed border-border-subtle rounded-2xl bg-bg-sidebar/50 max-w-5xl mx-auto w-full">

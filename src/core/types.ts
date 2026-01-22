@@ -17,7 +17,7 @@ export interface UserProfile {
     preferences: {
         autoPrioritize: boolean;
         theme: 'light' | 'dark' | 'system';
-        taskViewMode?: 'list' | 'board';
+        taskViewMode?: 'list' | 'board' | 'table';
         aiContext?: string;
     };
 }
