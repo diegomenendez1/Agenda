@@ -11,11 +11,14 @@ import { EditTaskModal } from './EditTaskModal';
 
 interface TaskTableProps {
     tasks: Task[];
+    onToggleStatus?: (taskId: EntityId) => void;
 }
 
-export function TaskTable({ tasks }: TaskTableProps) {
-    const { toggleTaskStatus, team, user } = useStore();
+export function TaskTable({ tasks, onToggleStatus }: TaskTableProps) {
+    const { toggleTaskStatus: storeToggleTaskStatus, team, user } = useStore();
     const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+    const handleToggle = onToggleStatus || storeToggleTaskStatus;
 
     // Simple column headers definition
     const columns = [
@@ -74,7 +77,7 @@ export function TaskTable({ tasks }: TaskTableProps) {
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    toggleTaskStatus(task.id);
+                                                    handleToggle(task.id);
                                                 }}
                                                 className={clsx(
                                                     "transition-colors rounded-full p-1",

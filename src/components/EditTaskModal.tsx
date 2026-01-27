@@ -7,6 +7,7 @@ import { fetchWithRetry } from '../core/api';
 import clsx from 'clsx';
 import { format, isValid } from 'date-fns';
 import { getDescendants } from '../core/hierarchyUtils';
+import { processTaskInputWithAI } from '../core/aiTaskProcessing';
 
 interface EditTaskModalProps {
     task: Partial<Task> | Task; // Allow partial for creation
@@ -86,88 +87,39 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
         if (!task.id) return; // Cannot process without ID
         setAiLoading(true);
         try {
-            const webhookUrl = import.meta.env.DEV
-                ? `/api/auto-process?id=${task.id}`
-                : `${import.meta.env.VITE_N8N_WEBHOOK_URL}?id=${task.id}`;
+            if (!user?.id) throw new Error("User not found");
 
-            const response = await fetchWithRetry(webhookUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: task.id,
-                    text: task.title,
-                    source: task.source || 'manual',
-
-                    available_team: Object.values(team)
-                        .filter(m => m.id !== user?.id)
-                        .map(m => ({ id: m.id, name: m.name }))
-                })
+            // Use Client Service instead of N8N
+            const results = await processTaskInputWithAI(user.id, task.title || '', {
+                organizationId: user.organizationId,
+                userRoleContext: user.preferences?.aiContext
             });
 
-            if (!response.ok) throw new Error('CORS or Network Error');
+            if (results.length > 0) {
+                // If AI created a completely new task structure, we should ideally close this modal or reload.
+                // But since this modal edits a single task, we will map the FIRST result to the current UI state.
+                const aiResult = results[0];
 
-            const responseText = await response.text();
+                setTitle(aiResult.title);
+                if (aiResult.smart_analysis?.summary) setDescription(aiResult.smart_analysis.summary);
 
-            if (!responseText || responseText.trim() === '') {
-                throw new Error('AI returned an empty response. Check n8n configuration.');
-            }
+                if (aiResult.priority) setPriority(aiResult.priority);
 
-            let data: any;
-            try {
-                let rawData = JSON.parse(responseText);
+                if (aiResult.due_date) setDueDateStr(format(new Date(aiResult.due_date), "yyyy-MM-dd'T'HH:mm"));
 
-                // 1. Unwrap Array
-                if (Array.isArray(rawData)) {
-                    rawData = rawData[0];
+                if (aiResult.assignee_ids && aiResult.assignee_ids.length > 0) {
+                    setAssigneeIds(aiResult.assignee_ids);
                 }
 
-                // 2. Unwrap 'output' property
-                if (rawData && typeof rawData === 'object' && 'output' in rawData) {
-                    rawData = rawData.output;
-                }
-
-                // 3. Parse stringified JSON
-                if (typeof rawData === 'string') {
-                    const trimmed = rawData.trim();
-                    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-                        try {
-                            rawData = JSON.parse(trimmed);
-                        } catch (innerError) {
-                            console.warn("Failed internal JSON parse", innerError);
-                        }
-                    }
-                }
-
-                data = rawData;
-            } catch (e) {
-                console.error('Failed to parse n8n response.');
-                throw new Error(`Invalid JSON response (Status: ${response.status}).`);
+                // If multiple tasks were generated (rare for atomic input), 
+                // the others were already inserted into DB by the service.
             }
 
-            const priorityMap: Record<string, Priority> = {
-                'P1': 'critical', 'P2': 'high', 'P3': 'medium', 'P4': 'low'
-            };
-
-            if (data.ai_title) setTitle(data.ai_title);
-            if (data.ai_context) setDescription(data.ai_context);
-
-            const mappedPriority = priorityMap[data.ai_priority as string] || data.ai_priority;
-            if (['critical', 'high', 'medium', 'low'].includes(mappedPriority)) {
-                setPriority(mappedPriority as Priority);
-            }
-
-            if (data.ai_date) setDueDateStr(data.ai_date.split('T')[0]);
-
-            if (data.ai_assignee_ids && Array.isArray(data.ai_assignee_ids)) {
-                if (data.ai_assignee_ids.length > 0) {
-                    setAssigneeIds(data.ai_assignee_ids);
-                }
-            }
-
-        } catch (error) {
-            console.error(error);
-            setErrorMsg('AI Analysis failed. Please check your connection.');
-            setTimeout(() => setErrorMsg(null), 4000);
+        } catch (error: any) {
+            console.error("Auto-Fill Error Details:", error);
+            const msg = error.message || 'Unknown Error';
+            setErrorMsg(`DEBUG-UI: ${msg}`);
+            setTimeout(() => setErrorMsg(null), 10000);
         } finally {
             setAiLoading(false);
         }
@@ -448,7 +400,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                         ) : (
                                             <>
                                                 <Sparkles className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                                                <span className="tracking-wide font-display">Auto-Process with AI</span>
+                                                <span className="tracking-wide font-display">AUTO-COMPLETE (GPT-5) ✅</span>
                                             </>
                                         )}
                                     </button>

@@ -10,10 +10,12 @@ interface TaskItemProps {
     task: Task;
 
     compact?: boolean;
+    onToggleStatus?: (taskId: EntityId) => void;
 }
 
-export function TaskItem({ task, compact = false }: TaskItemProps) {
-    const { toggleTaskStatus, team, user } = useStore();
+export function TaskItem({ task, compact = false, onToggleStatus }: TaskItemProps) {
+    const { toggleTaskStatus: storeToggleTaskStatus, team, user } = useStore();
+    const handleToggle = onToggleStatus || storeToggleTaskStatus;
     const [isEditing, setIsEditing] = useState(false);
 
 
@@ -49,7 +51,7 @@ export function TaskItem({ task, compact = false }: TaskItemProps) {
                 )} />
 
                 <button
-                    onClick={() => toggleTaskStatus(task.id)}
+                    onClick={() => handleToggle(task.id)}
                     className={clsx(
                         "shrink-0 transition-all duration-300 rounded-full p-0.5",
                         task.status === 'done'

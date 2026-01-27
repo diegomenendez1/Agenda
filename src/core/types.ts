@@ -57,6 +57,7 @@ export interface SmartAnalysis {
     reasoning?: string; // AI reasoning for the suggestions
     suggestedPriority: Priority;
     suggestedAssigneeId?: EntityId;
+    smartRank?: number; // 1 = Highest Priority
 }
 
 export interface InboxItem {

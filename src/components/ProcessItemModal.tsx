@@ -6,6 +6,7 @@ import { fetchWithRetry } from '../core/api';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 import { getDescendants } from '../core/hierarchyUtils';
+import { processTaskInputWithAI } from '../core/aiTaskProcessing';
 
 interface ProcessItemModalProps {
     item: InboxItem;
@@ -81,139 +82,51 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
         setError(null);
         setCandidates([]);
         try {
-            // Determine URL based on environment
-            const webhookUrl = import.meta.env.DEV
-                ? `/api/auto-process?id=${item.id}`
-                : `${import.meta.env.VITE_N8N_WEBHOOK_URL}?id=${item.id}`;
+            if (!user?.id) throw new Error("User not found");
 
-            const response = await fetchWithRetry(webhookUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: item.id,
-                    text: item.text,
-                    source: item.source,
-                    created_at: new Date(item.createdAt).toISOString(),
-                    // Optimization: Send only minimal necessary data to reduce payload size
-
-                    // Security warning: We are sending team names. Filter out current user AND RESPECT VISIBILITY to avoid hallucinating assignments
-                    available_team: Object.values(team)
-                        .filter(m => m.id !== user?.id)
-                        .filter(m => {
-                            // Re-calculate simply or assume backend will handle? 
-                            // Safer to filter here so AI doesn't suggest hidden people.
-                            if (!user || user.role === 'owner') return true;
-                            // We don't have access to the hook variable inside this callback easily if defined outside render? 
-                            // Wait, visibleMemberIds is in scope of the component, handleAutoProcess is inside the component.
-                            // So we can use visibleMemberIds!
-                            if (!visibleMemberIds) return true;
-                            return visibleMemberIds.has(m.id);
-                        })
-                        .map(m => ({ id: m.id, name: m.name })),
-                    // Context injection for better AI decision making
-                    team_context: (() => {
-                        // Dynamic Context Injection based on Source
-                        const baseContext = user?.preferences?.aiContext || "CRITICAL RULE: If a task mentions 'Urgent', 'Critical', or 'ASAP', assign HIGH or CRITICAL priority even if the due date is in the future.";
-
-                        if (item.source === 'email') {
-                            return `${baseContext}\n\n[MODE: EMAIL PROCESSING]\nIdentify the core request. Summarize context but keep technical details specific. Infer priority from sender tone.`;
-                        } else if (item.source === 'meeting' || item.source === 'voice') {
-                            return `${baseContext}\n\n[MODE: MEETING TRANSCRIPT ANALYSIS]\nExtract actionable tasks from this meeting transcript. Identify who said what if relevant. Ignore small talk. Group related points.`;
-                        } else {
-                            // Manual / System
-                            return `${baseContext}\n\n[MODE: STRICT MANUAL INPUT]\n1. TITLE: Keep it simple. Use the user's keywords. Do not start with "Gestionar" or "Tarea" if not present.\n2. DESCRIPTION/CONTEXT: Return an EMPTY STRING ("") if the input is short. DO NOT explain what the task is (e.g., do not say "Tarea sobre activos").\n3. NO ADDED VALUE: Your job is only to fix typos and format. Do not add metadata, projects, or categories to the text field.\n4. ABSOLUTE RULE: If the user wrote "A, B y C", and you return "Gestionar A, B y C", that is acceptable but "Tarea administrativa sobre los activos de..." is FORBIDDEN.`;
-                        }
-                    })()
-                }),
-                timeout: 60000 // Correctly placed inside the options object
+            // Use Client Service instead of N8N
+            const results = await processTaskInputWithAI(user.id, item.text, {
+                organizationId: user.organizationId,
+                userRoleContext: user.preferences?.aiContext
             });
 
-            if (!response.ok) {
-                const errorText = await response.text().catch(() => '');
-                console.error("Webhook Error Details:", { status: response.status, text: errorText, url: webhookUrl });
-
-                if (response.status === 404) {
-                    if (errorText.includes("active")) {
-                        throw new Error('404: Workflow is NOT ACTIVE. Turn on the switch in n8n.');
-                    }
-                    throw new Error(`404: Webhook URL Not Found. Server: "${errorText.substring(0, 50)}"`);
-                }
-                if (response.status >= 500) {
-                    throw new Error(`n8n Error (${response.status}): Check workflow logs/model.`);
-                }
-                throw new Error(`Connection failed (${response.status}): ${errorText.substring(0, 100)}`);
-            }
-
-            const responseText = await response.text();
-
-            if (!responseText || responseText.trim() === '') {
-                throw new Error('AI returned empty response. Check n8n workflow.');
-            }
-
-            let data: AIResponse | AIResponse[];
-            try {
-                let rawData = JSON.parse(responseText);
-
-                // Unwrap 'output' property if present (n8n Agent node standard)
-                if (rawData && typeof rawData === 'object' && 'output' in rawData) {
-                    rawData = rawData.output;
-                }
-
-                // Parse stringified JSON if strictly necessary
-                if (typeof rawData === 'string') {
-                    const trimmed = rawData.trim();
-                    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-                        try {
-                            rawData = JSON.parse(trimmed);
-                        } catch (innerError) {
-                            console.warn("Attempted to parse stringified JSON but failed, using raw string:", innerError);
-                        }
-                    }
-                }
-
-                data = rawData;
-            } catch (e) {
-                console.error('Failed to parse n8n response. Status:', response.status, 'Body:', responseText);
-                throw new Error(`Invalid JSON response from AI.`);
-            }
-
-            // Normalization
-            let results: AIResponse[] = [];
-            if (Array.isArray(data)) {
-                results = data;
-            } else {
-                results = [data as AIResponse];
-            }
-
-            if (results.length === 0) throw new Error("AI returned no tasks.");
+            if (results.length === 0) throw new Error("AI returned no tasks/actions.");
 
             if (results.length === 1) {
-                // Single Task Flow (Classic)
-                applySingleResult(results[0]);
+                // Mapping: Service returns Supabase Task objects directly.
+                // We need to map them to the UI's AIResponse shape to reuse existing UI logic.
+                // Or better, just apply directly.
+                const newTask = results[0];
+
+                setTitle(newTask.title);
+                if (newTask.priority) setPriority(newTask.priority);
+                if (newTask.description) setContext(newTask.description); // or smart_analysis.summary
+                if (newTask.due_date) setDueDate(new Date(newTask.due_date).toISOString().split('T')[0]);
+                if (newTask.assignee_ids) setAssigneeIds(newTask.assignee_ids);
+
+                setIsProcessing(false);
             } else {
-                // Multi-Task Flow (New)
-                const priorityOrder: Record<string, number> = {
-                    'critical': 0, 'P1': 0,
-                    'high': 1, 'P2': 1,
-                    'medium': 2, 'P3': 2,
-                    'low': 3, 'P4': 3
-                };
+                // Multi-task handling
+                // Map DB tasks back to candidates format for the UI list
+                const uiCandidates: AIResponse[] = results.map((r: any) => ({
+                    ai_title: r.title,
+                    ai_priority: r.priority,
+                    ai_date: r.due_date,
+                    ai_context: r.smart_analysis?.summary || r.description,
+                    ai_assignee_ids: r.assignee_ids
+                }));
 
-                const sortedResults = [...results].sort((a, b) => {
-                    const pA = priorityOrder[a.ai_priority] ?? 4;
-                    const pB = priorityOrder[b.ai_priority] ?? 4;
-                    return pA - pB;
-                });
-
-                setCandidates(sortedResults);
-                setSelectedCandidates([]); // No select by default as requested
+                setCandidates(uiCandidates);
+                // Pre-select all
+                setSelectedCandidates(uiCandidates.map((_, i) => i));
             }
 
             setShowAIPreview(true);
             setIsEditingDetails(true);
+
         } catch (error: any) {
             console.error('AI Processing Error:', error);
-            setError(error.message);
+            setError(`DEBUG: ${error.message}`);
         } finally {
             setIsProcessing(false);
         }

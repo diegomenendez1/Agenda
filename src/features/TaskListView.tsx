@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useStore } from '../core/store';
-import { CheckCircle2, Calendar, ClipboardList, LayoutList, KanbanSquare, Trash2, Plus, X, Lock, Users, Table } from 'lucide-react';
+import { CheckCircle2, Calendar, ClipboardList, LayoutList, KanbanSquare, Trash2, Plus, X, Lock, Users, Table, Sparkles, Loader2 } from 'lucide-react';
+import { supabase } from '../core/supabase';
 import { TaskItem } from '../components/TaskItem';
 import { KanbanBoard } from '../components/KanbanBoard';
 import { TaskTable } from '../components/TaskTable';
@@ -12,8 +13,11 @@ import { isSameDay, isFuture } from 'date-fns';
 import { useSearchParams, useParams } from 'react-router-dom';
 import clsx from 'clsx';
 import type { EntityId } from '../core/types';
+import { filterAndSortTasks } from '../core/taskUtils';
+import { runAITaskPrioritization } from '../core/aiPrioritization';
+import { toast } from 'sonner';
 export function TaskListView() {
-    const { tasks, user, clearCompletedTasks, team } = useStore();
+    const { tasks, user, clearCompletedTasks, team, toggleTaskStatus } = useStore();
 
     const [timeFilter, setTimeFilter] = useState<'all' | 'today' | 'upcoming'>('all');
     const [scopeFilter, setScopeFilter] = useState<'all' | 'private' | 'shared'>('all');
@@ -22,6 +26,63 @@ export function TaskListView() {
     const [searchParams, setSearchParams] = useSearchParams();
     const { taskId: pathTaskId } = useParams();
     const [editingTask, setEditingTask] = useState<any>(null);
+    const [recentlyCompletedIds, setRecentlyCompletedIds] = useState<Set<EntityId>>(new Set());
+    const [isOrganizing, setIsOrganizing] = useState(false);
+
+    const handleAutoPrioritize = async () => {
+        try {
+            setIsOrganizing(true);
+            toast.info("Analyzing Global Context...");
+
+            if (!user?.id) return;
+
+            // Use Direct Client Service based on User Request for simpler flow
+            const result = await runAITaskPrioritization(user.id);
+
+            toast.success(`AI Reorganized ${result.count} tasks based on global context!`);
+
+        } catch (err: any) {
+            console.error('Failed to reorganize', err);
+            toast.error(err.message || 'AI Sort Failed');
+        } finally {
+            setIsOrganizing(false);
+        }
+    };
+
+    const handleToggleTask = useCallback((taskId: EntityId) => {
+        const task = tasks[taskId];
+        if (!task) return;
+
+        const willBeDone = task.status !== 'done';
+
+        // Toggle state in store
+        toggleTaskStatus(taskId);
+
+        if (willBeDone) {
+            // Add to delayed set to prevent immediate sorting jump
+            setRecentlyCompletedIds(prev => {
+                const newSet = new Set(prev);
+                newSet.add(taskId);
+                return newSet;
+            });
+
+            // Remove after 2 seconds (or could be longer, or on view change)
+            setTimeout(() => {
+                setRecentlyCompletedIds(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(taskId);
+                    return newSet;
+                });
+            }, 2500);
+        } else {
+            // If un-toggling, remove immediately
+            setRecentlyCompletedIds(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(taskId);
+                return newSet;
+            });
+        }
+    }, [tasks, toggleTaskStatus]);
 
     // Deep Linking to Task
     useEffect(() => {
@@ -47,67 +108,13 @@ export function TaskListView() {
     };
 
     const filteredTasks = useMemo(() => {
-        if (!user) return [];
-
-        const priorityScore: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
-        const allTasks = Object.values(tasks).sort((a, b) => {
-            // Sort by status (Done at bottom), then Priority, then Creation
-            if (a.status !== b.status) return a.status === 'done' ? 1 : -1;
-
-            const pA = priorityScore[a.priority] || 0;
-            const pB = priorityScore[b.priority] || 0;
-
-            if (pA !== pB) return pB - pA;
-            return (b.createdAt || 0) - (a.createdAt || 0);
+        return filterAndSortTasks(tasks, user, {
+            timeFilter,
+            scopeFilter,
+            selectedMemberId,
+            recentlyCompletedIds
         });
-
-        const today = new Date();
-
-        return allTasks.filter(task => {
-            const isSameOrg = task.organizationId === user.organizationId;
-            if (!isSameOrg) return false;
-
-            const isOwner = task.ownerId === user.id;
-            const isAssignee = task.assigneeIds?.includes(user.id);
-
-            // Access is strictly for Owner or Assignees
-            if (!isOwner && !isAssignee) return false;
-
-            // --- SCOPE FILTER (Private vs Shared) ---
-            if (scopeFilter === 'private') {
-                if (task.visibility !== 'private') return false;
-            }
-
-            if (scopeFilter === 'shared') {
-                // Must be 'team' (Shared) visibility
-                // OR technically if I'm assigned to a private task of someone else (rare edge case, but effectively shared)
-                if (task.visibility === 'private') return false;
-            }
-
-            // --- MEMBER FILTER (UI Filter) ---
-            if (selectedMemberId) {
-                const isMemberAssigned = task.assigneeIds?.includes(selectedMemberId);
-                const isMemberOwner = task.ownerId === selectedMemberId;
-                if (!isMemberAssigned && !isMemberOwner) return false;
-            }
-
-            // --- TIME FILTER ---
-            if (timeFilter === 'all') return true;
-
-            if (timeFilter === 'today') {
-                if (!task.dueDate) return false;
-                return isSameDay(new Date(task.dueDate), today);
-            }
-
-            if (timeFilter === 'upcoming') {
-                if (!task.dueDate) return true; // Include "No Date" in Upcoming/Backlog bucket
-                const taskDate = new Date(task.dueDate);
-                return isFuture(taskDate) && !isSameDay(taskDate, today);
-            }
-
-            return true;
-        });
-    }, [tasks, timeFilter, scopeFilter, user, selectedMemberId]);
+    }, [tasks, timeFilter, scopeFilter, user, selectedMemberId, recentlyCompletedIds]);
 
     return (
         <div className={clsx(
@@ -125,26 +132,38 @@ export function TaskListView() {
                 <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
                     {/* Primary Action */}
                     {viewMode === 'list' && (
-                        <button
-                            className="group relative overflow-hidden bg-violet-600 hover:bg-violet-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-violet-500/25 transition-all active:scale-95 flex items-center gap-2.5"
-                            onClick={async () => {
-                                const { addTask } = useStore.getState();
-                                const newId = await addTask({
-                                    title: '',
-                                    status: 'todo',
-                                    priority: 'medium',
-                                    visibility: 'private'
-                                });
-                                setTimeout(() => {
-                                    const newTask = useStore.getState().tasks[newId];
-                                    if (newTask) setEditingTask(newTask);
-                                }, 50);
-                            }}
-                        >
-                            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                            <Plus size={20} strokeWidth={2.5} />
-                            <span className="relative">New Task</span>
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={handleAutoPrioritize}
+                                disabled={isOrganizing}
+                                className="group relative overflow-hidden bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-4 py-2.5 rounded-xl font-bold shadow-lg shadow-purple-500/25 transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Reorganize with AI"
+                            >
+                                {isOrganizing ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} />}
+                                <span className="hidden sm:inline">AI Sort</span>
+                            </button>
+
+                            <button
+                                className="group relative overflow-hidden bg-violet-600 hover:bg-violet-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-violet-500/25 transition-all active:scale-95 flex items-center gap-2.5"
+                                onClick={async () => {
+                                    const { addTask } = useStore.getState();
+                                    const newId = await addTask({
+                                        title: '',
+                                        status: 'todo',
+                                        priority: 'medium',
+                                        visibility: 'private'
+                                    });
+                                    setTimeout(() => {
+                                        const newTask = useStore.getState().tasks[newId];
+                                        if (newTask) setEditingTask(newTask);
+                                    }, 50);
+                                }}
+                            >
+                                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                                <Plus size={20} strokeWidth={2.5} />
+                                <span className="relative">New Task</span>
+                            </button>
+                        </div>
                     )}
 
                     {/* Unified Filter Bar */}
@@ -334,7 +353,7 @@ export function TaskListView() {
                     </div>
                 ) : viewMode === 'table' ? (
                     <div className="max-w-6xl mx-auto w-full pb-20">
-                        <TaskTable tasks={filteredTasks} />
+                        <TaskTable tasks={filteredTasks} onToggleStatus={handleToggleTask} />
                     </div>
                 ) : filteredTasks.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-64 text-text-muted border-2 border-dashed border-border-subtle rounded-2xl bg-bg-sidebar/50 max-w-5xl mx-auto w-full">
@@ -347,7 +366,7 @@ export function TaskListView() {
                 ) : (
                     <ul className="flex flex-col gap-3 pb-20 max-w-5xl mx-auto w-full">
                         {filteredTasks.map(task => (
-                            <TaskItem key={task.id} task={task} />
+                            <TaskItem key={task.id} task={task} onToggleStatus={handleToggleTask} />
                         ))}
                     </ul>
                 )}
