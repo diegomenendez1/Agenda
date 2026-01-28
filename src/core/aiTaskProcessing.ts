@@ -122,16 +122,16 @@ Equipo: ${JSON.stringify(availableTeam)}
         const content = JSON.parse(json.choices[0].message.content);
         const aiTasks = content.tasks || [];
 
-        // 4. Create Tasks in Supabase
-        const tasksToInsert = aiTasks.map((t: any) => ({
+        // 4. Return Tasks (Do NOT insert - verify first)
+        const tasksToReturn = aiTasks.map((t: any) => ({
             title: t.ai_title,
             status: 'todo',
             priority: t.ai_priority,
             due_date: t.ai_date ? new Date(t.ai_date).getTime() : null, // BIGINT
             project_id: t.ai_project_id,
             assignee_ids: t.ai_assignee_ids,
-            user_id: userId, // Fixed: was owner_id
-            organization_id: context.organizationId, // IMPORTANT
+            user_id: userId,
+            organization_id: context.organizationId,
             tags: ['ai-generated'],
             visibility: t.ai_assignee_ids?.length > 0 ? 'team' : 'private',
             smart_analysis: {
@@ -144,16 +144,7 @@ Equipo: ${JSON.stringify(availableTeam)}
             updated_at: new Date().toISOString() // TIMESTAMPTZ (String)
         }));
 
-        if (tasksToInsert.length === 0) return [];
-
-        const { data: insertedData, error: insertError } = await supabase
-            .from('tasks')
-            .insert(tasksToInsert)
-            .select();
-
-        if (insertError) throw insertError;
-
-        return insertedData;
+        return tasksToReturn;
 
     } catch (err: any) {
         console.error("AI Task Processing Failed:", err);

@@ -379,28 +379,28 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                             )}
 
                             {/* AI Process Button */}
-                            {isProcessing && !task.title && (
+                            {!task.title && (
                                 <div className="flex justify-center py-4">
                                     <button
                                         type="button"
                                         onClick={handleAutoProcess}
                                         disabled={aiLoading}
                                         className={clsx(
-                                            "group relative inline-flex items-center justify-center gap-3 px-8 py-4 w-full",
-                                            "bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-2xl",
-                                            "shadow-lg shadow-violet-500/20 hover:shadow-violet-500/40 transition-all duration-300",
-                                            "disabled:opacity-70 disabled:cursor-not-allowed"
+                                            "flex items-center justify-center gap-2 px-6 py-3 w-full",
+                                            "bg-violet-500/10 text-violet-600 font-bold rounded-xl border border-violet-500/20",
+                                            "hover:bg-violet-500/20 transition-all",
+                                            "disabled:opacity-50 disabled:cursor-not-allowed"
                                         )}
                                     >
                                         {aiLoading ? (
                                             <>
-                                                <Loader2 className="w-5 h-5 animate-spin text-white/80" />
-                                                <span className="tracking-wide font-display">{loadingText}</span>
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                <span className="text-sm">{loadingText}</span>
                                             </>
                                         ) : (
                                             <>
-                                                <Sparkles className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                                                <span className="tracking-wide font-display">AUTO-COMPLETE (GPT-5) ✅</span>
+                                                <Sparkles className="w-4 h-4" />
+                                                <span className="text-sm">Auto-Fill Details</span>
                                             </>
                                         )}
                                     </button>

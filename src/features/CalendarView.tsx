@@ -54,7 +54,7 @@ export function CalendarView() {
 }
 
 function CalendarContent() {
-    const { tasks, updateTask, team } = useStore();
+    const { tasks, updateTask, team, user } = useStore();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [creationDate, setCreationDate] = useState<Date | null>(null);
@@ -63,6 +63,9 @@ function CalendarContent() {
     const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
     const hours = Array.from({ length: 24 }, (_, i) => i);
     const today = new Date();
+
+    const workingStart = user?.preferences?.workingHours?.start ?? 9;
+    const workingEnd = user?.preferences?.workingHours?.end ?? 18;
 
     // --- Safety: Safe Task Filtering ---
     const weekTasks = useMemo(() => {
@@ -218,23 +221,30 @@ function CalendarContent() {
                         {weekDays.map((day, dayIdx) => (
                             <div key={dayIdx} className="relative border-r border-border-subtle group/column bg-bg-app/10">
                                 {/* Hour Cells */}
-                                {hours.map(hour => (
-                                    <div
-                                        key={`slot-${dayIdx}-${hour}`}
-                                        className="h-20 border-b border-border-subtle/30 hover:bg-accent-primary/5 transition-colors group/cell relative"
-                                        onDragOver={handleDragOver}
-                                        onDrop={(e) => handleDrop(e, day, hour)}
-                                    >
-                                        {/* Hover Add Button */}
-                                        <button
-                                            onClick={() => handleSlotClick(day, hour)}
-                                            className="absolute top-1 right-1 p-1.5 rounded-lg text-accent-primary opacity-0 group-hover/cell:opacity-100 hover:bg-accent-primary/10 transition-all z-20 scale-90 hover:scale-100 cursor-pointer"
-                                            title="Add Task"
+                                {hours.map(hour => {
+                                    const isWorkingHour = hour >= workingStart && hour < workingEnd;
+                                    return (
+                                        <div
+                                            key={`slot-${dayIdx}-${hour}`}
+                                            className={clsx(
+                                                "h-20 border-b border-border-subtle/30 transition-colors group/cell relative",
+                                                isWorkingHour ? "bg-transparent transition-opacity" : "bg-black/5 dark:bg-white/5",
+                                                "hover:bg-accent-primary/5"
+                                            )}
+                                            onDragOver={handleDragOver}
+                                            onDrop={(e) => handleDrop(e, day, hour)}
                                         >
-                                            <Plus size={16} strokeWidth={3} />
-                                        </button>
-                                    </div>
-                                ))}
+                                            {/* Hover Add Button */}
+                                            <button
+                                                onClick={() => handleSlotClick(day, hour)}
+                                                className="absolute top-1 right-1 p-1.5 rounded-lg text-accent-primary opacity-0 group-hover/cell:opacity-100 hover:bg-accent-primary/10 transition-all z-20 scale-90 hover:scale-100 cursor-pointer"
+                                                title="Add Task"
+                                            >
+                                                <Plus size={16} strokeWidth={3} />
+                                            </button>
+                                        </div>
+                                    );
+                                })}
 
                                 {/* Tasks Overlay */}
                                 {weekTasks

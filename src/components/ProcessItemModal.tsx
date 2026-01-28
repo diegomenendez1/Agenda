@@ -100,7 +100,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
 
                 setTitle(newTask.title);
                 if (newTask.priority) setPriority(newTask.priority);
-                if (newTask.description) setContext(newTask.description); // or smart_analysis.summary
+                if (newTask.description || newTask.smart_analysis?.summary) setContext(newTask.description || newTask.smart_analysis?.summary);
                 if (newTask.due_date) setDueDate(new Date(newTask.due_date).toISOString().split('T')[0]);
                 if (newTask.assignee_ids) setAssigneeIds(newTask.assignee_ids);
 
@@ -224,7 +224,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-bg-card w-full max-w-2xl rounded-2xl shadow-2xl border border-border-subtle overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="w-full bg-bg-card border border-border-subtle rounded-xl shadow-2xl overflow-hidden flex flex-col max-w-5xl h-[85vh]">
                 {/* Header */}
                 <div className="p-6 border-b border-border-subtle flex justify-between items-start bg-bg-surface/50">
                     <div>
@@ -248,7 +248,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                 </div>
 
                 {/* Content */}
-                <div className="p-6 overflow-y-auto space-y-6">
+                <div className="flex-1 p-6 overflow-y-auto space-y-6 custom-scrollbar">
                     {/* Original Item context */}
                     <div className="bg-bg-surface p-4 rounded-xl border border-border-subtle/50">
                         <label className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2 block">
@@ -265,33 +265,34 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                     {/* AI Process Button & Manual Option */}
                     {/* AI Process Trigger (Optional) */}
                     {/* AI Process Trigger (Optional) */}
+                    {/* AI Process Button - Large centered version */}
                     {candidates.length <= 1 && (
-                        <div className="flex flex-col items-end gap-2">
+                        <div className="flex justify-center py-4">
                             <button
                                 type="button"
                                 onClick={handleAutoProcess}
                                 disabled={isProcessing}
                                 className={clsx(
-                                    "text-xs font-bold uppercase tracking-wider flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all",
-                                    isProcessing
-                                        ? "bg-bg-subtle text-text-muted cursor-wait"
-                                        : "bg-violet-500/10 text-violet-600 hover:bg-violet-500/20 hover:text-violet-700"
+                                    "flex items-center justify-center gap-2 px-6 py-3 w-full",
+                                    "bg-violet-500/10 text-violet-600 font-bold rounded-xl border border-violet-500/20",
+                                    "hover:bg-violet-500/20 transition-all",
+                                    "disabled:opacity-50 disabled:cursor-not-allowed"
                                 )}
                             >
                                 {isProcessing ? (
                                     <>
-                                        <Loader2 size={12} className="animate-spin" />
-                                        {loadingText}
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        <span className="text-sm">{loadingText}</span>
                                     </>
                                 ) : (
                                     <>
-                                        <Sparkles size={14} />
-                                        Auto-Fill with AI
+                                        <Sparkles className="w-4 h-4" />
+                                        <span className="text-sm">Auto-Fill Details</span>
                                     </>
                                 )}
                             </button>
                             {error && (
-                                <div className="text-[10px] text-red-500 font-medium animate-in fade-in slide-in-from-right-2 max-w-[200px] text-right">
+                                <div className="text-[10px] text-red-500 font-medium animate-in fade-in slide-in-from-right-2 max-w-[200px] text-right absolute right-6 top-1/2 -translate-y-1/2">
                                     {error}
                                 </div>
                             )}

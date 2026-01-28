@@ -107,6 +107,74 @@ export function UserProfile() {
 
                     {(user?.role === 'owner' || user?.role === 'head') && <div className="h-px bg-border-subtle" />}
 
+                    {/* Working Hours Configuration */}
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-text-primary">Calendar Preferences</h3>
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-text-secondary">Working Day Start</label>
+                                <select
+                                    value={user.preferences?.workingHours?.start ?? 9}
+                                    onChange={(e) => {
+                                        const start = parseInt(e.target.value);
+                                        const currentEnd = user.preferences?.workingHours?.end ?? 18;
+                                        // Ensure start is before end
+                                        if (start >= currentEnd) return;
+
+                                        updateUserProfile({
+                                            ...user,
+                                            preferences: {
+                                                ...user.preferences,
+                                                workingHours: {
+                                                    start,
+                                                    end: currentEnd
+                                                }
+                                            }
+                                        });
+                                    }}
+                                    className="input w-full bg-bg-input focus:bg-bg-card transition-all"
+                                >
+                                    {Array.from({ length: 24 }).map((_, i) => (
+                                        <option key={i} value={i}>{i}:00</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-text-secondary">Working Day End</label>
+                                <select
+                                    value={user.preferences?.workingHours?.end ?? 18}
+                                    onChange={(e) => {
+                                        const end = parseInt(e.target.value);
+                                        const currentStart = user.preferences?.workingHours?.start ?? 9;
+                                        // Ensure end is after start
+                                        if (end <= currentStart) return;
+
+                                        updateUserProfile({
+                                            ...user,
+                                            preferences: {
+                                                ...user.preferences,
+                                                workingHours: {
+                                                    start: currentStart,
+                                                    end
+                                                }
+                                            }
+                                        });
+                                    }}
+                                    className="input w-full bg-bg-input focus:bg-bg-card transition-all"
+                                >
+                                    {Array.from({ length: 24 }).map((_, i) => (
+                                        <option key={i} value={i}>{i}:00</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+                        <p className="text-xs text-text-muted">
+                            These hours will be highlighted in your calendar view to help you focus on your core schedule.
+                        </p>
+                    </div>
+
+                    <div className="h-px bg-border-subtle" />
+
                     {/* (Appearance section removed) */}
 
                     <div className="pt-8 flex justify-end border-t border-border-subtle mt-8">

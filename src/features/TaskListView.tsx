@@ -131,40 +131,39 @@ export function TaskListView() {
 
                 <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
                     {/* Primary Action */}
-                    {viewMode === 'list' && (
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={handleAutoPrioritize}
-                                disabled={isOrganizing}
-                                className="group relative overflow-hidden bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-4 py-2.5 rounded-xl font-bold shadow-lg shadow-purple-500/25 transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Reorganize with AI"
-                            >
-                                {isOrganizing ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} />}
-                                <span className="hidden sm:inline">AI Sort</span>
-                            </button>
+                    {/* Primary Action */}
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={handleAutoPrioritize}
+                            disabled={isOrganizing}
+                            className="group relative overflow-hidden bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-4 py-2.5 rounded-xl font-bold shadow-lg shadow-purple-500/25 transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Reorganize with AI"
+                        >
+                            {isOrganizing ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} />}
+                            <span className="hidden sm:inline">AI Sort</span>
+                        </button>
 
-                            <button
-                                className="group relative overflow-hidden bg-violet-600 hover:bg-violet-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-violet-500/25 transition-all active:scale-95 flex items-center gap-2.5"
-                                onClick={async () => {
-                                    const { addTask } = useStore.getState();
-                                    const newId = await addTask({
-                                        title: '',
-                                        status: 'todo',
-                                        priority: 'medium',
-                                        visibility: 'private'
-                                    });
-                                    setTimeout(() => {
-                                        const newTask = useStore.getState().tasks[newId];
-                                        if (newTask) setEditingTask(newTask);
-                                    }, 50);
-                                }}
-                            >
-                                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                                <Plus size={20} strokeWidth={2.5} />
-                                <span className="relative">New Task</span>
-                            </button>
-                        </div>
-                    )}
+                        <button
+                            className="group relative overflow-hidden bg-violet-600 hover:bg-violet-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-violet-500/25 transition-all active:scale-95 flex items-center gap-2.5"
+                            onClick={async () => {
+                                const { addTask } = useStore.getState();
+                                const newId = await addTask({
+                                    title: '',
+                                    status: 'todo',
+                                    priority: 'medium',
+                                    visibility: 'private'
+                                });
+                                setTimeout(() => {
+                                    const newTask = useStore.getState().tasks[newId];
+                                    if (newTask) setEditingTask(newTask);
+                                }, 50);
+                            }}
+                        >
+                            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                            <Plus size={20} strokeWidth={2.5} />
+                            <span className="relative">New Task</span>
+                        </button>
+                    </div>
 
                     {/* Unified Filter Bar */}
                     <div className="flex items-center gap-1 p-1.5 bg-bg-surface/60 backdrop-blur-md border border-border-subtle rounded-2xl shadow-sm overflow-x-auto max-w-full">

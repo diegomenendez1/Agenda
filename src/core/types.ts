@@ -19,6 +19,10 @@ export interface UserProfile {
         theme: 'light' | 'dark' | 'system';
         taskViewMode?: 'list' | 'board' | 'table';
         aiContext?: string;
+        workingHours?: {
+            start: number;
+            end: number;
+        };
     };
 }
 

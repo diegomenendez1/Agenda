@@ -26,7 +26,7 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
 
     const tasksToUse = propTasks || Object.values(storeTasks);
 
-    // Group tasks by status and sort by priority
+    // Group tasks by status (preserves incoming sort order)
     const tasksByStatus = useMemo(() => {
         const groups: Record<TaskStatus, Task[]> = {
             backlog: [],
@@ -36,22 +36,10 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
             done: []
         };
 
-        const priorityScore: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1 };
-
         tasksToUse.forEach(task => {
             if (groups[task.status]) {
                 groups[task.status].push(task);
             }
-        });
-
-        // Sort each group by priority
-        Object.keys(groups).forEach(status => {
-            groups[status as TaskStatus].sort((a, b) => {
-                const pA = priorityScore[a.priority] || 0;
-                const pB = priorityScore[b.priority] || 0;
-                if (pA !== pB) return pB - pA;
-                return (b.createdAt || 0) - (a.createdAt || 0); // Newest first if same priority
-            });
         });
 
         return groups;
