@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, ArrowRight, Calendar, CheckSquare, Inbox, Layers, Plus, StickyNote } from 'lucide-react';
+import { Search, ArrowRight, Calendar, CheckSquare, Inbox, Plus, StickyNote } from 'lucide-react';
 import clsx from 'clsx';
 import { useStore } from '../core/store';
 
@@ -42,13 +42,7 @@ export function CommandPalette() {
             type: 'navigation',
             perform: () => navigate('/calendar')
         },
-        {
-            id: 'nav-projects',
-            label: 'Go to Projects',
-            icon: Layers,
-            type: 'navigation',
-            perform: () => navigate('/projects')
-        },
+
         {
             id: 'nav-notes',
             label: 'Go to Notes',

@@ -3,7 +3,7 @@ import { Sparkles, ArrowRight, Brain, Zap, Mail, MessageSquare } from 'lucide-re
 import clsx from 'clsx';
 
 interface SmartInputProps {
-    onCapture: (text: string, source: 'manual' | 'email' | 'voice' | 'system') => void;
+    onCapture: (text: string, source: 'manual' | 'email' | 'voice' | 'system' | 'meeting') => void;
     isProcessing?: boolean;
 }
 
@@ -27,10 +27,17 @@ export function SmartInput({ onCapture, isProcessing = false }: SmartInputProps)
         if (!text.trim()) return;
 
         // Determine source heuristic: Length > 150 chars or common email keywords
-        const isEmailLikely = text.length > 250 ||
-            /from:|to:|subject:|sent:|cc:/i.test(text) ||
-            text.split('\n').length > 5;
-        const source = isEmailLikely ? 'email' : 'manual';
+        // IMPROVED LOGIC: Don't just rely on length. Look for specific markers.
+        const emailRegex = /(From:|To:|Subject:|Sent:|De:|Para:|Asunto:|Enviado:)/i;
+        const meetingRegex = /(\[?[0-9]{1,2}:[0-9]{2}\]?|Speaker|Transcript|Transcripción|Meeting|Reunión|Acta|Minuta)/i;
+
+        let source: 'manual' | 'email' | 'meeting' = 'manual';
+
+        if (text.split('\n').length > 3 && emailRegex.test(text)) {
+            source = 'email';
+        } else if (text.length > 50 && meetingRegex.test(text)) {
+            source = 'meeting';
+        }
 
         let finalText = text;
         if (promptContext.trim()) {
@@ -51,7 +58,8 @@ export function SmartInput({ onCapture, isProcessing = false }: SmartInputProps)
         }
     };
 
-    const isEmailMode = text.length > 150;
+    const isEmailMode = text.split('\n').length > 3 && /(From:|To:|Subject:|Sent:|De:|Para:|Asunto:|Enviado:)/i.test(text);
+    const isMeetingMode = text.length > 50 && /(\[?[0-9]{1,2}:[0-9]{2}\]?|Speaker|Transcript|Transcripción|Meeting|Reunión|Acta|Minuta)/i.test(text);
 
     return (
         <div className={clsx(
@@ -74,10 +82,14 @@ export function SmartInput({ onCapture, isProcessing = false }: SmartInputProps)
 
                 {/* Header Indicators */}
                 {text.length > 0 && (
-                    <div className="absolute top-2 right-2 flex items-center gap-2 pointer-events-none">
+                    <div className="absolute top-2 right-12 flex items-center gap-2 pointer-events-none select-none z-10">
                         {isEmailMode ? (
                             <span className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider text-accent-primary bg-accent-primary/10 px-2 py-0.5 rounded-full">
                                 <Mail size={10} /> Email Context
+                            </span>
+                        ) : isMeetingMode ? (
+                            <span className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider text-purple-500 bg-purple-500/10 px-2 py-0.5 rounded-full">
+                                <MessageSquare size={10} /> Meeting Context
                             </span>
                         ) : (
                             <span className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full">

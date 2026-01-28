@@ -12,34 +12,44 @@ export interface UserProfile {
     role: string;
     email: string;
     avatar?: string;
-    reportsTo?: EntityId; // ID of direct manager
+    reportsTo?: EntityId; // ID of direct superior (Head/Lead)
+    organizationId: EntityId; // NEW: Multi-tenancy support
     preferences: {
         autoPrioritize: boolean;
         theme: 'light' | 'dark' | 'system';
-        taskViewMode?: 'list' | 'board';
+        taskViewMode?: 'list' | 'board' | 'table';
         aiContext?: string;
+        workingHours?: {
+            start: number;
+            end: number;
+        };
     };
 }
 
 export interface TeamMember {
     id: EntityId;
     name: string;
-    role: 'owner' | 'admin' | 'manager' | 'lead' | 'member'; // Enhanced roles
+    role: 'owner' | 'head' | 'lead' | 'member'; // Enhanced roles: Owner -> Head -> Lead -> Member
     avatar?: string;
     email: string;
     status?: 'active' | 'pending' | 'suspended';
     invitedBy?: EntityId;
     invitedAt?: number;
+    joined_at?: number; // Added for UI compatibility
+    reportsTo?: EntityId;
 }
 
 export interface TeamInvitation {
     id: EntityId;
     email: string;
-    role: 'owner' | 'admin' | 'manager' | 'lead' | 'member';
+    role: 'owner' | 'head' | 'lead' | 'member';
     invitedBy: EntityId; // User ID of the inviter
-    invitedByName?: string;
+    invitedByName?: string; // Legacy?
+    inviterName?: string; // Hydrated name
     teamId: EntityId;
-    status: 'pending' | 'accepted' | 'declined' | 'revoked';
+    organizationId: EntityId; // NEW
+    organizationName?: string; // Hydrated name
+    status: 'pending' | 'accepted' | 'declined' | 'revoked' | 'approval_needed';
     createdAt: number;
     token?: string; // For link-based invites
 }
@@ -51,14 +61,16 @@ export interface SmartAnalysis {
     reasoning?: string; // AI reasoning for the suggestions
     suggestedPriority: Priority;
     suggestedAssigneeId?: EntityId;
+    smartRank?: number; // 1 = Highest Priority
 }
 
 export interface InboxItem {
     id: EntityId;
     text: string;
-    source: 'manual' | 'email' | 'system' | 'voice';
+    source: 'manual' | 'email' | 'system' | 'voice' | 'meeting';
     processed: boolean;
     createdAt: number;
+    organizationId: EntityId;
 }
 
 // Recurring Tasks Support
@@ -89,11 +101,15 @@ export interface Task {
     // New fields
     assigneeIds?: EntityId[];
     ownerId: EntityId; // The creator of the task
+    organizationId: EntityId; // NEW
     visibility: 'private' | 'team'; // Segmentation logic
     smartAnalysis?: SmartAnalysis;
-    source?: 'manual' | 'email' | 'voice' | 'system';
+    source?: 'manual' | 'email' | 'voice' | 'system' | 'meeting';
     estimatedMinutes?: number;
     acceptedAt?: number;
+    acceptedBy?: EntityId;
+    organizationName?: string; // Hydrated
+    inviterName?: string; // Hydrated
 
     // Recurrence
     recurrence?: RecurrenceConfig;
@@ -108,6 +124,7 @@ export interface Project {
     goal?: string;
     deadline?: number;
     createdAt: number;
+    organizationId: EntityId;
     teamId?: EntityId; // If it belongs to a team
 }
 
@@ -120,6 +137,7 @@ export interface Note {
     createdAt: number;
     updatedAt: number;
     tags: string[];
+    organizationId: EntityId;
 }
 
 export interface Habit {
@@ -147,6 +165,7 @@ export interface Notification {
     read: boolean;
     createdAt: number;
     metadata?: any;
+    organizationId: EntityId;
 }
 
 export interface AppState {
@@ -162,7 +181,17 @@ export interface AppState {
 
     activeInvitations: TeamInvitation[]; // List of pending invitations
     onlineUsers: EntityId[]; // List of user IDs currently online
+    myWorkspaces: Workspace[]; // NEW: List of workspaces user belongs to
+    realtimeCheck?: any;
 }
+
+export interface Workspace {
+    id: EntityId;
+    name: string;
+    role: string; // 'owner' | 'head' | 'lead' | 'member'
+    joinedAt: number;
+}
+
 
 export type ActivityType =
     | 'message'   // User comment

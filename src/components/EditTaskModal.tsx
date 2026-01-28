@@ -1,36 +1,56 @@
-import { useState, useEffect } from 'react';
-import { X, Folder, Flag, Clock, Trash2, User, Lock, Sparkles, ArrowRight, Layout, AlertTriangle, Search, Loader2, Check, Eye, EyeOff, ListTodo, UserMinus } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { X, Flag, Clock, Trash2, User, Lock, Sparkles, ArrowRight, Layout, AlertTriangle, Search, Loader2, Check, ListTodo } from 'lucide-react';
 import { useStore } from '../core/store';
 import { ActivityFeed } from './ActivityFeed';
 import type { Task, Priority, TaskStatus, RecurrenceConfig } from '../core/types';
 import { fetchWithRetry } from '../core/api';
 import clsx from 'clsx';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
+import { getDescendants } from '../core/hierarchyUtils';
+import { processTaskInputWithAI } from '../core/aiTaskProcessing';
 
 interface EditTaskModalProps {
-    task: Task;
+    task: Partial<Task> | Task; // Allow partial for creation
     onClose: () => void;
     isProcessing?: boolean;
+    mode?: 'edit' | 'create'; // NEW
 }
 
-export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskModalProps) {
-    const { updateTask, updateStatus, projects, deleteTask, unassignTask, team, user } = useStore();
-    const [showActivity, setShowActivity] = useState(true);
+export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edit' }: EditTaskModalProps) {
+    const { updateTask, addTask, updateStatus, deleteTask, unassignTask, team, user } = useStore();
+    const [showActivity, setShowActivity] = useState(true); // Default visible
 
-    const [title, setTitle] = useState(task.title);
-    const [originalTitle] = useState(task.title);
+    // VISIBILITY LOGIC (Refactored)
+    const visibleMemberIds = useMemo(() => {
+        if (!user) return new Set<string>();
+
+        // Owners see everyone
+        if (user.role === 'owner') return null;
+
+        // strict visibility: Down + 1 Up
+        const ids = getDescendants(user.id, Object.values(team));
+
+        // Debug
+        console.log('DEBUG: Assignments for', user.role, user.id, 'Visible:', Array.from(ids));
+
+        return ids;
+    }, [user, team]);
+
+    // For creation mode, we might only have partial data
+    const [title, setTitle] = useState(task.title || '');
+    const [originalTitle] = useState(task.title || '');
     const [description, setDescription] = useState(task.description || '');
-    const [projectId, setProjectId] = useState<string>(task.projectId || '');
-    const [priority, setPriority] = useState<Priority>(task.priority);
+
+    const [priority, setPriority] = useState<Priority>(task.priority || 'medium');
     const [assigneeIds, setAssigneeIds] = useState<string[]>(task.assigneeIds || []);
 
-    const [status, setStatus] = useState<TaskStatus>(task.status);
+    const [status, setStatus] = useState<TaskStatus>(task.status || 'todo');
     const [recurrence, setRecurrence] = useState<RecurrenceConfig | undefined>(task.recurrence);
     // Visibility
     const [visibility, setVisibility] = useState<'private' | 'team'>(task.visibility || 'private');
 
     const initialDate = task.dueDate ? new Date(task.dueDate) : null;
-    const [dueDateStr, setDueDateStr] = useState(initialDate ? format(initialDate, "yyyy-MM-dd'T'HH:mm") : '');
+    const [dueDateStr, setDueDateStr] = useState((initialDate && isValid(initialDate)) ? format(initialDate, "yyyy-MM-dd'T'HH:mm") : '');
 
     const [aiLoading, setAiLoading] = useState(false);
     const [loadingText, setLoadingText] = useState("Analyzing...");
@@ -38,16 +58,16 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
 
     // Fix: Stale Data - Sync state with task prop when it updates
     useEffect(() => {
-        setTitle(task.title);
+        setTitle(task.title || '');
         setDescription(task.description || '');
-        setProjectId(task.projectId || '');
-        setPriority(task.priority);
+
+        setPriority(task.priority || 'medium');
         setAssigneeIds(task.assigneeIds || []);
-        setStatus(task.status);
+        setStatus(task.status || 'todo');
         setRecurrence(task.recurrence);
         setVisibility(task.visibility || 'private');
         const d = task.dueDate ? new Date(task.dueDate) : null;
-        setDueDateStr(d ? format(d, "yyyy-MM-dd'T'HH:mm") : '');
+        setDueDateStr((d && isValid(d)) ? format(d, "yyyy-MM-dd'T'HH:mm") : '');
     }, [task]);
 
     // Narrative Loading Effect
@@ -64,97 +84,49 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
     }, [aiLoading]);
 
     const handleAutoProcess = async () => {
+        if (!task.id) return; // Cannot process without ID
         setAiLoading(true);
         try {
-            const webhookUrl = import.meta.env.DEV
-                ? `/api/auto-process?id=${task.id}`
-                : `${import.meta.env.VITE_N8N_WEBHOOK_URL}?id=${task.id}`;
+            if (!user?.id) throw new Error("User not found");
 
-            const response = await fetchWithRetry(webhookUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: task.id,
-                    text: task.title,
-                    source: task.source || 'manual',
-                    available_projects: Object.values(projects).map(p => ({ id: p.id, name: p.name })),
-                    available_team: Object.values(team)
-                        .filter(m => m.id !== user?.id)
-                        .map(m => ({ id: m.id, name: m.name }))
-                })
+            // Use Client Service instead of N8N
+            const results = await processTaskInputWithAI(user.id, task.title || '', {
+                organizationId: user.organizationId,
+                userRoleContext: user.preferences?.aiContext
             });
 
-            if (!response.ok) throw new Error('CORS or Network Error');
+            if (results.length > 0) {
+                // If AI created a completely new task structure, we should ideally close this modal or reload.
+                // But since this modal edits a single task, we will map the FIRST result to the current UI state.
+                const aiResult = results[0];
 
-            const responseText = await response.text();
+                setTitle(aiResult.title);
+                if (aiResult.smart_analysis?.summary) setDescription(aiResult.smart_analysis.summary);
 
-            if (!responseText || responseText.trim() === '') {
-                throw new Error('AI returned an empty response. Check n8n configuration.');
-            }
+                if (aiResult.priority) setPriority(aiResult.priority);
 
-            let data: any;
-            try {
-                let rawData = JSON.parse(responseText);
+                if (aiResult.due_date) setDueDateStr(format(new Date(aiResult.due_date), "yyyy-MM-dd'T'HH:mm"));
 
-                // 1. Unwrap Array
-                if (Array.isArray(rawData)) {
-                    rawData = rawData[0];
+                if (aiResult.assignee_ids && aiResult.assignee_ids.length > 0) {
+                    setAssigneeIds(aiResult.assignee_ids);
                 }
 
-                // 2. Unwrap 'output' property
-                if (rawData && typeof rawData === 'object' && 'output' in rawData) {
-                    rawData = rawData.output;
-                }
-
-                // 3. Parse stringified JSON
-                if (typeof rawData === 'string') {
-                    const trimmed = rawData.trim();
-                    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-                        try {
-                            rawData = JSON.parse(trimmed);
-                        } catch (innerError) {
-                            console.warn("Failed internal JSON parse", innerError);
-                        }
-                    }
-                }
-
-                data = rawData;
-            } catch (e) {
-                console.error('Failed to parse n8n response.');
-                throw new Error(`Invalid JSON response (Status: ${response.status}).`);
+                // If multiple tasks were generated (rare for atomic input), 
+                // the others were already inserted into DB by the service.
             }
 
-            const priorityMap: Record<string, Priority> = {
-                'P1': 'critical', 'P2': 'high', 'P3': 'medium', 'P4': 'low'
-            };
-
-            if (data.ai_title) setTitle(data.ai_title);
-            if (data.ai_context) setDescription(data.ai_context);
-
-            const mappedPriority = priorityMap[data.ai_priority as string] || data.ai_priority;
-            if (['critical', 'high', 'medium', 'low'].includes(mappedPriority)) {
-                setPriority(mappedPriority as Priority);
-            }
-
-            if (data.ai_date) setDueDateStr(data.ai_date.split('T')[0]);
-            if (data.ai_project_id) setProjectId(data.ai_project_id);
-            if (data.ai_assignee_ids && Array.isArray(data.ai_assignee_ids)) {
-                if (data.ai_assignee_ids.length > 0) {
-                    setAssigneeIds(data.ai_assignee_ids);
-                }
-            }
-
-        } catch (error) {
-            console.error(error);
-            setErrorMsg('AI Analysis failed. Please check your connection.');
-            setTimeout(() => setErrorMsg(null), 4000);
+        } catch (error: any) {
+            console.error("Auto-Fill Error Details:", error);
+            const msg = error.message || 'Unknown Error';
+            setErrorMsg(`DEBUG-UI: ${msg}`);
+            setTimeout(() => setErrorMsg(null), 10000);
         } finally {
             setAiLoading(false);
         }
     };
     // Permission Logic
-    const isOwner = user?.id === task.ownerId;
-    const isAdmin = user?.role === 'admin' || user?.role === 'owner'; // Global admin privileges
+    const isOwner = user?.id === task.ownerId || mode === 'create'; // Creator is owner
+    const isAdmin = user?.role === 'head' || user?.role === 'owner'; // Global admin privileges
     const canEdit = isOwner || isAdmin;
 
     // DEBUG LOG
@@ -185,27 +157,44 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
     const [isSuccess, setIsSuccess] = useState(false);
 
     const handleSave = async (e?: React.FormEvent | React.FocusEvent) => {
-        if (e) e.preventDefault();
+        // Prevent default form submission
+        if (e && e.preventDefault) e.preventDefault();
 
-        // Don't save if nothing changed (optional optimization, but good for onBlur)
-        if (title === task.title &&
+        // Detect if this is an explicit user action (Click or Enter)
+        // Note: We are removing onBlur, so e will be Submit(Enter) or Undefined(Click)
+        const isExplicitAction = !e || e.type === 'submit' || e.type === 'click';
+
+        // Check if anything changed
+        const hasChanges = !(
+            mode === 'edit' &&
+            title === task.title &&
             description === (task.description || '') &&
             status === task.status &&
-            projectId === (task.projectId || '') &&
+
             priority === task.priority &&
-            dueDateStr === (task.dueDate ? format(new Date(task.dueDate), "yyyy-MM-dd'T'HH:mm") : '') &&
+            dueDateStr === (task.dueDate && isValid(new Date(task.dueDate)) ? format(new Date(task.dueDate), "yyyy-MM-dd'T'HH:mm") : '') &&
             JSON.stringify(assigneeIds) === JSON.stringify(task.assigneeIds) &&
             JSON.stringify(recurrence) === JSON.stringify(task.recurrence)
-        ) {
-            if (e && e.type === 'submit') onClose(); // If explicit submit, close
+        );
+
+        // If no changes and explicit action, just close
+        if (!hasChanges && isExplicitAction) {
+            onClose();
+            return;
+        }
+
+        // If no changes and NOT explicit (e.g. if we kept onBlur), return
+        if (!hasChanges) return;
+
+        if (!title.trim()) {
+            setErrorMsg("Task title is required");
             return;
         }
 
         setIsSuccess(true);
-        // Micro-interaction delay only on explicit submit
-        if (e && e.type === 'submit') {
-            await new Promise(resolve => setTimeout(resolve, 600));
-        }
+
+        // Wait for animation
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         let dueDate: number | undefined;
         if (dueDateStr) {
@@ -215,10 +204,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
             }
         }
 
-
-        // Derived visibility: only 'team' if someone else is assigned, UNLESS explicitly set to team
-        // Logic: If I have assignees, it MUST be team (usually). But we can allow "Private" if shared? No, shared private is contradictory.
-        // If shared, forced Team. If not shared, can be Team or Private.
+        // Derived visibility logic
         const hasEvaluatedAssignees = assigneeIds.filter(uid => uid !== user?.id).length > 0;
         let finalVisibility = visibility;
 
@@ -226,28 +212,41 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
             finalVisibility = 'team'; // Enforce team if shared
         }
 
-        // If manually set to team but no assignees, we respect it (Team Bulletin).
-
-        updateTask(task.id, {
+        const commonData = {
             title,
             description,
-            projectId: projectId || undefined,
+            projectId: undefined,
             priority,
             dueDate,
             assigneeIds,
             status,
-            visibility: finalVisibility, // Use explicit
+            visibility: finalVisibility,
             recurrence: recurrence
-        });
+        };
 
-        if (e && e.type === 'submit') {
+        try {
+            if (mode === 'create') {
+                await addTask(commonData);
+            } else {
+                if (!task.id) return;
+                await updateTask(task.id, commonData);
+            }
+
+            // Always close after success
             onClose();
+
+        } catch (err) {
+            console.error(err);
+            setErrorMsg("Failed to save task.");
+            setIsSuccess(false);
         }
     };
 
     const handleDelete = () => {
-        deleteTask(task.id);
-        onClose();
+        if (task.id) {
+            deleteTask(task.id);
+            onClose();
+        }
     }
 
     return (
@@ -260,7 +259,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                 <div className="flex items-center justify-between p-5 border-b border-border-subtle bg-bg-app/50 shrink-0">
                     <div className="flex items-center gap-3">
                         <h2 className="font-display font-semibold text-lg text-text-primary">
-                            {isProcessing ? 'Accept & Process Item' : 'Edit Task'}
+                            {isProcessing ? 'Accept & Process Item' : mode === 'create' ? 'Create New Task' : 'Edit Task'}
                         </h2>
                     </div>
                     <div className="flex items-center gap-2">
@@ -285,7 +284,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                             {showActivity ? "Hide Activity" : "Show Activity"}
                         </button>
 
-                        {isOwner && (
+                        {isOwner && mode === 'edit' && (
                             <div className="relative">
                                 {showDeleteConfirm ? (
                                     <div className="absolute top-full right-0 mt-2 bg-bg-card border border-border-subtle shadow-xl rounded-xl p-3 z-[60] min-w-[200px] animate-in slide-in-from-top-2">
@@ -333,7 +332,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                             </button>
                                             <button
                                                 onClick={() => {
-                                                    unassignTask(task.id, user.id);
+                                                    unassignTask(task.id!, user.id);
                                                     onClose();
                                                 }}
                                                 className="flex-1 px-2 py-1.5 bg-orange-500 text-white rounded-lg text-xs font-bold hover:bg-orange-600 shadow-sm"
@@ -350,7 +349,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
                                         className="text-text-muted hover:text-orange-500 hover:bg-orange-500/10 transition-colors p-2 rounded-lg"
                                         title="Leave Task (Unassign me)"
                                     >
-                                        <UserMinus size={18} />
+                                        <User size={18} className="rotate-45" />
                                     </button>
                                 )}
                             </div>
@@ -363,399 +362,385 @@ export function EditTaskModal({ task, onClose, isProcessing = false }: EditTaskM
 
                 <div className="flex flex-1 overflow-hidden">
                     {/* Left Column: Form */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                        {/* Original Item context */}
-                        {isProcessing && (
-                            <div className="bg-bg-app/50 p-4 rounded-xl border border-border-subtle/50">
-                                <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 block">
-                                    Original Input
-                                </label>
-                                <p className="text-text-primary text-sm leading-relaxed">{task.title}</p>
-                                <div className="mt-2 text-[10px] text-text-muted flex gap-3 font-medium">
-                                    <span>Source: {task.source || 'Manual'}</span>
-                                    {task.createdAt && <span>Added {format(task.createdAt, 'MMM d, HH:mm')}</span>}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* AI Process Button */}
-                        {isProcessing && !task.title && (
-                            <div className="flex justify-center py-4">
-                                <button
-                                    type="button"
-                                    onClick={handleAutoProcess}
-                                    disabled={aiLoading}
-                                    className={clsx(
-                                        "group relative inline-flex items-center justify-center gap-3 px-8 py-4 w-full",
-                                        "bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-bold rounded-2xl",
-                                        "shadow-lg shadow-violet-500/20 hover:shadow-violet-500/40 transition-all duration-300",
-                                        "disabled:opacity-70 disabled:cursor-not-allowed"
-                                    )}
-                                >
-                                    {aiLoading ? (
-                                        <>
-                                            <Loader2 className="w-5 h-5 animate-spin text-white/80" />
-                                            <span className="tracking-wide font-display">{loadingText}</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Sparkles className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                                            <span className="tracking-wide font-display">Auto-Process with AI</span>
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        )}
-
-                        {/* Form Content */}
-                        <form onSubmit={handleSave} className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
-                            {!canEdit && (
-                                <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-600 px-4 py-3 rounded-xl flex items-center gap-3 text-sm">
-                                    <Lock size={16} />
-                                    <span>view only mode • Only the task owner or admins can edit details.</span>
+                    <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                            {/* Original Item context */}
+                            {isProcessing && (
+                                <div className="bg-bg-app/50 p-4 rounded-xl border border-border-subtle/50">
+                                    <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 block">
+                                        Original Input
+                                    </label>
+                                    <p className="text-text-primary text-sm leading-relaxed">{task.title}</p>
+                                    <div className="mt-2 text-[10px] text-text-muted flex gap-3 font-medium">
+                                        <span>Source: {task.source || 'Manual'}</span>
+                                        {task.createdAt && <span>Added {format(task.createdAt, 'MMM d, HH:mm')}</span>}
+                                    </div>
                                 </div>
                             )}
 
-                            <div>
-                                <div className="flex items-center justify-between mb-2">
-                                    <label className="block text-xs uppercase text-text-muted font-bold tracking-wider">Title</label>
-                                    {canEdit && title !== originalTitle && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setTitle(originalTitle)}
-                                            className="text-[10px] text-accent-primary hover:underline flex items-center gap-1 font-bold"
-                                        >
-                                            <X size={10} /> Use Original
-                                        </button>
-                                    )}
-                                </div>
-                                <input
-                                    autoFocus={canEdit}
-                                    disabled={!canEdit}
-                                    type="text"
-                                    value={title}
-                                    onChange={e => setTitle(e.target.value)}
-                                    onBlur={handleSave}
-                                    className={clsx(
-                                        "input w-full text-lg font-medium transition-all bg-transparent border-transparent px-0 hover:bg-bg-input hover:px-3 focus:bg-bg-input focus:px-3 focus:border-accent-primary",
-                                        title !== originalTitle && "ring-2 ring-violet-500/20 border-violet-500/30",
-                                        !canEdit && "opacity-70 cursor-not-allowed"
-                                    )}
-                                    placeholder="Task Title"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2">Description / Context</label>
-                                <textarea
-                                    disabled={!canEdit}
-                                    value={description}
-                                    onChange={e => setDescription(e.target.value)}
-                                    onBlur={handleSave}
-                                    className={clsx(
-                                        "input w-full min-h-[120px] text-sm resize-y leading-relaxed",
-                                        !canEdit && "opacity-70 cursor-not-allowed bg-transparent border-transparent px-0 resize-none"
-                                    )}
-                                    placeholder={canEdit ? "Add details, context or instructions..." : "No description provided."}
-                                />
-                            </div>
-
-                            {/* Status & Project (No explicit Visibility selector) */}
-                            <div className="grid grid-cols-2 gap-5 animate-in slide-in-from-top-2">
-                                <div className="col-span-2 md:col-span-1">
-                                    <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
-                                        <ListTodo size={12} className="text-accent-secondary" /> Status
-                                    </label>
-                                    <select
-                                        disabled={!canEdit}
-                                        value={status}
-                                        onChange={e => setStatus(e.target.value as TaskStatus)}
-                                        className={clsx("input w-full appearance-none bg-bg-input", !canEdit && "opacity-70 cursor-not-allowed")}
-                                    >
-                                        <option value="backlog">Backlog / Incoming</option>
-                                        <option value="todo">To Do</option>
-                                        <option value="in_progress">In Progress</option>
-                                        <option value="review">Review</option>
-                                        <option value="done">Done</option>
-                                    </select>
-                                </div>
-                                <div className="col-span-2 md:col-span-1">
-                                    <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
-                                        <Folder size={12} className="text-accent-secondary" /> Project
-                                    </label>
-                                    <div className="relative">
-                                        <select
-                                            disabled={!canEdit}
-                                            value={projectId}
-                                            onChange={e => setProjectId(e.target.value)}
-                                            className={clsx("input w-full appearance-none bg-bg-input", !canEdit && "opacity-70 cursor-not-allowed")}
-                                        >
-                                            <option value="">No Project</option>
-                                            {Object.values(projects).map(p => (
-                                                <option key={p.id} value={p.id}>{p.name}</option>
-                                            ))}
-                                        </select>
-                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
-                                            <Folder size={14} />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-
-                            <div className="grid grid-cols-2 gap-5 animate-in slide-in-from-top-2">
-
-                                <div className="col-span-2 md:col-span-1">
-                                    <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
-                                        <Clock size={12} className="text-accent-secondary" /> Due Date & Repeat
-                                    </label>
-                                    <div className="flex gap-2">
-                                        <input
-                                            disabled={!canEdit}
-                                            type="datetime-local"
-                                            value={dueDateStr}
-                                            onChange={e => setDueDateStr(e.target.value)}
-                                            className={clsx("input w-full flex-1", !canEdit && "opacity-70 cursor-not-allowed")}
-                                        />
-                                        <select
-                                            disabled={!canEdit}
-                                            value={recurrence?.frequency || 'none'}
-                                            onChange={(e) => {
-                                                const val = e.target.value;
-                                                if (val === 'none') {
-                                                    setRecurrence(undefined);
-                                                } else {
-                                                    setRecurrence({
-                                                        frequency: val as any,
-                                                        interval: 1,
-                                                        type: 'on_schedule' // Default
-                                                    });
-                                                }
-                                            }}
-                                            className={clsx("input w-[100px] text-xs font-semibold", !canEdit && "opacity-70 cursor-not-allowed")}
-                                        >
-                                            <option value="none">No Repeat</option>
-                                            <option value="daily">Daily</option>
-                                            <option value="weekly">Weekly</option>
-                                            <option value="monthly">Monthly</option>
-                                            <option value="yearly">Yearly</option>
-                                        </select>
-                                    </div>
-                                    {recurrence && (
-                                        <div className="mt-2 text-xs flex items-center gap-2 animate-in fade-in">
-                                            <select
-                                                value={recurrence.type}
-                                                onChange={e => setRecurrence({ ...recurrence, type: e.target.value as any })}
-                                                className="bg-bg-input border-none rounded px-2 py-1 text-[10px] font-bold uppercase text-accent-primary"
-                                            >
-                                                <option value="on_schedule">On Schedule</option>
-                                                <option value="on_completion">After Completion</option>
-                                            </select>
-                                            <span className="text-text-muted">Every {recurrence.interval} {recurrence.frequency}(s)</span>
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="col-span-2 animate-in fade-in slide-in-from-top-2">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <label className="block text-xs uppercase text-text-muted font-bold tracking-wider flex items-center gap-2">
-                                            <User size={12} className="text-accent-secondary" /> Share / Delegate
-                                        </label>
-                                        <div className="flex items-center gap-2">
-
-                                            <div className="text-[10px] text-text-muted italic flex items-center gap-2">
-                                                <select
-                                                    disabled={!canEdit || assigneeIds.filter(uid => uid !== user?.id).length > 0} // Disable if shared (forced team)
-                                                    value={assigneeIds.filter(uid => uid !== user?.id).length > 0 ? 'team' : visibility}
-                                                    onChange={e => setVisibility(e.target.value as 'private' | 'team')}
-                                                    className={clsx(
-                                                        "bg-transparent border-none text-[10px] font-bold uppercase focus:ring-0 cursor-pointer pl-0 pr-6",
-                                                        visibility === 'team' || assigneeIds.filter(uid => uid !== user?.id).length > 0 ? "text-accent-primary" : "text-text-muted"
-                                                    )}
-                                                >
-                                                    <option value="private">Private Task</option>
-                                                    <option value="team">Team Visible</option>
-                                                </select>
-                                            </div>
-                                            <div className="relative group/search">
-                                                <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
-                                                <input
-                                                    type="text"
-                                                    placeholder="Find member..."
-                                                    value={assigneeSearch}
-                                                    onChange={e => setAssigneeSearch(e.target.value)}
-                                                    className="pl-7 pr-2 py-1 bg-bg-surface border border-transparent hover:border-border-subtle rounded-full text-xs w-[120px] focus:w-[150px] transition-all focus:border-accent-primary focus:outline-none"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
-                                        {Object.values(team)
-                                            .filter(member => member.id !== user?.id)
-                                            .filter(member => member.name.toLowerCase().includes(assigneeSearch.toLowerCase()))
-                                            .map(member => {
-                                                const isSelected = assigneeIds.includes(member.id);
-                                                // Cascade Logic:
-                                                // - Anyone can add/remove members (open collaboration)
-                                                // - BUT you cannot remove the Owner (integrity protection)
-                                                const isOwnerOfTask = member.id === task.ownerId;
-                                                const isLocked = isOwnerOfTask;
-
-                                                return (
-                                                    <button
-                                                        key={member.id}
-                                                        type="button"
-                                                        disabled={isLocked && isSelected} // Can't untoggle owner
-                                                        onClick={() => {
-                                                            if (isLocked && isSelected) return; // Prevention
-                                                            setAssigneeIds(prev =>
-                                                                isSelected
-                                                                    ? prev.filter(id => id !== member.id)
-                                                                    : [...prev, member.id]
-                                                            );
-                                                        }}
-                                                        className={clsx(
-                                                            "flex items-center gap-3 p-2 rounded-lg border transition-all text-left group",
-                                                            isSelected
-                                                                ? "bg-accent-primary/5 border-accent-primary/30 shadow-inner"
-                                                                : "bg-bg-input border-transparent text-text-muted hover:bg-bg-card-hover hover:border-border-subtle",
-                                                            (isLocked && isSelected) ? "opacity-100 cursor-not-allowed" : "cursor-pointer"
-                                                        )}
-                                                    >
-                                                        {member.avatar ? (
-                                                            <img src={member.avatar} alt={member.name} className="w-8 h-8 rounded-full border border-border-subtle" />
-                                                        ) : (
-                                                            <div className="w-8 h-8 rounded-full bg-accent-secondary/20 flex items-center justify-center text-xs font-bold uppercase text-accent-primary">
-                                                                {member.name.charAt(0)}
-                                                            </div>
-                                                        )}
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className={clsx("text-sm font-medium truncate", isSelected ? "text-accent-primary" : "text-text-primary")}>
-                                                                {member.name}
-                                                            </div>
-                                                            <div className="text-[10px] opacity-70 truncate text-text-muted">{member.email}</div>
-                                                        </div>
-                                                        {isSelected && !isOwnerOfTask && <div className="w-2 h-2 rounded-full bg-accent-primary shadow-sm shadow-accent-primary/50" />}
-                                                    </button>
-                                                );
-                                            })}
-                                    </div>
-                                </div>
-
-                                <div className="col-span-2">
-                                    <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
-                                        <Flag size={12} className="text-accent-secondary" /> Priority
-                                    </label>
-                                    <div className="flex gap-2">
-                                        {(['critical', 'high', 'medium', 'low'] as Priority[]).map((p) => (
-                                            <button
-                                                key={p}
-                                                type="button"
-                                                disabled={!canEdit}
-                                                onClick={() => setPriority(p)}
-                                                className={clsx(
-                                                    "flex-1 py-2 rounded-lg border text-xs font-bold uppercase tracking-wider transition-all shadow-sm",
-                                                    priority === p
-                                                        ? p === 'critical' ? "bg-red-600 text-white border-red-700 shadow-red-600/20" :
-                                                            p === 'high' ? "bg-orange-500 text-white border-orange-600 shadow-orange-500/20" :
-                                                                p === 'medium' ? "bg-yellow-500 text-white border-yellow-600 shadow-yellow-500/20" :
-                                                                    "bg-blue-500 text-white border-blue-600 shadow-blue-500/20"
-                                                        : "bg-bg-input border-transparent text-text-muted hover:bg-bg-card-hover hover:text-text-primary",
-                                                    !canEdit && priority !== p && "opacity-30",
-                                                    !canEdit && "cursor-default group-hover:bg-transparent"
-                                                )}
-                                            >
-                                                {p}
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="sticky bottom-0 bg-bg-card border-t border-border-subtle pt-5 pb-2 mt-2 -mx-6 px-6 z-10">
-                                <div className="flex justify-end gap-3">
-                                    {status === 'review' && isOwner && (
-                                        <>
-                                            <button
-                                                type="button"
-                                                onClick={async () => {
-                                                    // REJECTION FLOW
-                                                    // Trigger notification via store
-                                                    await updateStatus(task.id, 'in_progress');
-                                                    setIsSuccess(true);
-                                                    setTimeout(onClose, 800);
-                                                }}
-                                                className="bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 px-4 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2"
-                                            >
-                                                <X size={18} />
-                                                <span>Return for Revision</span>
-                                            </button>
-                                        </>
-                                    )}
-                                    {status === 'review' && isOwner && (
-                                        <button
-                                            type="button"
-                                            onClick={async () => {
-                                                setStatus('done');
-                                                // Trigger explicit save with 'done' status
-                                                const date = dueDateStr ? new Date(dueDateStr) : null;
-                                                updateTask(task.id, {
-                                                    status: 'done',
-                                                    completedAt: Date.now(),
-                                                    title,
-                                                    description,
-                                                    projectId: projectId || undefined,
-                                                    priority,
-                                                    dueDate: date && !isNaN(date.getTime()) ? date.getTime() : undefined,
-                                                    assigneeIds,
-                                                    visibility: assigneeIds.filter(uid => uid !== user?.id).length > 0 ? 'team' : 'private'
-                                                });
-                                                setIsSuccess(true);
-                                                setTimeout(onClose, 800);
-                                            }}
-                                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-500/20 flex items-center gap-2 transition-all"
-                                        >
-                                            <Check size={18} />
-                                            <span>Approve & Complete</span>
-                                        </button>
-                                    )}
-
+                            {/* AI Process Button */}
+                            {!task.title && (
+                                <div className="flex justify-center py-4">
                                     <button
-                                        type="submit"
-                                        disabled={isSuccess}
+                                        type="button"
+                                        onClick={handleAutoProcess}
+                                        disabled={aiLoading}
                                         className={clsx(
-                                            "text-white px-8 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2",
-                                            isSuccess
-                                                ? "bg-green-500 shadow-green-500/30 scale-105"
-                                                : status === 'done' && !isOwner
-                                                    ? "bg-amber-600 hover:bg-amber-700 shadow-amber-500/20" // Non-owner trying to 'done' -> will be 'review'
-                                                    : "bg-violet-600 hover:bg-violet-700 shadow-violet-500/20"
+                                            "flex items-center justify-center gap-2 px-6 py-3 w-full",
+                                            "bg-violet-500/10 text-violet-600 font-bold rounded-xl border border-violet-500/20",
+                                            "hover:bg-violet-500/20 transition-all",
+                                            "disabled:opacity-50 disabled:cursor-not-allowed"
                                         )}
                                     >
-                                        {isSuccess ? (
+                                        {aiLoading ? (
                                             <>
-                                                <Check size={18} className="animate-bounce" />
-                                                <span>Saved!</span>
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                <span className="text-sm">{loadingText}</span>
                                             </>
                                         ) : (
                                             <>
-                                                <span>
-                                                    {isProcessing ? 'Confirm & To Do' :
-                                                        (status === 'done' && !isOwner) ? 'Submit for Review' : 'Save Changes'}
-                                                </span>
-                                                <ArrowRight size={16} />
+                                                <Sparkles className="w-4 h-4" />
+                                                <span className="text-sm">Auto-Fill Details</span>
                                             </>
                                         )}
                                     </button>
                                 </div>
+                            )}
+
+                            {/* Form Content */}
+                            <form onSubmit={handleSave} className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+                                {!canEdit && (
+                                    <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-600 px-4 py-3 rounded-xl flex items-center gap-3 text-sm">
+                                        <Lock size={16} />
+                                        <span>view only mode • Only the task owner or heads can edit details.</span>
+                                    </div>
+                                )}
+
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <label className="block text-xs uppercase text-text-muted font-bold tracking-wider">Title</label>
+                                        {canEdit && title !== originalTitle && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setTitle(originalTitle)}
+                                                className="text-[10px] text-accent-primary hover:underline flex items-center gap-1 font-bold"
+                                            >
+                                                <X size={10} /> Use Original
+                                            </button>
+                                        )}
+                                    </div>
+                                    <input
+                                        autoFocus={canEdit}
+                                        disabled={!canEdit}
+                                        type="text"
+                                        value={title}
+                                        onChange={e => setTitle(e.target.value)}
+                                        className={clsx(
+                                            "input w-full text-lg font-medium transition-all bg-transparent border-transparent px-0 hover:bg-bg-input hover:px-3 focus:bg-bg-input focus:px-3 focus:border-accent-primary",
+                                            title !== originalTitle && "ring-2 ring-violet-500/20 border-violet-500/30",
+                                            !canEdit && "opacity-70 cursor-not-allowed"
+                                        )}
+                                        placeholder="Task Title"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2">Description / Context</label>
+                                    <textarea
+                                        disabled={!canEdit}
+                                        value={description}
+                                        onChange={e => setDescription(e.target.value)}
+                                        className={clsx(
+                                            "input w-full min-h-[120px] text-sm resize-y leading-relaxed",
+                                            !canEdit && "opacity-70 cursor-not-allowed bg-transparent border-transparent px-0 resize-none"
+                                        )}
+                                        placeholder={canEdit ? "Add details, context or instructions..." : "No description provided."}
+                                    />
+                                </div>
+
+                                {/* Status & Project (No explicit Visibility selector) */}
+                                <div className="grid grid-cols-2 gap-5 animate-in slide-in-from-top-2">
+                                    <div className="col-span-2">
+                                        <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
+                                            <ListTodo size={12} className="text-accent-secondary" /> Status
+                                        </label>
+                                        <select
+                                            disabled={!canEdit}
+                                            value={status}
+                                            onChange={e => setStatus(e.target.value as TaskStatus)}
+                                            className={clsx("input w-full appearance-none bg-bg-input", !canEdit && "opacity-70 cursor-not-allowed")}
+                                        >
+                                            <option value="backlog">Backlog / Incoming</option>
+                                            <option value="todo">To Do</option>
+                                            <option value="in_progress">In Progress</option>
+                                            <option value="review">Review</option>
+                                            <option value="done">Done</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+
+                                <div className="grid grid-cols-2 gap-5 animate-in slide-in-from-top-2">
+
+                                    <div className="col-span-2 md:col-span-1">
+                                        <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
+                                            <Clock size={12} className="text-accent-secondary" /> Due Date & Repeat
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                disabled={!canEdit}
+                                                type="datetime-local"
+                                                value={dueDateStr}
+                                                onChange={e => setDueDateStr(e.target.value)}
+                                                className={clsx("input w-full flex-1", !canEdit && "opacity-70 cursor-not-allowed")}
+                                            />
+                                            <select
+                                                disabled={!canEdit}
+                                                value={recurrence?.frequency || 'none'}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    if (val === 'none') {
+                                                        setRecurrence(undefined);
+                                                    } else {
+                                                        setRecurrence({
+                                                            frequency: val as any,
+                                                            interval: 1,
+                                                            type: 'on_schedule' // Default
+                                                        });
+                                                    }
+                                                }}
+                                                className={clsx("input w-[100px] text-xs font-semibold", !canEdit && "opacity-70 cursor-not-allowed")}
+                                            >
+                                                <option value="none">No Repeat</option>
+                                                <option value="daily">Daily</option>
+                                                <option value="weekly">Weekly</option>
+                                                <option value="monthly">Monthly</option>
+                                                <option value="yearly">Yearly</option>
+                                            </select>
+                                        </div>
+                                        {recurrence && (
+                                            <div className="mt-2 text-xs flex items-center gap-2 animate-in fade-in">
+                                                <select
+                                                    value={recurrence.type}
+                                                    onChange={e => setRecurrence({ ...recurrence, type: e.target.value as any })}
+                                                    className="bg-bg-input border-none rounded px-2 py-1 text-[10px] font-bold uppercase text-accent-primary"
+                                                >
+                                                    <option value="on_schedule">On Schedule</option>
+                                                    <option value="on_completion">After Completion</option>
+                                                </select>
+                                                <span className="text-text-muted">Every {recurrence.interval} {recurrence.frequency}(s)</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="col-span-2 animate-in fade-in slide-in-from-top-2">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <label className="block text-xs uppercase text-text-muted font-bold tracking-wider flex items-center gap-2">
+                                                <User size={12} className="text-accent-secondary" /> Share / Delegate
+                                            </label>
+                                            <div className="flex items-center gap-2">
+
+                                                <div className="text-[10px] text-text-muted italic flex items-center gap-2">
+                                                    <select
+                                                        disabled={!canEdit || assigneeIds.filter(uid => uid !== user?.id).length > 0} // Disable if shared (forced team)
+                                                        value={assigneeIds.filter(uid => uid !== user?.id).length > 0 ? 'team' : visibility}
+                                                        onChange={e => setVisibility(e.target.value as 'private' | 'team')}
+                                                        className={clsx(
+                                                            "bg-transparent border-none text-[10px] font-bold uppercase focus:ring-0 cursor-pointer pl-0 pr-6",
+                                                            visibility === 'team' || assigneeIds.filter(uid => uid !== user?.id).length > 0 ? "text-accent-primary" : "text-text-muted"
+                                                        )}
+                                                    >
+                                                        <option value="private">Private Task</option>
+                                                        <option value="team">Team Visible</option>
+                                                    </select>
+                                                </div>
+                                                <div className="relative group/search">
+                                                    <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Find member..."
+                                                        value={assigneeSearch}
+                                                        onChange={e => setAssigneeSearch(e.target.value)}
+                                                        className="pl-7 pr-2 py-1 bg-bg-surface border border-transparent hover:border-border-subtle rounded-full text-xs w-[120px] focus:w-[150px] transition-all focus:border-accent-primary focus:outline-none"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
+                                            {Object.values(team)
+                                                .filter(member => member.id !== user?.id)
+                                                // Filter out invalid/ghost users
+                                                .filter(member => member.email && member.name !== 'Unknown')
+                                                .filter(member => {
+                                                    if (!visibleMemberIds) return true;
+                                                    return visibleMemberIds.has(member.id);
+                                                })
+                                                .filter(member => (member.name || '').toLowerCase().includes(assigneeSearch.toLowerCase()))
+                                                .map(member => {
+                                                    const isSelected = assigneeIds.includes(member.id);
+                                                    // Cascade Logic:
+                                                    // - Anyone can add/remove members (open collaboration)
+                                                    // - BUT you cannot remove the Owner (integrity protection)
+                                                    const isOwnerOfTask = member.id === task.ownerId;
+                                                    const isLocked = isOwnerOfTask;
+
+                                                    return (
+                                                        <button
+                                                            key={member.id}
+                                                            type="button"
+                                                            disabled={isLocked && isSelected} // Can't untoggle owner
+                                                            onClick={() => {
+                                                                if (isLocked && isSelected) return; // Prevention
+                                                                setAssigneeIds(prev =>
+                                                                    isSelected
+                                                                        ? prev.filter(id => id !== member.id)
+                                                                        : [...prev, member.id]
+                                                                );
+                                                            }}
+                                                            className={clsx(
+                                                                "flex items-center gap-3 p-2 rounded-lg border transition-all text-left group",
+                                                                isSelected
+                                                                    ? "bg-accent-primary/5 border-accent-primary/30 shadow-inner"
+                                                                    : "bg-bg-input border-transparent text-text-muted hover:bg-bg-card-hover hover:border-border-subtle",
+                                                                (isLocked && isSelected) ? "opacity-100 cursor-not-allowed" : "cursor-pointer"
+                                                            )}
+                                                        >
+                                                            {member.avatar ? (
+                                                                <img src={member.avatar} alt={member.name} className="w-8 h-8 rounded-full border border-border-subtle" />
+                                                            ) : (
+                                                                <div className="w-8 h-8 rounded-full bg-accent-secondary/20 flex items-center justify-center text-xs font-bold uppercase text-accent-primary">
+                                                                    {(member.name || member.email || '?').charAt(0).toUpperCase()}
+                                                                </div>
+                                                            )}
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className={clsx("text-sm font-medium truncate", isSelected ? "text-accent-primary" : "text-text-primary")}>
+                                                                    {member.name || member.email || 'Unknown User'}
+                                                                </div>
+                                                                <div className="text-[10px] opacity-70 truncate text-text-muted">{member.email || 'No email'}</div>
+                                                            </div>
+                                                            {isSelected && !isOwnerOfTask && <div className="w-2 h-2 rounded-full bg-accent-primary shadow-sm shadow-accent-primary/50" />}
+                                                        </button>
+                                                    );
+                                                })}
+                                        </div>
+                                    </div>
+
+                                    <div className="col-span-2">
+                                        <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
+                                            <Flag size={12} className="text-accent-secondary" /> Priority
+                                        </label>
+                                        <div className="flex gap-2">
+                                            {(['critical', 'high', 'medium', 'low'] as Priority[]).map((p) => (
+                                                <button
+                                                    key={p}
+                                                    type="button"
+                                                    disabled={!canEdit}
+                                                    onClick={() => setPriority(p)}
+                                                    className={clsx(
+                                                        "flex-1 py-2 rounded-lg border text-xs font-bold uppercase tracking-wider transition-all shadow-sm",
+                                                        priority === p
+                                                            ? p === 'critical' ? "bg-red-600 text-white border-red-700 shadow-red-600/20" :
+                                                                p === 'high' ? "bg-orange-500 text-white border-orange-600 shadow-orange-500/20" :
+                                                                    p === 'medium' ? "bg-yellow-500 text-white border-yellow-600 shadow-yellow-500/20" :
+                                                                        "bg-blue-500 text-white border-blue-600 shadow-blue-500/20"
+                                                            : "bg-bg-input border-transparent text-text-muted hover:bg-bg-card-hover hover:text-text-primary",
+                                                        !canEdit && priority !== p && "opacity-30",
+                                                        !canEdit && "cursor-default group-hover:bg-transparent"
+                                                    )}
+                                                >
+                                                    {p}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                            </form>
+                        </div>
+                        <div className="p-4 border-t border-border-subtle bg-bg-card z-10 shrink-0">
+                            <div className="flex justify-end gap-3">
+                                {status === 'review' && isOwner && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                // REJECTION FLOW
+                                                await updateStatus(task.id!, 'in_progress');
+                                                setIsSuccess(true);
+                                                setTimeout(onClose, 800);
+                                            }}
+                                            className="bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 px-4 py-2.5 rounded-xl font-bold transition-all flex items-center gap-2"
+                                        >
+                                            <X size={18} />
+                                            <span>Return for Revision</span>
+                                        </button>
+                                    </>
+                                )}
+                                {status === 'review' && isOwner && (
+                                    <button
+                                        type="button"
+                                        onClick={async () => {
+                                            setStatus('done');
+                                            const date = dueDateStr ? new Date(dueDateStr) : null;
+                                            updateTask(task.id!, {
+                                                status: 'done',
+                                                completedAt: Date.now(),
+                                                title,
+                                                description,
+                                                projectId: undefined,
+                                                priority,
+                                                dueDate: date && !isNaN(date.getTime()) ? date.getTime() : undefined,
+                                                assigneeIds,
+                                                visibility: assigneeIds.filter(uid => uid !== user?.id).length > 0 ? 'team' : 'private'
+                                            });
+                                            setIsSuccess(true);
+                                            setTimeout(onClose, 800);
+                                        }}
+                                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-emerald-500/20 flex items-center gap-2 transition-all"
+                                    >
+                                        <Check size={18} />
+                                        <span>Approve & Complete</span>
+                                    </button>
+                                )}
+
+                                <button
+                                    type="button"
+                                    onClick={() => handleSave()}
+                                    disabled={isSuccess}
+                                    className={clsx(
+                                        "text-white px-8 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2",
+                                        isSuccess
+                                            ? "bg-green-500 shadow-green-500/30 scale-105"
+                                            : status === 'done' && !isOwner
+                                                ? "bg-amber-600 hover:bg-amber-700 shadow-amber-500/20"
+                                                : "bg-violet-600 hover:bg-violet-700 shadow-violet-500/20"
+                                    )}
+                                >
+                                    {isSuccess ? (
+                                        <>
+                                            <Check size={18} className="animate-bounce" />
+                                            <span>Saved!</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span>
+                                                {isProcessing ? 'Confirm & To Do' :
+                                                    mode === 'create' ? 'Create Task' :
+                                                        (status === 'done' && !isOwner) ? 'Submit for Review' : 'Save Changes'}
+                                            </span>
+                                            <ArrowRight size={16} />
+                                        </>
+                                    )}
+                                </button>
                             </div>
-                        </form>
+                        </div>
                     </div>
 
                     {/* Right Column: Activity Feed */}
                     {showActivity && (
                         <div className="w-[350px] border-l border-border-subtle bg-bg-app/20 p-4 shrink-0 overflow-hidden">
-                            <ActivityFeed taskId={task.id} />
+                            <ActivityFeed taskId={task.id || ''} />
                         </div>
                     )}
                 </div>

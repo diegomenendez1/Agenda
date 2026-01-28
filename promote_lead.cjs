@@ -8,9 +8,17 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function ensureAdmin() {
     // 1. Login as OWNER
+    const ownerEmail = process.env.OWNER_EMAIL;
+    const ownerPassword = process.env.OWNER_PASSWORD;
+
+    if (!ownerEmail || !ownerPassword) {
+        console.error("Error: OWNER_EMAIL and OWNER_PASSWORD environment variables must be set.");
+        return;
+    }
+
     const { data: { session }, error: loginError } = await supabase.auth.signInWithPassword({
-        email: 'diegomenendez1@gmail.com',
-        password: 'Yali.202'
+        email: ownerEmail,
+        password: ownerPassword
     });
 
     if (loginError) {

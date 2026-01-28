@@ -1,15 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useStore } from '../core/store';
 import { supabase } from '../core/supabase';
 import { Sparkles, Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
 
 
 export function AuthView() {
+    const { validateInvitation, acceptInvitation } = useStore();
     const [isLogin, setIsLogin] = useState(true);
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [fullName, setFullName] = useState('');
     const [error, setError] = useState<string | null>(null);
+    const [inviteToken, setInviteToken] = useState<string | null>(null);
+    const [isInviteValid, setIsInviteValid] = useState(false);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+        if (token) {
+            setInviteToken(token);
+            setIsLogin(false); // Force Sign Up
+            validateInvitation(token).then((invite) => {
+                if (invite) {
+                    setEmail(invite.email);
+                    setIsInviteValid(true);
+                } else {
+                    setError('Invalid or expired invitation link.');
+                }
+            }).catch(() => setError('Failed to validate invitation.'));
+        }
+    }, []);
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -24,7 +45,7 @@ export function AuthView() {
                 });
                 if (error) throw error;
             } else {
-                const { error } = await supabase.auth.signUp({
+                const { data: authData, error: signUpError } = await supabase.auth.signUp({
                     email,
                     password,
                     options: {
@@ -32,13 +53,24 @@ export function AuthView() {
                             full_name: fullName,
                             avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=random`,
                             preferences: {
-                                theme: 'system',
+                                theme: 'light',
                                 autoPrioritize: true
                             }
                         },
                     },
                 });
-                if (error) throw error;
+
+                if (signUpError) throw signUpError;
+
+                // Handle Invite Acceptance
+                if (inviteToken && isInviteValid && authData.user) {
+                    try {
+                        await acceptInvitation(inviteToken, authData.user.id);
+                    } catch (invErr) {
+                        console.error("Failed to accept invitation linkage:", invErr);
+                        // Don't block sign-up, but warn. Role might need manual fix.
+                    }
+                }
             }
         } catch (err: any) {
             setError(err.message);
@@ -94,6 +126,7 @@ export function AuthView() {
                                 className="input pl-11 py-3"
                                 placeholder="name@company.com"
                                 required
+                                disabled={isInviteValid}
                             />
                             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors">
                                 <Mail size={18} />
@@ -104,8 +137,14 @@ export function AuthView() {
                     <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
                             <label className="text-xs font-semibold uppercase tracking-wider text-text-muted ml-0.5">Password</label>
-                            {isLogin && (
-                                <a href="#" className="text-xs text-accent-primary hover:text-accent-secondary font-medium hover:underline">Forgot password?</a>
+                            {isLogin ? (
+                                <a href="#" onClick={(e) => { e.preventDefault(); setIsLogin(false); }} className="text-xs text-text-muted hover:text-accent-primary font-medium hover:underline transition-colors">
+                                    Create an account
+                                </a>
+                            ) : (
+                                <a href="#" onClick={(e) => { e.preventDefault(); setIsLogin(true); }} className="text-xs text-text-muted hover:text-accent-primary font-medium hover:underline transition-colors">
+                                    Already have an account?
+                                </a>
                             )}
                         </div>
                         <div className="relative group">
@@ -150,7 +189,7 @@ export function AuthView() {
                 <div className="mt-8 text-center">
                     {/* Public sign-up disabled to enforce Admin-only user creation */}
                 </div>
-            </div>
+            </div >
 
             <div className="absolute bottom-6 text-center w-full text-xs text-text-muted font-medium opacity-60">
                 &copy; 2024 Cortex Systems Inc. All rights reserved.

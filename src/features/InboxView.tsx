@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../core/store';
-import { Inbox, Mail, User, CheckCircle2, Trash2, Pencil, CheckSquare, Square, X } from 'lucide-react';
+import { Inbox, Mail, User, CheckCircle2, Trash2, Pencil, CheckSquare, Square, X, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
 import { ProcessItemModal } from '../components/ProcessItemModal';
 import { SmartInput } from '../components/SmartInput';
@@ -15,7 +15,7 @@ export function InboxView() {
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isSelectionMode, setIsSelectionMode] = useState(false);
 
-    const handleCapture = (text: string, source: 'manual' | 'email' | 'voice' | 'system') => {
+    const handleCapture = (text: string, source: 'manual' | 'email' | 'voice' | 'system' | 'meeting') => {
         addInboxItem(text, source);
     };
 
@@ -71,7 +71,11 @@ export function InboxView() {
         setIsSelectionMode(false);
     };
 
-    const inboxItems = Object.values(inbox).sort((a, b) => b.createdAt - a.createdAt);
+    const activeOrgId = useStore.getState().user?.organizationId;
+    const inboxItems = Object.values(inbox)
+        .filter(item => (item as any).organization_id === activeOrgId)
+        .filter(item => item.text && item.text.trim().length > 0) // Filter out empty/ghost items
+        .sort((a, b) => b.createdAt - a.createdAt);
 
     return (
         <div className="flex flex-col h-full w-full max-w-5xl mx-auto p-6 md:p-10 transition-all duration-300 relative">
@@ -150,7 +154,7 @@ export function InboxView() {
                                                     <CheckSquare size={14} strokeWidth={3} />
                                                 </div>
                                             ) : (
-                                                <div className="w-5 h-5 rounded border-2 border-border-highlight bg-white/50 group-hover:border-violet-400 group-hover:bg-white transition-colors" />
+                                                <div className="w-5 h-5 rounded border-2 border-border-highlight bg-bg-app/50 group-hover:border-violet-400 group-hover:bg-bg-card transition-colors" />
                                             )}
                                         </div>
                                     )}
@@ -160,9 +164,14 @@ export function InboxView() {
                                             "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors",
                                             item.source === 'email'
                                                 ? "bg-blue-500/10 text-blue-500"
-                                                : "bg-emerald-500/10 text-emerald-500"
+                                                : item.source === 'meeting'
+                                                    ? "bg-purple-500/10 text-purple-500"
+                                                    : "bg-emerald-500/10 text-emerald-500"
                                         )}>
-                                            {item.source === 'email' ? <Mail size={20} /> : <User size={20} />}
+                                            {item.source === 'email' ? <Mail size={20} /> :
+                                                item.source === 'meeting' ? <MessageSquare size={20} /> :
+                                                    item.source === 'voice' ? <User size={20} /> :
+                                                        <User size={20} />}
                                         </div>
                                     )}
 
@@ -262,11 +271,11 @@ export function InboxView() {
             {/* Bulk Actions Bar */}
             {isSelectionMode && (
                 <div className="fixed bottom-10 left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] max-w-2xl z-50 animate-in slide-in-from-bottom-5 duration-300">
-                    <div className="bg-gray-900 text-white rounded-2xl p-4 shadow-2xl flex items-center justify-between border border-white/10 backdrop-blur-xl bg-opacity-95">
+                    <div className="bg-bg-card-hover text-text-primary rounded-2xl p-4 shadow-2xl flex items-center justify-between border border-border-highlight backdrop-blur-xl bg-opacity-95">
                         <div className="flex items-center gap-4">
                             <button
                                 onClick={clearSelection}
-                                className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/50 hover:text-white"
+                                className="p-2 hover:bg-bg-input rounded-full transition-colors text-text-muted hover:text-text-primary"
                             >
                                 <X size={20} />
                             </button>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Mail, Shield, AlertTriangle, Check, Loader2, Send } from 'lucide-react';
 import { useStore } from '../core/store';
+import { getAssignableRoles, canAssignManager } from '../core/permissions';
 import clsx from 'clsx';
 
 interface InviteMemberModalProps {
@@ -9,9 +10,10 @@ interface InviteMemberModalProps {
 }
 
 export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
-    const { sendInvitation, user } = useStore();
+    const { sendInvitation, user, team } = useStore();
     const [email, setEmail] = useState('');
     const [role, setRole] = useState('member'); // Default role
+    const [reportsTo, setReportsTo] = useState<string>('');
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -22,10 +24,11 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
         if (isOpen) {
             setEmail('');
             setRole('member');
+            setReportsTo(user?.id || ''); // Default: Report to the person inviting you (Cascade logic)
             setErrorMsg(null);
             setIsSuccess(false);
         }
-    }, [isOpen]);
+    }, [isOpen, user]);
 
     // Handle escape key
     useEffect(() => {
@@ -49,7 +52,7 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
                 throw new Error("Please enter a valid email address.");
             }
 
-            await sendInvitation(email, role);
+            await sendInvitation(email, role, reportsTo);
 
             setIsSuccess(true);
             setTimeout(() => {
@@ -140,19 +143,62 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
                             <select
                                 value={role}
                                 onChange={(e) => setRole(e.target.value)}
-                                className="input w-full appearance-none bg-bg-input"
+                                disabled={!user?.role || user.role === 'member'}
+                                className={clsx(
+                                    "input w-full appearance-none",
+                                    (!user?.role || user.role === 'member') && "opacity-50 cursor-not-allowed bg-bg-input/50"
+                                )}
                             >
-                                <option value="member">Member (Standard Access)</option>
-                                <option value="lead">Team Lead (Can Invite)</option>
-                                <option value="manager">Manager (Full Team Access)</option>
-                                <option value="admin">Admin (Global Settings)</option>
+                                {getAssignableRoles(user?.role || 'member').map(r => (
+                                    <option key={r} value={r}>
+                                        {r.charAt(0).toUpperCase() + r.slice(1)}
+                                    </option>
+                                ))}
                             </select>
-                            <p className="text-[10px] text-text-muted mt-1 px-1">
-                                <strong>Managers</strong> can see all tasks of their direct reports.
-                                <strong>Leads</strong> can manage specific projects.
-                            </p>
+
+                            {['head', 'owner', 'lead'].includes(user?.role || '') ? (
+                                <p className="text-[10px] text-text-muted mt-1 px-1">
+                                    <strong>Leads</strong> can see tasks of their direct reports.
+                                </p>
+                            ) : (
+                                <div className="mt-2 flex items-start gap-2 text-amber-500 bg-amber-500/10 p-2 rounded-lg text-xs">
+                                    <AlertTriangle size={12} className="mt-0.5" />
+                                    <span>
+                                        As a member, you can <strong>request</strong> to invite someone.
+                                        A Head or Owner must approve this request and assign the final role.
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     </div>
+
+                    {/* Reports To Selection (New for Delegation) */}
+                    {['head', 'owner', 'lead'].includes(user?.role || '') && (
+                        <div>
+                            <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
+                                <Shield size={12} /> Reports To (Manager)
+                            </label>
+                            <select
+                                value={reportsTo}
+                                onChange={(e) => setReportsTo(e.target.value)}
+                                className="input w-full appearance-none"
+                            >
+                                <option value="">-- No Direct Manager --</option>
+                                {Object.values(team || {})
+                                    .filter(m => {
+                                        // Filter rules:
+                                        // 1. Strict Hierarchy: I can only assign to myself or below.
+                                        // 2. Head cannot assign to Owner. Lead cannot assign to Head.
+                                        return canAssignManager(user?.role || 'member', m.role);
+                                    })
+                                    .map(m => (
+                                        <option key={m.id} value={m.id}>
+                                            {m.name} {m.id === user?.id ? '(You)' : ''}
+                                        </option>
+                                    ))}
+                            </select>
+                        </div>
+                    )}
 
                     {/* Footer Actions */}
                     <div className="pt-2 flex justify-end gap-3">
@@ -184,7 +230,9 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
                             ) : (
                                 <>
                                     <Send size={18} />
-                                    <span>Send Invitation</span>
+                                    <span>
+                                        {['head', 'owner', 'lead'].includes(user?.role || '') ? 'Send Invitation' : 'Request Access'}
+                                    </span>
                                 </>
                             )}
                         </button>

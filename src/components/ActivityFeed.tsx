@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useStore } from '../core/store';
 import { formatDistanceToNow } from 'date-fns';
-import { MessageSquare, RefreshCw, User as UserIcon, FileEdit, Plus } from 'lucide-react';
+import { MessageSquare, RefreshCw, User as UserIcon, FileEdit, Plus, Pencil, X, Check } from 'lucide-react';
 import clsx from 'clsx';
 import type { EntityId } from '../core/types';
 
@@ -10,9 +10,11 @@ interface ActivityFeedProps {
 }
 
 export function ActivityFeed({ taskId }: ActivityFeedProps) {
-    const { activities, fetchActivities, logActivity, user, team } = useStore();
+    const { activities, fetchActivities, logActivity, updateActivity, user, team } = useStore();
     const [comment, setComment] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editContent, setEditContent] = useState('');
 
     // Suggestion State
     const [mentionQuery, setMentionQuery] = useState<string | null>(null);
@@ -58,7 +60,7 @@ export function ActivityFeed({ taskId }: ActivityFeedProps) {
     };
 
     const filteredMembers = mentionQuery !== null
-        ? Object.values(team).filter(m => m.name.toLowerCase().includes(mentionQuery.toLowerCase()))
+        ? Object.values(team).filter(m => (m.name || '').toLowerCase().includes(mentionQuery.toLowerCase()))
         : [];
 
     const handleSendComment = async (e: React.FormEvent) => {
@@ -73,6 +75,22 @@ export function ActivityFeed({ taskId }: ActivityFeedProps) {
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const startEditing = (activity: any) => {
+        setEditingId(activity.id);
+        setEditContent(activity.content);
+    };
+
+    const cancelEditing = () => {
+        setEditingId(null);
+        setEditContent('');
+    };
+
+    const saveEditing = async (id: string) => {
+        if (!editContent.trim()) return;
+        await updateActivity(id, editContent);
+        setEditingId(null);
     };
 
     const getIcon = (type: string) => {
@@ -146,8 +164,45 @@ export function ActivityFeed({ taskId }: ActivityFeedProps) {
                                     </div>
 
                                     {activity.type === 'message' ? (
-                                        <div className="bg-bg-card p-3 rounded-tr-xl rounded-br-xl rounded-bl-xl border border-border-subtle text-sm text-text-primary shadow-sm">
-                                            {activity.content}
+                                        <div className="group/message relative w-full">
+                                            {editingId === activity.id ? (
+                                                <div className="bg-bg-card p-3 rounded-xl border border-accent-primary/50 text-sm text-text-primary shadow-sm space-y-2">
+                                                    <textarea
+                                                        value={editContent}
+                                                        onChange={(e) => setEditContent(e.target.value)}
+                                                        className="w-full bg-transparent outline-none resize-none min-h-[60px]"
+                                                        autoFocus
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                                e.preventDefault();
+                                                                saveEditing(activity.id);
+                                                            }
+                                                            if (e.key === 'Escape') cancelEditing();
+                                                        }}
+                                                    />
+                                                    <div className="flex justify-end gap-2">
+                                                        <button onClick={cancelEditing} className="p-1 hover:bg-bg-app rounded text-text-muted hover:text-red-400">
+                                                            <X size={14} />
+                                                        </button>
+                                                        <button onClick={() => saveEditing(activity.id)} className="p-1 hover:bg-bg-app rounded text-text-muted hover:text-green-400">
+                                                            <Check size={14} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="bg-bg-card p-3 rounded-tr-xl rounded-br-xl rounded-bl-xl border border-border-subtle text-sm text-text-primary shadow-sm group-hover/message:border-border-strong transition-colors relative">
+                                                    {activity.content}
+                                                    {user?.id === activity.userId && (
+                                                        <button
+                                                            onClick={() => startEditing(activity)}
+                                                            className="absolute top-2 right-2 opacity-0 group-hover/message:opacity-100 p-1 hover:bg-bg-app rounded text-text-muted transition-all"
+                                                            title="Edit message"
+                                                        >
+                                                            <Pencil size={12} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     ) : (
                                         <p className="text-xs text-text-secondary">

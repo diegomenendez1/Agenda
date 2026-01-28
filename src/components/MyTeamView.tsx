@@ -1,32 +1,45 @@
 import { useState, useMemo } from 'react';
 import { useStore } from '../core/store';
-import { Users, Mail, Clock, Shield, CheckCircle, XCircle, Plus } from 'lucide-react';
+import { Users, Mail, Shield, CheckCircle, Plus, Search, Clock } from 'lucide-react';
 import { InviteMemberModal } from './InviteMemberModal';
+import { MemberManagementModal } from './MemberManagementModal';
+import { TeamOrganigram } from './TeamOrganigram';
+// import type { TeamMember } from '../core/types'; // Unused
+// import type { TreeNode } from '../core/hierarchyUtils'; // Unused
 import clsx from 'clsx';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 export function MyTeamView() {
-    const { user, tasks, activeInvitations, team, revokeInvitation, resendInvitation } = useStore();
+    const { user, tasks, activeInvitations, team, revokeInvitation, resendInvitation, myWorkspaces, updateTeamMember, renameWorkspace } = useStore();
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<'members' | 'invitations'>('members');
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [tempWorkspaceName, setTempWorkspaceName] = useState('');
 
-    // Filter members that report to the current user (or all if admin/owner)
+    // Derived State
+    const currentWorkspaceName = useMemo(() => {
+        return myWorkspaces?.find(w => w.id === user?.organizationId)?.name || 'Current Workspace';
+    }, [myWorkspaces, user?.organizationId]);
+
+    const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<'members' | 'invitations' | 'approvals' | 'hierarchy'>('members');
+    const [searchQuery, setSearchQuery] = useState('');
+
     const myTeamMembers = useMemo(() => {
-        if (!user) return [];
-        const isExec = user.role === 'owner' || user.role === 'admin';
-
-        // Convert team object to array
-        const allMembers = Object.values(team || {});
-
-        if (isExec) return allMembers;
-
-        // For managers/leads, filter by reports_to relationship
-        // Note: Since we don't have the full hierarchy loaded deeply yet, 
-        // we'll simulate "My Team" as anyone in the same primary team/department
-        // or eventually use the reports_to field when populated.
-        // For now, let's show everyone to establish the UI structure.
-        return allMembers;
+        if (!user || !team) return [];
+        // Company Directory: Everyone in the org can see the full team list and structure.
+        return Object.values(team);
     }, [team, user]);
+
+    const filteredMembers = useMemo(() => {
+        if (!searchQuery) return myTeamMembers;
+        const lowerQuery = searchQuery.toLowerCase();
+        return myTeamMembers.filter(m =>
+            (m.name || '').toLowerCase().includes(lowerQuery) ||
+            (m.email || '').toLowerCase().includes(lowerQuery) ||
+            m.role.toLowerCase().includes(lowerQuery)
+        );
+    }, [myTeamMembers, searchQuery]);
 
     // Calculate workload stats per member
     const memberStats = useMemo(() => {
@@ -46,9 +59,31 @@ export function MyTeamView() {
         return stats;
     }, [tasks]);
 
+    const { pendingInvites, approvalRequests, incomingInvites } = useMemo(() => {
+        const pending = activeInvitations.filter(i => i.status === 'pending');
+        return {
+            pendingInvites: pending.filter(i => i.organizationId === user?.organizationId), // Sent by this org
+            incomingInvites: pending.filter(i => i.email?.toLowerCase() === user?.email?.toLowerCase()), // Sent TO me (case-insensitive)
+            approvalRequests: activeInvitations.filter(i => i.status === 'approval_needed')
+        };
+    }, [activeInvitations, user]);
+
+    const { approveInvitation, rejectInvitation, acceptPendingInvitation, declinePendingInvitation, leaveTeam } = useStore();
+    const isExec = user?.role === 'owner' || user?.role === 'head';
+
     const handleRevoke = async (inviteId: string) => {
         if (confirm('Are you sure you want to revoke this invitation?')) {
             await revokeInvitation(inviteId);
+        }
+    };
+
+    const handleUpdateManager = async (memberId: string, newManagerId: string) => {
+        try {
+            await updateTeamMember(memberId, { reportsTo: newManagerId });
+            toast.success("Reporting line updated");
+        } catch (error) {
+            console.error("Failed to update manager:", error);
+            toast.error("Failed to update reporting line");
         }
     };
 
@@ -58,19 +93,122 @@ export function MyTeamView() {
         <div className="space-y-6 animate-in fade-in duration-300">
 
             {/* Header Actions */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold font-display text-text-primary">My Team</h1>
+                    <h1 className="text-2xl font-bold font-display text-text-primary flex items-center gap-2">
+                        My Team
+                        {isEditingName ? (
+                            <form
+                                onSubmit={(e) => {
+                                    e.preventDefault();
+                                    if (!tempWorkspaceName.trim()) return;
+                                    renameWorkspace(user.organizationId, tempWorkspaceName.trim());
+                                    setIsEditingName(false);
+                                }}
+                                className="flex items-center gap-2"
+                            >
+                                <input
+                                    autoFocus
+                                    value={tempWorkspaceName}
+                                    onChange={(e) => setTempWorkspaceName(e.target.value)}
+                                    onBlur={() => setIsEditingName(false)} // Optional: save on blur or cancel
+                                    className="text-lg font-medium text-text-primary bg-bg-card px-3 py-1 rounded-full border border-accent-primary outline-none min-w-[200px]"
+                                />
+                            </form>
+                        ) : (
+                            <span
+                                onClick={() => {
+                                    setTempWorkspaceName(currentWorkspaceName);
+                                    setIsEditingName(true);
+                                }}
+                                className="text-lg font-medium text-text-muted bg-bg-card px-3 py-1 rounded-full border border-border-subtle cursor-pointer hover:border-accent-primary hover:text-text-primary transition-colors"
+                                title="Click to rename workspace (Local Alias)"
+                            >
+                                {currentWorkspaceName}
+                            </span>
+                        )}
+                    </h1>
                     <p className="text-text-muted">The central hub for team composition, invitations, and performance.</p>
                 </div>
-                <button
-                    onClick={() => setIsInviteModalOpen(true)}
-                    className="btn btn-primary flex items-center gap-2"
-                >
-                    <Plus size={18} />
-                    <span>Invite Member</span>
-                </button>
+
+                <div className="flex items-center gap-3">
+                    <div className="relative">
+                        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+                        <input
+                            type="text"
+                            placeholder="Search members..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9 pr-4 py-2 bg-bg-card border border-border-subtle rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/20 w-64"
+                        />
+                    </div>
+
+                    {user.role !== 'owner' && (
+                        <button
+                            onClick={() => {
+                                if (confirm("Are you sure you want to leave this team? You will lose access to all data.")) {
+                                    leaveTeam();
+                                }
+                            }}
+                            className="btn btn-ghost text-red-500 hover:bg-red-500/10 hover:text-red-600 flex items-center gap-2"
+                        >
+                            <span>Leave Team</span>
+                        </button>
+                    )}
+
+                    <button
+                        onClick={() => setIsInviteModalOpen(true)}
+                        className="btn btn-primary flex items-center gap-2"
+                        disabled={!isExec && user.role !== 'lead'}
+                    >
+                        <Plus size={18} />
+                        <span>Invite Member</span>
+                    </button>
+                </div>
             </div>
+
+            {/* Incoming Invitations Alert */}
+            {incomingInvites.length > 0 && (
+                <div className="bg-violet-500/10 border border-violet-500/20 rounded-xl p-4 mb-6 animate-in slide-in-from-top-2">
+                    <h3 className="text-lg font-bold text-violet-600 flex items-center gap-2 mb-3">
+                        <Mail className="w-5 h-5" />
+                        You have {incomingInvites.length} pending invitation{incomingInvites.length > 1 ? 's' : ''}
+                    </h3>
+                    <div className="grid gap-3">
+                        {incomingInvites.map(invite => (
+                            <div key={invite.id} className="bg-bg-card p-4 rounded-lg border border-border-subtle flex items-center justify-between shadow-sm">
+                                <div>
+                                    <div className="font-medium text-text-primary">
+                                        Join a new workspace as <span className="capitalize font-bold text-violet-600">{invite.role}</span>
+                                    </div>
+                                    <div className="text-sm text-text-muted mt-1">
+                                        Invited by <strong>{invite.inviterName || 'Unknown'}</strong> to <strong>{invite.organizationName || 'Workspace'}</strong> • {format(invite.createdAt, 'MMM d, yyyy')}
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={() => {
+                                            if (confirm("Are you sure you want to decline this invitation?")) {
+                                                declinePendingInvitation(invite.id);
+                                            }
+                                        }}
+                                        className="text-text-muted hover:text-red-500 hover:bg-red-500/10 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                                    >
+                                        Decline
+                                    </button>
+                                    <button
+                                        onClick={() => acceptPendingInvitation(invite.id)}
+                                        className="bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-violet-500/20 flex items-center gap-2"
+                                    >
+                                        <CheckCircle size={18} />
+                                        Accept & Join
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -94,9 +232,23 @@ export function MyTeamView() {
                         <span className="font-semibold text-text-muted text-sm uppercase tracking-wide">Pending Invites</span>
                     </div>
                     <div className="text-3xl font-bold text-text-primary">
-                        {activeInvitations.filter(i => i.status === 'pending').length}
+                        {pendingInvites.length}
                     </div>
                 </div>
+
+                {isExec && (
+                    <div className="bg-bg-card border border-border-subtle p-5 rounded-xl shadow-sm">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2 bg-purple-500/10 text-purple-500 rounded-lg">
+                                <Shield size={20} />
+                            </div>
+                            <span className="font-semibold text-text-muted text-sm uppercase tracking-wide">Approval Requests</span>
+                        </div>
+                        <div className="text-3xl font-bold text-text-primary">
+                            {approvalRequests.length}
+                        </div>
+                    </div>
+                )}
 
                 <div className="bg-bg-card border border-border-subtle p-5 rounded-xl shadow-sm">
                     <div className="flex items-center gap-3 mb-2">
@@ -126,35 +278,69 @@ export function MyTeamView() {
                     )}
                 </button>
                 <button
+                    onClick={() => setActiveTab('hierarchy')}
+                    className={clsx(
+                        "pb-3 text-sm font-medium transition-colors relative",
+                        activeTab === 'hierarchy' ? "text-accent-primary" : "text-text-muted hover:text-text-primary"
+                    )}
+                >
+                    Team Structure
+                    {activeTab === 'hierarchy' && (
+                        <div className="absolute bottom-0 left-0 w-full h-0.5 bg-accent-primary rounded-t-full" />
+                    )}
+                </button>
+                <button
                     onClick={() => setActiveTab('invitations')}
+                    data-testid="tab-invitations"
                     className={clsx(
                         "pb-3 text-sm font-medium transition-colors relative",
                         activeTab === 'invitations' ? "text-accent-primary" : "text-text-muted hover:text-text-primary"
                     )}
                 >
-                    Pending Invitations
-                    {activeInvitations.length > 0 && (
+                    Sent Invitations
+                    {pendingInvites.length > 0 && (
                         <span className="ml-2 bg-bg-input text-text-primary text-[10px] px-1.5 py-0.5 rounded-full">
-                            {activeInvitations.length}
+                            {pendingInvites.length}
                         </span>
                     )}
                     {activeTab === 'invitations' && (
                         <div className="absolute bottom-0 left-0 w-full h-0.5 bg-accent-primary rounded-t-full" />
                     )}
                 </button>
+
+                {isExec && (
+                    <button
+                        onClick={() => setActiveTab('approvals')}
+                        className={clsx(
+                            "pb-3 text-sm font-medium transition-colors relative",
+                            activeTab === 'approvals' ? "text-accent-primary" : "text-text-muted hover:text-text-primary"
+                        )}
+                    >
+                        Approvals
+                        {approvalRequests.length > 0 && (
+                            <span className="ml-2 bg-purple-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">
+                                {approvalRequests.length}
+                            </span>
+                        )}
+                        {activeTab === 'approvals' && (
+                            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-accent-primary rounded-t-full" />
+                        )}
+                    </button>
+                )}
             </div>
 
             {/* Content Area */}
             <div className="bg-bg-card border border-border-subtle rounded-xl min-h-[400px]">
-                {activeTab === 'members' ? (
+                {activeTab === 'members' && (
                     <div className="divide-y divide-border-subtle">
-                        {myTeamMembers.length === 0 ? (
+                        {filteredMembers.length === 0 ? (
                             <div className="p-12 text-center text-text-muted">
                                 <Users size={48} className="mx-auto mb-4 opacity-20" />
-                                <p>No team members found.</p>
+                                <p className="text-lg font-medium text-text-primary">No team members found</p>
+                                <p className="mt-1">Try adjusting your search or ensure you are in the correct workspace.</p>
                             </div>
                         ) : (
-                            myTeamMembers.map((member) => {
+                            filteredMembers.map((member) => {
                                 const stats = memberStats[member.id] || { total: 0, pending: 0, done: 0 };
 
                                 return (
@@ -164,7 +350,7 @@ export function MyTeamView() {
                                                 {member.avatar ? (
                                                     <img src={member.avatar} alt={member.name} className="w-full h-full rounded-full object-cover" />
                                                 ) : (
-                                                    member.name.charAt(0)
+                                                    (member.name || '?').charAt(0)
                                                 )}
                                             </div>
                                             <div>
@@ -185,7 +371,10 @@ export function MyTeamView() {
                                                 <div className="text-xs text-text-muted uppercase font-bold tracking-wider mb-1">Completed</div>
                                                 <div className="font-mono text-sm text-green-500">{stats.done}</div>
                                             </div>
-                                            <button className="opacity-0 group-hover:opacity-100 p-2 hover:bg-bg-input rounded-lg transition-all text-text-muted hover:text-text-primary">
+                                            <button
+                                                onClick={() => setSelectedMemberId(member.id)}
+                                                className="opacity-0 group-hover:opacity-100 p-2 hover:bg-bg-input rounded-lg transition-all text-text-muted hover:text-text-primary"
+                                            >
                                                 Manage
                                             </button>
                                         </div>
@@ -194,15 +383,17 @@ export function MyTeamView() {
                             })
                         )}
                     </div>
-                ) : (
+                )}
+
+                {activeTab === 'invitations' && (
                     <div className="divide-y divide-border-subtle">
-                        {activeInvitations.length === 0 ? (
+                        {pendingInvites.length === 0 ? (
                             <div className="p-12 text-center text-text-muted">
                                 <Mail size={48} className="mx-auto mb-4 opacity-20" />
-                                <p>No pending invitations.</p>
+                                <p>No active sent invitations.</p>
                             </div>
                         ) : (
-                            activeInvitations.map((invite) => (
+                            pendingInvites.map((invite) => (
                                 <div key={invite.id} className="p-4 flex items-center justify-between hover:bg-bg-input/30 transition-colors">
                                     <div className="flex items-center gap-4">
                                         <div className="p-3 bg-bg-input rounded-lg text-text-muted">
@@ -217,36 +408,30 @@ export function MyTeamView() {
                                                 <span>•</span>
                                                 <span className="flex items-center gap-1">
                                                     <Clock size={12} />
-                                                    Sent {format(invite.createdAt, 'MMM d, yyyy')}
+                                                    Sent {format(invite.createdAt, 'MMM d, yyyy')} by {invite.inviterName || 'You'}
                                                 </span>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div className="flex items-center gap-2">
-                                        {invite.status === 'pending' && (
-                                            <>
-                                                <button
-                                                    onClick={() => resendInvitation(invite.id)}
-                                                    className="px-3 py-1.5 text-sm text-accent-primary hover:bg-accent-primary/10 rounded-lg transition-colors"
-                                                >
-                                                    Resend
-                                                </button>
-                                                <button
-                                                    onClick={() => handleRevoke(invite.id)}
-                                                    className="px-3 py-1.5 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                                                >
-                                                    Revoke
-                                                </button>
-                                            </>
-                                        )}
+                                        <button
+                                            onClick={() => resendInvitation(invite.id)}
+                                            className="px-3 py-1.5 text-sm text-accent-primary hover:bg-accent-primary/10 rounded-lg transition-colors"
+                                        >
+                                            Resend
+                                        </button>
+                                        <button
+                                            onClick={() => handleRevoke(invite.id)}
+                                            className="px-3 py-1.5 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                                        >
+                                            Revoke
+                                        </button>
                                         <div className={clsx(
                                             "px-3 py-1 text-xs rounded-full font-medium border",
-                                            invite.status === 'pending' ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
-                                                invite.status === 'accepted' ? "bg-green-500/10 text-green-500 border-green-500/20" :
-                                                    "bg-red-500/10 text-red-500 border-red-500/20"
+                                            "bg-amber-500/10 text-amber-500 border-amber-500/20"
                                         )}>
-                                            {invite.status}
+                                            Pending
                                         </div>
                                     </div>
                                 </div>
@@ -254,11 +439,74 @@ export function MyTeamView() {
                         )}
                     </div>
                 )}
+
+                {activeTab === 'approvals' && (
+                    <div className="divide-y divide-border-subtle">
+                        {approvalRequests.length === 0 ? (
+                            <div className="p-12 text-center text-text-muted">
+                                <CheckCircle size={48} className="mx-auto mb-4 opacity-20" />
+                                <p>No pending requests.</p>
+                            </div>
+                        ) : (
+                            approvalRequests.map((req) => (
+                                <div key={req.id} className="p-4 flex items-center justify-between hover:bg-bg-input/30 transition-colors">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-purple-500/10 text-purple-500 rounded-lg">
+                                            <Users size={20} />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-medium text-text-primary">{req.email}</h3>
+                                            <div className="flex items-center gap-2 text-sm text-text-muted">
+                                                <span>Requested by <strong>{req.inviterName || 'Manager'}</strong></span>
+                                                <span>•</span>
+                                                <span className="flex items-center gap-1">
+                                                    <Clock size={12} />
+                                                    {format(req.createdAt, 'MMM d, yyyy')}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => rejectInvitation(req.id)}
+                                            className="px-3 py-1.5 text-sm text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                                        >
+                                            Reject
+                                        </button>
+                                        <button
+                                            onClick={() => approveInvitation(req.id, 'member')} // Default to member, maybe add dropdown later
+                                            className="px-4 py-1.5 text-sm bg-purple-600 text-white hover:bg-purple-700 rounded-lg shadow-sm transition-colors"
+                                        >
+                                            Approve as Member
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'hierarchy' && (
+                    <TeamOrganigram
+                        members={myTeamMembers}
+                        currentUserId={user.id}
+                        onMemberClick={(id) => setSelectedMemberId(id)}
+                        onUpdateManager={handleUpdateManager}
+                        readOnly={!isExec && user.role !== 'lead'}
+                    />
+                )}
             </div>
 
             <InviteMemberModal
                 isOpen={isInviteModalOpen}
                 onClose={() => setIsInviteModalOpen(false)}
+            />
+
+            <MemberManagementModal
+                isOpen={!!selectedMemberId}
+                onClose={() => setSelectedMemberId(null)}
+                memberId={selectedMemberId}
             />
         </div>
     );

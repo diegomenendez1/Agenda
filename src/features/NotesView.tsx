@@ -1,24 +1,24 @@
 import { useState, useMemo } from 'react';
-import { StickyNote, Plus, Trash2, Search, FileText, Folder, MoreVertical } from 'lucide-react';
+import { StickyNote, Plus, Trash2, Search, FileText } from 'lucide-react';
 import { useStore } from '../core/store';
 import { useParams, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 
 export function NotesView() {
-    const { notes, projects, addNote, updateNote, deleteNote } = useStore();
+    const { notes, addNote, updateNote, deleteNote } = useStore();
     const { noteId } = useParams<{ noteId: string }>();
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
 
     const notesList = useMemo(() => {
         return Object.values(notes)
-            .filter(n => n.title.toLowerCase().includes(searchQuery.toLowerCase()) || n.body.toLowerCase().includes(searchQuery.toLowerCase()))
+            .filter(n => (n.title || '').toLowerCase().includes(searchQuery.toLowerCase()) || (n.body || '').toLowerCase().includes(searchQuery.toLowerCase()))
             .sort((a, b) => b.updatedAt - a.updatedAt);
     }, [notes, searchQuery]);
 
-    const handleCreateNote = () => {
-        const id = addNote('', '');
+    const handleCreateNote = async () => {
+        const id = await addNote('', '');
         navigate(`/notes/${id}`);
     };
 
@@ -126,24 +126,7 @@ export function NotesView() {
                                     Last edited {format(selectedNote.updatedAt, 'PP p')}
                                 </span>
 
-                                <div className="flex items-center gap-2 ml-auto">
-                                    <div className="flex items-center gap-1.5 hover:bg-bg-input px-2 py-1 rounded-md transition-colors cursor-pointer group">
-                                        <Folder size={14} className="text-accent-secondary group-hover:text-accent-primary" />
-                                        <select
-                                            value={selectedNote.projectId || ''}
-                                            onChange={(e) => updateNote(selectedNote.id, { projectId: e.target.value || undefined })}
-                                            className="bg-transparent border-none outline-none text-text-muted group-hover:text-text-primary transition-colors cursor-pointer appearance-none text-right font-medium pr-1"
-                                        >
-                                            <option value="">No Project</option>
-                                            {Object.values(projects).map(p => (
-                                                <option key={p.id} value={p.id}>{p.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <button className="p-1.5 hover:bg-bg-input rounded-md text-text-muted hover:text-text-primary">
-                                        <MoreVertical size={16} />
-                                    </button>
-                                </div>
+
                             </div>
                         </div>
 

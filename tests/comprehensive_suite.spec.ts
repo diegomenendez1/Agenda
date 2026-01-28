@@ -1,12 +1,13 @@
 
 import { test, expect } from '@playwright/test';
+import { TEST_CREDENTIALS } from './fixtures';
 
 test.describe('Comprehensive Application Suite', () => {
 
     // Credentials provided by User
     const USER_MAIN = {
-        email: 'diegomenendez1@gmail.com',
-        password: 'Yali.202'
+        email: TEST_CREDENTIALS.OWNER_EMAIL,
+        password: TEST_CREDENTIALS.OWNER_PASSWORD
     };
 
     // Secondary user for interconnectivity
@@ -138,6 +139,14 @@ test.describe('Comprehensive Application Suite', () => {
         // 3. Edit Task
         await page.click(`text=${taskName}`); // Opens Modal
         await expect(page.getByRole('heading', { name: 'Edit Task' })).toBeVisible();
+
+        // Verify Activity Feed / Chat
+        const activityBtn = page.locator('button[title="Toggle Activity Feed"]');
+        await expect(activityBtn).toBeVisible();
+        await activityBtn.click();
+        await expect(page.locator('text=Activity & Comments')).toBeVisible();
+        await expect(page.locator('input[placeholder*="Write a comment"]')).toBeVisible();
+
         await page.fill('input[placeholder="Task Title"]', `${taskName} Edited`);
         await page.click('button:has-text("high")');
 
@@ -147,7 +156,7 @@ test.describe('Comprehensive Application Suite', () => {
             await recurrenceSelect.selectOption({ label: 'Weekly' }).catch(() => { });
         }
 
-        await page.click('button[type="submit"]', { force: true });
+        await page.click('button:has-text("Save Changes")', { force: true });
 
         await expect(page.locator('text=high').or(page.locator('.text-orange-500'))).toBeVisible();
     });

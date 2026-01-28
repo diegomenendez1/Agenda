@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../core/store';
-import { CheckCircle2, Circle, AlertCircle, Calendar, Folder, Lock, Edit2, Mail, Clock, Users, Repeat } from 'lucide-react';
+import { CheckCircle2, Circle, AlertCircle, Calendar, Lock, Edit2, Mail, Clock, Users, Repeat } from 'lucide-react';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 import type { Task } from '../core/types';
@@ -8,15 +8,17 @@ import { EditTaskModal } from './EditTaskModal';
 
 interface TaskItemProps {
     task: Task;
-    showProject?: boolean;
+
     compact?: boolean;
+    onToggleStatus?: (taskId: EntityId) => void;
 }
 
-export function TaskItem({ task, showProject = true, compact = false }: TaskItemProps) {
-    const { projects, toggleTaskStatus, team, user } = useStore();
+export function TaskItem({ task, compact = false, onToggleStatus }: TaskItemProps) {
+    const { toggleTaskStatus: storeToggleTaskStatus, team, user } = useStore();
+    const handleToggle = onToggleStatus || storeToggleTaskStatus;
     const [isEditing, setIsEditing] = useState(false);
 
-    const project = task.projectId ? projects[task.projectId] : null;
+
 
     // Avatar Logic
     const assigneeIds = task.assigneeIds || [];
@@ -49,7 +51,7 @@ export function TaskItem({ task, showProject = true, compact = false }: TaskItem
                 )} />
 
                 <button
-                    onClick={() => toggleTaskStatus(task.id)}
+                    onClick={() => handleToggle(task.id)}
                     className={clsx(
                         "shrink-0 transition-all duration-300 rounded-full p-0.5",
                         task.status === 'done'
@@ -83,12 +85,7 @@ export function TaskItem({ task, showProject = true, compact = false }: TaskItem
                     </div>
 
                     <div className="flex items-center gap-3 text-xs text-text-muted">
-                        {showProject && project && (
-                            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-bg-input group-hover:bg-bg-card transition-colors border border-transparent group-hover:border-border-subtle">
-                                <Folder size={12} className="text-accent-secondary" />
-                                <span className="truncate max-w-[120px]">{project.name}</span>
-                            </span>
-                        )}
+
 
                         {task.dueDate && (
                             <span className={clsx(

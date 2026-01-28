@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
-import { X, Flag, ArrowRight, Sparkles, Loader2, Folder, Clock, User, Check, Eye, EyeOff, ListTodo } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { X, Flag, ArrowRight, Sparkles, Loader2, Clock, User, Check, Eye, EyeOff, ListTodo } from 'lucide-react';
 import { useStore } from '../core/store';
 import type { InboxItem, Priority } from '../core/types';
 import { fetchWithRetry } from '../core/api';
 import clsx from 'clsx';
 import { format } from 'date-fns';
+import { getDescendants } from '../core/hierarchyUtils';
+import { processTaskInputWithAI } from '../core/aiTaskProcessing';
 
 interface ProcessItemModalProps {
     item: InboxItem;
@@ -16,19 +18,35 @@ interface AIResponse {
     ai_priority: Priority;
     ai_date: string | null;
     ai_context: string;
-    ai_project_id?: string;
+
     ai_assignee_ids?: string[];
 }
 
 export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
-    const { convertInboxToTask, addTask, deleteInboxItem, projects, team, user } = useStore();
+    const { convertInboxToTask, addTask, deleteInboxItem, team, user } = useStore();
+
+    // VISIBILITY LOGIC (Refactored)
+    const visibleMemberIds = useMemo(() => {
+        if (!user) return new Set<string>();
+
+        // Owners see everyone
+        if (user.role === 'owner') return null;
+
+        // strict visibility: Down + 1 Up
+        const ids = getDescendants(user.id, Object.values(team));
+
+        // Debug
+        console.log('DEBUG: Assignments (ProcessItem) for', user.role, user.id, 'Visible:', Array.from(ids));
+
+        return ids;
+    }, [user, team]);
 
     // Form State
     const [title, setTitle] = useState(item.text);
     const [originalTitle] = useState(item.text);
     const [priority, setPriority] = useState<Priority>('medium');
     const [dueDate, setDueDate] = useState<string>('');
-    const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+
     const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
     const [context, setContext] = useState('');
     // Visibility derived from assignees now
@@ -64,117 +82,51 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
         setError(null);
         setCandidates([]);
         try {
-            // Determine URL based on environment
-            const webhookUrl = import.meta.env.DEV
-                ? `/api/auto-process?id=${item.id}`
-                : `${import.meta.env.VITE_N8N_WEBHOOK_URL}?id=${item.id}`;
+            if (!user?.id) throw new Error("User not found");
 
-            const response = await fetchWithRetry(webhookUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    id: item.id,
-                    text: item.text,
-                    source: item.source,
-                    created_at: new Date(item.createdAt).toISOString(),
-                    // Optimization: Send only minimal necessary data to reduce payload size
-                    available_projects: Object.values(projects).map(p => ({ id: p.id, name: p.name })),
-                    // Security warning: We are sending team names. Filter out current user to avoid self-assignment loops.
-                    available_team: Object.values(team)
-                        .filter(m => m.id !== user?.id)
-                        .map(m => ({ id: m.id, name: m.name })),
-                    // Context injection for better AI decision making
-                    team_context: user?.preferences?.aiContext || "CRITICAL RULE: If a task mentions 'Urgent', 'Critical', or 'ASAP', assign HIGH or CRITICAL priority even if the due date is in the future. Do not downgrade priority based on scheduling."
-                }),
-                timeout: 60000 // Correctly placed inside the options object
+            // Use Client Service instead of N8N
+            const results = await processTaskInputWithAI(user.id, item.text, {
+                organizationId: user.organizationId,
+                userRoleContext: user.preferences?.aiContext
             });
 
-            if (!response.ok) {
-                const errorText = await response.text().catch(() => '');
-                console.error("Webhook Error Details:", { status: response.status, text: errorText, url: webhookUrl });
-
-                if (response.status === 404) {
-                    if (errorText.includes("active")) {
-                        throw new Error('404: Workflow is NOT ACTIVE. Turn on the switch in n8n.');
-                    }
-                    throw new Error(`404: Webhook URL Not Found. Server: "${errorText.substring(0, 50)}"`);
-                }
-                if (response.status >= 500) {
-                    throw new Error(`n8n Error (${response.status}): Check workflow logs/model.`);
-                }
-                throw new Error(`Connection failed (${response.status}): ${errorText.substring(0, 100)}`);
-            }
-
-            const responseText = await response.text();
-
-            if (!responseText || responseText.trim() === '') {
-                throw new Error('AI returned empty response. Check n8n workflow.');
-            }
-
-            let data: AIResponse | AIResponse[];
-            try {
-                let rawData = JSON.parse(responseText);
-
-                // Unwrap 'output' property if present (n8n Agent node standard)
-                if (rawData && typeof rawData === 'object' && 'output' in rawData) {
-                    rawData = rawData.output;
-                }
-
-                // Parse stringified JSON if strictly necessary
-                if (typeof rawData === 'string') {
-                    const trimmed = rawData.trim();
-                    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-                        try {
-                            rawData = JSON.parse(trimmed);
-                        } catch (innerError) {
-                            console.warn("Attempted to parse stringified JSON but failed, using raw string:", innerError);
-                        }
-                    }
-                }
-
-                data = rawData;
-            } catch (e) {
-                console.error('Failed to parse n8n response. Status:', response.status, 'Body:', responseText);
-                throw new Error(`Invalid JSON response from AI.`);
-            }
-
-            // Normalization
-            let results: AIResponse[] = [];
-            if (Array.isArray(data)) {
-                results = data;
-            } else {
-                results = [data as AIResponse];
-            }
-
-            if (results.length === 0) throw new Error("AI returned no tasks.");
+            if (results.length === 0) throw new Error("AI returned no tasks/actions.");
 
             if (results.length === 1) {
-                // Single Task Flow (Classic)
-                applySingleResult(results[0]);
+                // Mapping: Service returns Supabase Task objects directly.
+                // We need to map them to the UI's AIResponse shape to reuse existing UI logic.
+                // Or better, just apply directly.
+                const newTask = results[0];
+
+                setTitle(newTask.title);
+                if (newTask.priority) setPriority(newTask.priority);
+                if (newTask.description || newTask.smart_analysis?.summary) setContext(newTask.description || newTask.smart_analysis?.summary);
+                if (newTask.due_date) setDueDate(new Date(newTask.due_date).toISOString().split('T')[0]);
+                if (newTask.assignee_ids) setAssigneeIds(newTask.assignee_ids);
+
+                setIsProcessing(false);
             } else {
-                // Multi-Task Flow (New)
-                const priorityOrder: Record<string, number> = {
-                    'critical': 0, 'P1': 0,
-                    'high': 1, 'P2': 1,
-                    'medium': 2, 'P3': 2,
-                    'low': 3, 'P4': 3
-                };
+                // Multi-task handling
+                // Map DB tasks back to candidates format for the UI list
+                const uiCandidates: AIResponse[] = results.map((r: any) => ({
+                    ai_title: r.title,
+                    ai_priority: r.priority,
+                    ai_date: r.due_date,
+                    ai_context: r.smart_analysis?.summary || r.description,
+                    ai_assignee_ids: r.assignee_ids
+                }));
 
-                const sortedResults = [...results].sort((a, b) => {
-                    const pA = priorityOrder[a.ai_priority] ?? 4;
-                    const pB = priorityOrder[b.ai_priority] ?? 4;
-                    return pA - pB;
-                });
-
-                setCandidates(sortedResults);
-                setSelectedCandidates([]); // No select by default as requested
+                setCandidates(uiCandidates);
+                // Pre-select all
+                setSelectedCandidates(uiCandidates.map((_, i) => i));
             }
 
             setShowAIPreview(true);
             setIsEditingDetails(true);
+
         } catch (error: any) {
             console.error('AI Processing Error:', error);
-            setError(error.message);
+            setError(`DEBUG: ${error.message}`);
         } finally {
             setIsProcessing(false);
         }
@@ -193,7 +145,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
 
         if (data.ai_date) setDueDate(data.ai_date.split('T')[0]);
         if (data.ai_context) setContext(data.ai_context);
-        if (data.ai_project_id) setSelectedProjectId(data.ai_project_id);
+
         if (data.ai_assignee_ids && Array.isArray(data.ai_assignee_ids)) {
             setAssigneeIds(data.ai_assignee_ids);
         }
@@ -217,7 +169,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
             await convertInboxToTask(item.id, {
                 title,
                 priority,
-                projectId: selectedProjectId || undefined,
+                projectId: undefined,
                 dueDate: dueDate ? new Date(dueDate).getTime() : undefined,
                 description: context,
                 assigneeIds,
@@ -251,7 +203,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                 await addTask({
                     title: data.ai_title,
                     priority: prio as Priority,
-                    projectId: data.ai_project_id,
+                    projectId: undefined,
                     dueDate: data.ai_date ? new Date(data.ai_date).getTime() : undefined,
                     description: data.ai_context,
                     assigneeIds: data.ai_assignee_ids || [],
@@ -272,7 +224,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-bg-card w-full max-w-2xl rounded-2xl shadow-2xl border border-border-subtle overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="w-full bg-bg-card border border-border-subtle rounded-xl shadow-2xl overflow-hidden flex flex-col max-w-5xl h-[85vh]">
                 {/* Header */}
                 <div className="p-6 border-b border-border-subtle flex justify-between items-start bg-bg-surface/50">
                     <div>
@@ -296,7 +248,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                 </div>
 
                 {/* Content */}
-                <div className="p-6 overflow-y-auto space-y-6">
+                <div className="flex-1 p-6 overflow-y-auto space-y-6 custom-scrollbar">
                     {/* Original Item context */}
                     <div className="bg-bg-surface p-4 rounded-xl border border-border-subtle/50">
                         <label className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2 block">
@@ -313,33 +265,34 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                     {/* AI Process Button & Manual Option */}
                     {/* AI Process Trigger (Optional) */}
                     {/* AI Process Trigger (Optional) */}
+                    {/* AI Process Button - Large centered version */}
                     {candidates.length <= 1 && (
-                        <div className="flex flex-col items-end gap-2">
+                        <div className="flex justify-center py-4">
                             <button
                                 type="button"
                                 onClick={handleAutoProcess}
                                 disabled={isProcessing}
                                 className={clsx(
-                                    "text-xs font-bold uppercase tracking-wider flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all",
-                                    isProcessing
-                                        ? "bg-bg-subtle text-text-muted cursor-wait"
-                                        : "bg-violet-500/10 text-violet-600 hover:bg-violet-500/20 hover:text-violet-700"
+                                    "flex items-center justify-center gap-2 px-6 py-3 w-full",
+                                    "bg-violet-500/10 text-violet-600 font-bold rounded-xl border border-violet-500/20",
+                                    "hover:bg-violet-500/20 transition-all",
+                                    "disabled:opacity-50 disabled:cursor-not-allowed"
                                 )}
                             >
                                 {isProcessing ? (
                                     <>
-                                        <Loader2 size={12} className="animate-spin" />
-                                        {loadingText}
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        <span className="text-sm">{loadingText}</span>
                                     </>
                                 ) : (
                                     <>
-                                        <Sparkles size={14} />
-                                        Auto-Fill with AI
+                                        <Sparkles className="w-4 h-4" />
+                                        <span className="text-sm">Auto-Fill Details</span>
                                     </>
                                 )}
                             </button>
                             {error && (
-                                <div className="text-[10px] text-red-500 font-medium animate-in fade-in slide-in-from-right-2 max-w-[200px] text-right">
+                                <div className="text-[10px] text-red-500 font-medium animate-in fade-in slide-in-from-right-2 max-w-[200px] text-right absolute right-6 top-1/2 -translate-y-1/2">
                                     {error}
                                 </div>
                             )}
@@ -351,7 +304,6 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                         <div className="animate-in fade-in slide-in-from-bottom-4 space-y-3">
                             {candidates.map((c, idx) => {
                                 const isSelected = selectedCandidates.includes(idx);
-                                const proj = c.ai_project_id ? projects[c.ai_project_id] : null;
                                 return (
                                     <div
                                         key={idx}
@@ -385,11 +337,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                                                             "bg-blue-500/10 text-blue-500 border-blue-500/20"
                                                 )}>{c.ai_priority}</span>
 
-                                                {proj && (
-                                                    <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold text-text-secondary bg-bg-subtle border border-border-subtle">
-                                                        <Folder size={10} /> {proj.name}
-                                                    </span>
-                                                )}
+
 
                                                 {(c.ai_assignee_ids?.length || 0) > 0 && (
                                                     <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold text-accent-primary bg-accent-primary/10 border border-accent-primary/20">
@@ -448,27 +396,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                             </div>
 
                             <div className="grid grid-cols-2 gap-5 animate-in slide-in-from-top-2">
-                                {/* Project Selector */}
-                                <div className="col-span-2 md:col-span-1">
-                                    <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
-                                        <Folder size={12} className="text-accent-secondary" /> Project
-                                    </label>
-                                    <div className="relative">
-                                        <select
-                                            value={selectedProjectId}
-                                            onChange={e => setSelectedProjectId(e.target.value)}
-                                            className="input w-full appearance-none bg-bg-input"
-                                        >
-                                            <option value="">No Project</option>
-                                            {Object.values(projects).map(p => (
-                                                <option key={p.id} value={p.id}>{p.name}</option>
-                                            ))}
-                                        </select>
-                                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
-                                            <Folder size={14} />
-                                        </div>
-                                    </div>
-                                </div>
+
 
                                 {/* Due Date */}
                                 <div className="col-span-2 md:col-span-1">
@@ -499,6 +427,13 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                         {Object.values(team)
                                             .filter(member => member.id !== user?.id)
+                                            .filter(member => {
+                                                // Filter out invalid members or ghosts
+                                                if (!member.email && (!member.name || member.name === 'Unknown' || member.name === 'Unknown User')) return false;
+
+                                                if (!visibleMemberIds) return true;
+                                                return visibleMemberIds.has(member.id);
+                                            })
                                             .map(member => {
                                                 const isSelected = assigneeIds.includes(member.id);
 
@@ -524,14 +459,14 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                                                             <img src={member.avatar} alt={member.name} className="w-8 h-8 rounded-full border border-border-subtle" />
                                                         ) : (
                                                             <div className="w-8 h-8 rounded-full bg-accent-secondary/20 flex items-center justify-center text-xs font-bold uppercase text-accent-primary">
-                                                                {member.name.charAt(0)}
+                                                                {(member.name || member.email || '?').charAt(0).toUpperCase()}
                                                             </div>
                                                         )}
                                                         <div className="flex-1 min-w-0">
                                                             <div className={clsx("text-sm font-medium truncate", isSelected ? "text-accent-primary" : "text-text-primary")}>
-                                                                {member.name}
+                                                                {member.name || member.email || 'Unknown User'}
                                                             </div>
-                                                            <div className="text-[10px] opacity-70 truncate text-text-muted">{member.email}</div>
+                                                            <div className="text-[10px] opacity-70 truncate text-text-muted">{member.email || 'No email'}</div>
                                                         </div>
                                                         {isSelected && <div className="w-2 h-2 rounded-full bg-accent-primary shadow-sm shadow-accent-primary/50" />}
                                                     </button>

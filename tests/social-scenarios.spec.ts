@@ -1,5 +1,6 @@
 
 import { test, expect } from '@playwright/test';
+import { TEST_CREDENTIALS } from './fixtures';
 
 test.describe('Social Scenarios UI', () => {
 
@@ -14,10 +15,10 @@ test.describe('Social Scenarios UI', () => {
             });
             await page.reload();
 
-            // Login
-            console.log("Logging in...");
-            await page.fill('input[type="email"]', 'diegomenendez1@gmail.com');
-            await page.fill('input[type="password"]', 'Yali.202');
+            // 1. Login as main user
+            await page.goto('/');
+            await page.fill('input[type="email"]', TEST_CREDENTIALS.OWNER_EMAIL);
+            await page.fill('input[type="password"]', TEST_CREDENTIALS.OWNER_PASSWORD);
             await page.click('button[type="submit"]');
 
             // Navigate to Projects

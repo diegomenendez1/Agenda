@@ -79,42 +79,42 @@
 
 .dark {
   /* Dark Mode - Deep Space / Obsidian */
-  --bg-app: #030712;
-  /* Gray 950 - Almost Black */
-  --bg-sidebar: #0B0F19;
-  /* Slightly lighter for hierarchy */
+  --bg-app: #0B1120;
+  /* Deep Navy/Black */
+  --bg-sidebar: #0F172A;
+  /* Slate 900 */
 
-  --bg-card: #111827;
-  /* Gray 900 */
-  --bg-card-hover: #1F2937;
-  /* Gray 800 */
+  --bg-card: #1E293B;
+  /* Slate 800 - Lighter than before for contrast */
+  --bg-card-hover: #334155;
+  /* Slate 700 */
 
-  --bg-input: #0B0F19;
-  /* Deep input background to recede */
+  --bg-input: #0F172A;
+  /* Match sidebar for depth */
 
   --text-primary: #F8FAFC;
   /* Slate 50 */
-  --text-secondary: #CBD5E1;
-  /* Slate 300 */
-  --text-muted: #64748B;
-  /* Slate 500 */
+  --text-secondary: #E2E8F0;
+  /* Slate 200 - Brighter than before */
+  --text-muted: #94A3B8;
+  /* Slate 400 - More legible */
 
-  --border-subtle: #1E293B;
-  /* Slate 800 */
-  --border-highlight: #334155;
-  /* Slate 700 */
+  --border-subtle: #334155;
+  /* Slate 700 - Visible separation */
+  --border-highlight: #475569;
+  /* Slate 600 */
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.3);
   --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 10px 10px -5px rgb(0 0 0 / 0.3);
-  --shadow-glow: 0 0 50px rgba(99, 102, 241, 0.2);
+  --shadow-glow: 0 0 50px rgba(99, 102, 241, 0.25);
 
-  /* Accents - Brighter for dark mode */
+  /* Accents - Vibrant */
   --accent-primary: #818CF8;
   /* Indigo 400 */
   --accent-secondary: #A5B4FC;
   /* Indigo 300 */
-  --accent-glow: rgba(129, 140, 248, 0.25);
+  --accent-glow: rgba(129, 140, 248, 0.3);
 }
 
 body {
