@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../core/store';
 import { User, Save, Users, Check, X } from 'lucide-react';
+import clsx from 'clsx';
 
 export function UserProfile() {
     const { user, updateUserProfile } = useStore();
@@ -118,7 +119,6 @@ export function UserProfile() {
                                     onChange={(e) => {
                                         const start = parseInt(e.target.value);
                                         const currentEnd = user.preferences?.workingHours?.end ?? 18;
-                                        // Ensure start is before end
                                         if (start >= currentEnd) return;
 
                                         updateUserProfile({
@@ -126,6 +126,7 @@ export function UserProfile() {
                                             preferences: {
                                                 ...user.preferences,
                                                 workingHours: {
+                                                    ...user.preferences?.workingHours,
                                                     start,
                                                     end: currentEnd
                                                 }
@@ -146,7 +147,6 @@ export function UserProfile() {
                                     onChange={(e) => {
                                         const end = parseInt(e.target.value);
                                         const currentStart = user.preferences?.workingHours?.start ?? 9;
-                                        // Ensure end is after start
                                         if (end <= currentStart) return;
 
                                         updateUserProfile({
@@ -154,6 +154,7 @@ export function UserProfile() {
                                             preferences: {
                                                 ...user.preferences,
                                                 workingHours: {
+                                                    ...user.preferences?.workingHours,
                                                     start: currentStart,
                                                     end
                                                 }
@@ -168,8 +169,51 @@ export function UserProfile() {
                                 </select>
                             </div>
                         </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-text-secondary">Working Days</label>
+                            <div className="flex flex-wrap gap-2">
+                                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => {
+                                    const workingDays = user.preferences?.workingHours?.workingDays || [1, 2, 3, 4, 5];
+                                    const isSelected = workingDays.includes(i);
+
+                                    return (
+                                        <button
+                                            key={day}
+                                            onClick={() => {
+                                                const newDays = isSelected
+                                                    ? workingDays.filter(d => d !== i)
+                                                    : [...workingDays, i].sort();
+
+                                                updateUserProfile({
+                                                    ...user,
+                                                    preferences: {
+                                                        ...user.preferences,
+                                                        workingHours: {
+                                                            ...user.preferences?.workingHours,
+                                                            start: user.preferences?.workingHours?.start ?? 9,
+                                                            end: user.preferences?.workingHours?.end ?? 18,
+                                                            workingDays: newDays
+                                                        }
+                                                    }
+                                                });
+                                            }}
+                                            className={clsx(
+                                                "px-3 py-1.5 rounded-lg text-xs font-bold border transition-all",
+                                                isSelected
+                                                    ? "bg-accent-primary border-accent-primary text-white"
+                                                    : "bg-bg-card border-border-subtle text-text-muted hover:border-text-muted"
+                                            )}
+                                        >
+                                            {day}
+                                        </button>
+                                    )
+                                })}
+                            </div>
+                        </div>
+
                         <p className="text-xs text-text-muted">
-                            These hours will be highlighted in your calendar view to help you focus on your core schedule.
+                            These hours and days will be used by the AI to intelligently schedule your tasks.
                         </p>
                     </div>
 

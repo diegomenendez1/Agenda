@@ -3,6 +3,18 @@
   publish = "dist"
 
 [[redirects]]
+  from = "/api/openai/*"
+  to = "https://api.openai.com/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/auto-process/*"
+  to = "https://n8n.srv1196791.hstgr.cloud/webhook/task-prioritizer/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

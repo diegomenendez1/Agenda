@@ -24,7 +24,10 @@ dist-ssr
 *.sw?
 
 # Security
-.env
+.env*
+debug_*.cjs
+*.cjs.bku
+*.bat
 
 # Testing
 test-results/

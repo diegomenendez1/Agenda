@@ -22,6 +22,7 @@ export interface UserProfile {
         workingHours?: {
             start: number;
             end: number;
+            workingDays?: number[]; // [1, 2, 3, 4, 5] for Mon-Fri
         };
     };
 }

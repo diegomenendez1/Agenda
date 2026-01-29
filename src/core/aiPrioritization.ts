@@ -7,7 +7,7 @@ import { addMinutes, setHours, setMinutes, startOfHour, isAfter, addDays } from 
  */
 export async function runAITaskPrioritization(
     userId: string,
-    workingHours: { start: number; end: number } = { start: 9, end: 18 }
+    workingHours: { start: number; end: number; workingDays?: number[] } = { start: 9, end: 18, workingDays: [1, 2, 3, 4, 5] }
 ) {
     // 1. Validate Env
     const openAiKey = import.meta.env.VITE_OPENAI_API_KEY;
@@ -107,13 +107,17 @@ Output JSON: {"tasks":[{"id":"uuid","priority":"lvl","rank":int,"reason":"why","
             workEndTime.setMinutes(0);
 
             if (isAfter(taskEndTime, workEndTime)) {
-                // Move to TOMORROW Start
+                // Move to NEXT VALID Start
                 currentSlot = addDays(currentSlot, 1);
+
+                // Skip non-working days
+                const validDays = workingHours.workingDays || [1, 2, 3, 4, 5];
+                while (!validDays.includes(currentSlot.getDay())) {
+                    currentSlot = addDays(currentSlot, 1);
+                }
+
                 currentSlot = setHours(currentSlot, workStart);
                 currentSlot = setMinutes(currentSlot, 0);
-
-                // If moved to weekend (Sat=6, Sun=0), move to Monday? 
-                // Simple implementation: Just sequential days for now, user didn't specify strict workday rules.
             }
 
             const assignedDate = new Date(currentSlot);

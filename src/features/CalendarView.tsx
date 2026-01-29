@@ -1,4 +1,4 @@
-import { useState, Component, type ErrorInfo, type ReactNode, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, Component, type ErrorInfo, type ReactNode, useMemo, lazy, Suspense } from 'react';
 import { startOfWeek, addDays, format, isSameDay, addWeeks, subWeeks, setHours, isValid } from 'date-fns';
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, AlertCircle } from 'lucide-react';
 import clsx from 'clsx';
@@ -58,6 +58,64 @@ function CalendarContent() {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [creationDate, setCreationDate] = useState<Date | null>(null);
+
+    // --- State: Resizing ---
+    const [resizing, setResizing] = useState<{
+        taskId: string;
+        type: 'top' | 'bottom';
+        initialY: number;
+        initialValue: number; // minutes or start time? Let's use minutes for duration
+    } | null>(null);
+
+    // Live feedback during resize (optional but recommended for UX)
+    const [resizePreview, setResizePreview] = useState<{ id: string, mins: number, topOffset?: number } | null>(null);
+
+    useEffect(() => {
+        if (!resizing) return;
+
+        const handleMouseMove = (e: MouseEvent) => {
+            const deltaY = e.clientY - resizing.initialY;
+            const deltaMins = Math.round((deltaY / 80) * 60 / 15) * 15; // 15 min snaps
+
+            if (resizing.type === 'bottom') {
+                const newMins = Math.max(resizing.initialValue + deltaMins, 15);
+                setResizePreview({ id: resizing.taskId, mins: newMins });
+            } else {
+                const newMins = Math.max(resizing.initialValue - deltaMins, 15);
+                setResizePreview({ id: resizing.taskId, mins: newMins, topOffset: deltaMins });
+            }
+        };
+
+        const handleMouseUp = async (e: MouseEvent) => {
+            const deltaY = e.clientY - resizing.initialY;
+            const deltaMins = Math.round((deltaY / 80) * 60 / 15) * 15;
+            const task = tasks[resizing.taskId];
+
+            if (task) {
+                if (resizing.type === 'bottom') {
+                    const newMins = Math.max(resizing.initialValue + deltaMins, 15);
+                    await updateTask(task.id, { estimatedMinutes: newMins });
+                } else {
+                    const newDate = new Date(task.dueDate!);
+                    newDate.setMinutes(newDate.getMinutes() + deltaMins);
+                    const newMins = Math.max((task.estimatedMinutes || 60) - deltaMins, 15);
+                    await updateTask(task.id, {
+                        dueDate: newDate.getTime(),
+                        estimatedMinutes: newMins
+                    });
+                }
+            }
+            setResizing(null);
+            setResizePreview(null);
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [resizing, tasks, updateTask]);
 
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday start
     const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
@@ -158,11 +216,17 @@ function CalendarContent() {
             const date = new Date(task.dueDate);
             if (!isValid(date)) return { display: 'none' };
 
-            const startHour = date.getHours();
-            const startMin = date.getMinutes();
-            const durationMinutes = task.estimatedMinutes || 60;
+            let startMin = date.getHours() * 60 + date.getMinutes();
+            let durationMinutes = task.estimatedMinutes || 60;
 
-            const top = (startHour * 80) + ((startMin / 60) * 80);
+            if (resizePreview && resizePreview.id === task.id) {
+                durationMinutes = resizePreview.mins;
+                if (resizePreview.topOffset !== undefined) {
+                    startMin += resizePreview.topOffset;
+                }
+            }
+
+            const top = (startMin / 60) * 80;
             const height = Math.max((durationMinutes / 60) * 80, 24); // Min height 24px
 
             const width = 100 / (task.totalCols || 1);
@@ -174,7 +238,10 @@ function CalendarContent() {
                 left: `${left}%`,
                 width: `${width}%`,
                 position: 'absolute' as const,
-                zIndex: (task.colIndex || 0) + 10
+                zIndex: (task.colIndex || 0) + (resizing?.taskId === task.id ? 1000 : 10),
+                opacity: resizing?.taskId === task.id ? 0.8 : 1,
+                userSelect: 'none' as const,
+                cursor: resizing ? 'grabbing' : 'pointer'
             };
         } catch (e) {
             return { display: 'none' };
@@ -301,21 +368,18 @@ function CalendarContent() {
                                         <div
                                             key={`slot-${dayIdx}-${hour}`}
                                             className={clsx(
-                                                "h-20 border-b border-border-subtle/30 transition-colors group/cell relative",
+                                                "h-20 border-b border-border-subtle/30 transition-colors group/cell relative cursor-cell",
                                                 isWorkingHour ? "bg-transparent transition-opacity" : "bg-black/5 dark:bg-white/5",
                                                 "hover:bg-accent-primary/5"
                                             )}
                                             onDragOver={handleDragOver}
                                             onDrop={(e) => handleDrop(e, day, hour)}
+                                            onClick={() => handleSlotClick(day, hour)}
                                         >
-                                            {/* Hover Add Button */}
-                                            <button
-                                                onClick={() => handleSlotClick(day, hour)}
-                                                className="absolute top-1 right-1 p-1.5 rounded-lg text-accent-primary opacity-0 group-hover/cell:opacity-100 hover:bg-accent-primary/10 transition-all z-20 scale-90 hover:scale-100 cursor-pointer"
-                                                title="Add Task"
-                                            >
+                                            {/* Hover Add Button (Visual Hint) */}
+                                            <div className="absolute top-1 right-1 p-1.5 rounded-lg text-accent-primary opacity-0 group-hover/cell:opacity-100 transition-all z-20 scale-90">
                                                 <Plus size={16} strokeWidth={3} />
-                                            </button>
+                                            </div>
                                         </div>
                                     );
                                 })}
@@ -341,17 +405,44 @@ function CalendarContent() {
                                     return (
                                         <div
                                             key={task.id}
-                                            draggable
+                                            draggable={!resizing}
                                             onDragStart={(e) => handleDragStart(e, task)}
+                                            onClick={(e) => e.stopPropagation()}
                                             onDoubleClick={(e) => handleTaskDoubleClick(task, e)}
                                             className={clsx(
                                                 "rounded-md p-1.5 text-[10px] border cursor-pointer hover:z-[100] transition-all group/card select-none overflow-hidden flex flex-col gap-0.5",
                                                 "hover:shadow-lg hover:ring-1 hover:ring-primary/30",
-                                                cardStyle
+                                                cardStyle,
+                                                resizing?.taskId === task.id && "ring-2 ring-accent-primary z-[500]"
                                             )}
                                             style={getTaskStyle(task)}
                                             title={`${task.title} - ${task.status}`}
                                         >
+                                            {/* Resize Handles */}
+                                            <div
+                                                className="absolute top-0 left-0 right-0 h-1.5 cursor-ns-resize hover:bg-white/40 z-50 transition-colors"
+                                                onMouseDown={(e) => {
+                                                    e.stopPropagation();
+                                                    setResizing({
+                                                        taskId: task.id,
+                                                        type: 'top',
+                                                        initialY: e.clientY,
+                                                        initialValue: task.estimatedMinutes || 60
+                                                    });
+                                                }}
+                                            />
+                                            <div
+                                                className="absolute bottom-0 left-0 right-0 h-1.5 cursor-ns-resize hover:bg-white/40 z-50 transition-colors"
+                                                onMouseDown={(e) => {
+                                                    e.stopPropagation();
+                                                    setResizing({
+                                                        taskId: task.id,
+                                                        type: 'bottom',
+                                                        initialY: e.clientY,
+                                                        initialValue: task.estimatedMinutes || 60
+                                                    });
+                                                }}
+                                            />
                                             {/* Title & Status */}
                                             <div className="flex items-start justify-between gap-1">
                                                 <div className={clsx("font-bold truncate leading-tight", isDone && "line-through")}>
