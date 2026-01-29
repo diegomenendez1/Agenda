@@ -125,12 +125,15 @@ function CalendarContent() {
     const workingStart = user?.preferences?.workingHours?.start ?? 9;
     const workingEnd = user?.preferences?.workingHours?.end ?? 18;
 
+    const [filterMode, setFilterMode] = useState<'all' | 'me'>('all');
+
     // --- Safety: Safe Task Filtering ---
     const weekTasks = useMemo(() => {
         if (!tasks) return [];
         const weekEnd = addDays(weekStart, 7);
         return Object.values(tasks).filter(task => {
             if (task.organizationId !== useStore.getState().user?.organizationId) return false;
+            if (filterMode === 'me' && task.ownerId !== user?.id && !task.assigneeIds?.includes(user?.id || '')) return false;
             if (!task.dueDate) return false;
             try {
                 const taskDate = new Date(task.dueDate);
@@ -139,7 +142,7 @@ function CalendarContent() {
                 return false;
             }
         });
-    }, [tasks, weekStart]);
+    }, [tasks, weekStart, filterMode, user?.id]);
 
     // --- Logic: Overlap Handling ---
     const getPositionedTasks = (day: Date) => {
@@ -235,8 +238,8 @@ function CalendarContent() {
             return {
                 top: `${top}px`,
                 height: `${height}px`,
-                left: `${left}%`,
-                width: `${width}%`,
+                left: `calc(${left}% + 2px)`,
+                width: `calc(${width}% - 4px)`,
                 position: 'absolute' as const,
                 zIndex: (task.colIndex || 0) + (resizing?.taskId === task.id ? 1000 : 10),
                 opacity: resizing?.taskId === task.id ? 0.8 : 1,
@@ -294,6 +297,28 @@ function CalendarContent() {
                         <CalendarIcon className="text-accent-primary" />
                         {format(currentDate, 'MMMM yyyy')}
                     </h2>
+
+                    <div className="flex items-center gap-1 bg-bg-input rounded-lg p-1 border border-border-subtle ml-4">
+                        <button
+                            onClick={() => setFilterMode('all')}
+                            className={clsx(
+                                "px-3 py-1 text-[10px] font-bold rounded transition-all",
+                                filterMode === 'all' ? "bg-bg-card text-accent-primary shadow-sm" : "text-text-muted hover:text-text-primary"
+                            )}
+                        >
+                            All Tasks
+                        </button>
+                        <button
+                            onClick={() => setFilterMode('me')}
+                            className={clsx(
+                                "px-3 py-1 text-[10px] font-bold rounded transition-all",
+                                filterMode === 'me' ? "bg-bg-card text-accent-primary shadow-sm" : "text-text-muted hover:text-text-primary"
+                            )}
+                        >
+                            My Tasks
+                        </button>
+                    </div>
+
                     <div className="flex items-center gap-1 bg-bg-input rounded-lg p-1 border border-border-subtle">
                         <button onClick={() => setCurrentDate(subWeeks(currentDate, 1))} className="p-1 hover:bg-bg-card rounded text-text-muted hover:text-text-primary transition-colors">
                             <ChevronLeft size={18} />
