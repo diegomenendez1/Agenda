@@ -1795,11 +1795,21 @@ export const useStore = create<Store>((set, get) => ({
 
     sendNotification: async (userId, type, title, message, link) => {
         const id = uuidv4();
+        const orgId = get().user?.organizationId;
+
+        console.log(`[Store] Sending notification: To=${userId}, Org=${orgId}, Type=${type}`);
+
+        if (!orgId) {
+            console.error("[Store] Critical: Cannot send notification, missing Organization ID in user state.");
+            toast.error("Error: Missing Organization Setup");
+            return;
+        }
+
         // Database Insert
         const { error } = await supabase.from('notifications').insert({
             id,
             user_id: userId,
-            organization_id: get().user?.organizationId, // NEW
+            organization_id: orgId,
             type,
             title,
             message,
@@ -1812,7 +1822,6 @@ export const useStore = create<Store>((set, get) => ({
             toast.error("Debug: Notification Insert Failed");
         } else {
             console.log("Notification inserted successfully for", userId);
-            // toast.success("Debug: Internal Notification Created"); 
         }
     },
 
