@@ -1092,7 +1092,6 @@ export const useStore = create<Store>((set, get) => ({
 
         // Notify assignees (if any)
         if (taskData.assigneeIds && taskData.assigneeIds.length > 0) {
-            const currentUserId = get().user?.id;
             taskData.assigneeIds.forEach(uid => {
                 // Allow self-notifications for testing purposes, or remove check strictly if desired.
                 // For now, removing the check allows the user to test email flow by assigning tasks to themselves.
