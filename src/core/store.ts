@@ -1145,6 +1145,23 @@ export const useStore = create<Store>((set, get) => ({
 
         await supabase.from('tasks').update(dbUpdates).eq('id', id);
 
+        // NOTIFICATION LOGIC FOR ASSIGNEES
+        if (updates.assigneeIds && updates.assigneeIds.length > 0) {
+            const oldAssignees = new Set(oldTask?.assigneeIds || []);
+            const newAssignees = updates.assigneeIds.filter(uid => !oldAssignees.has(uid));
+
+            newAssignees.forEach(uid => {
+                // Allow self-notifications for testing/verification
+                get().sendNotification(
+                    uid,
+                    'assignment',
+                    'New Task Assigned',
+                    `You were assigned to "${oldTask?.title || 'Unknown Task'}"`,
+                    `/tasks?taskId=${id}`
+                );
+            });
+        }
+
         // RECURRENCE LOGIC (Moved from updateStatus to support EditTaskModal completion)
         if (oldTask && updates.status === 'done' && oldTask.status !== 'done') {
             const currentTask = get().tasks[id]; // Get latest state with any merged recurrence config (e.g. if updated concurrently)
