@@ -1599,7 +1599,7 @@ export const useStore = create<Store>((set, get) => ({
             .from('user_ai_metadata')
             .select('ai_context')
             .eq('user_id', userId)
-            .single();
+            .maybeSingle();
         return data?.ai_context || '';
     },
 
@@ -1809,6 +1809,10 @@ export const useStore = create<Store>((set, get) => ({
 
         if (error) {
             console.error("Failed to persist notification:", error);
+            toast.error("Debug: Notification Insert Failed");
+        } else {
+            console.log("Notification inserted successfully for", userId);
+            // toast.success("Debug: Internal Notification Created"); 
         }
     },
 
