@@ -47,20 +47,22 @@ async function assignTask() {
 
     console.log('Tarea creada con exito en BD.');
 
-    // 3. Disparar Email Manualmente (Simulando lo que hace la App)
-    console.log('Enviando email de prueba via RPC...');
+    // 3. Disparar Email via Notificacion (Probando el nuevo Trigger)
+    console.log('Insertando notificacion para disparar el trigger...');
 
-    const { data, error: emailError } = await supabase.rpc('send_email_via_resend', {
-        to_email: targetUser.email,
-        subject: `Nueva Tarea: ${taskTitle}`,
-        html_body: `<p>Hola Diego,</p><p>Esta es una prueba de fuego.</p><p><strong>${taskTitle}</strong></p><p>Si lees esto, el sistema funciona.</p>`
+    const { error: noticeError } = await supabase.from('notifications').insert({
+        user_id: targetUser.id,
+        organization_id: targetUser.organization_id,
+        type: 'assignment',
+        title: `Nueva Tarea: ${taskTitle}`,
+        message: `Hola Diego, tienes una nueva tarea: ${taskTitle}. Revisa el sistema.`
     });
 
-    if (emailError) {
-        console.error('Error enviando email:', emailError);
+    if (noticeError) {
+        console.error('Error insertando notificacion:', noticeError);
     } else {
-        console.log('✅ Email enviado correctamente (según Postgres).');
-        console.log('Respuesta:', data);
+        console.log('✅ Notificacion insertada. El trigger deberia estar enviando el email ahora.');
+        console.log('Revisa los logs de la Edge Function en Supabase Dashboard.');
     }
 }
 

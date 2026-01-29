@@ -360,15 +360,13 @@ export const useStore = create<Store>((set, get) => ({
 
     sendEmail: async (to, subject, html) => {
         try {
-            // Updated to use Direct SQL Function (Bypassing Edge Function)
-            const { error } = await supabase.rpc('send_email_via_resend', {
-                to_email: to,
-                subject: subject,
-                html_body: html
+            // Using Edge Function for better security and stability
+            const { error } = await supabase.functions.invoke('send-email', {
+                body: { to, subject, html }
             });
 
             if (error) throw error;
-            console.log(`[Store] Email sent to ${to} via SQL`);
+            console.log(`[Store] Email sent to ${to} via Edge Function`);
         } catch (error) {
             console.error('[Store] Failed to send email:', error);
         }
@@ -1254,12 +1252,7 @@ export const useStore = create<Store>((set, get) => ({
         assigneeIds.forEach(uid => {
             if (uid !== currentUserId) {
                 state.sendNotification(uid, 'assignment', 'Task Assigned', `You were assigned to "${task?.title}"`, `/tasks?taskId=${id}`);
-
-                // Trigger email
-                const assignee = state.team[uid];
-                if (assignee && assignee.email) {
-                    state.sendEmail(assignee.email, `New Task: ${task?.title}`, `<p>Hello,</p><p>You have been assigned a new task: <strong>${task?.title}</strong></p><p>Due Date: ${task?.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No Deadline'}</p><p><a href="${window.location.origin}/tasks?taskId=${id}">View Task</a></p>`);
-                }
+                // Email is now handled automatically by DB Trigger on notifications table
             }
         });
     },
