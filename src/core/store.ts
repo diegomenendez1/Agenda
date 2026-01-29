@@ -1150,16 +1150,31 @@ export const useStore = create<Store>((set, get) => ({
             const oldAssignees = new Set(oldTask?.assigneeIds || []);
             const newAssignees = updates.assigneeIds.filter(uid => !oldAssignees.has(uid));
 
-            newAssignees.forEach(uid => {
-                // Allow self-notifications for testing/verification
-                get().sendNotification(
-                    uid,
-                    'assignment',
-                    'New Task Assigned',
-                    `You were assigned to "${oldTask?.title || 'Unknown Task'}"`,
-                    `/tasks?taskId=${id}`
-                );
-            });
+            if (newAssignees.length > 0) {
+                let displayTitle = oldTask?.title || updates.title;
+
+                // If title is missing (not in store), fetch it from DB to ensure nice emails
+                if (!displayTitle) {
+                    try {
+                        const { data: taskData } = await supabase.from('tasks').select('title').eq('id', id).maybeSingle();
+                        if (taskData) displayTitle = taskData.title;
+                    } catch (err) {
+                        console.warn('Could not fetch task title for notification:', err);
+                    }
+                }
+
+                const finalTitle = displayTitle || 'Task';
+
+                newAssignees.forEach(uid => {
+                    get().sendNotification(
+                        uid,
+                        'assignment',
+                        'New Task Assigned',
+                        `You were assigned to "${finalTitle}"`,
+                        `/tasks?taskId=${id}`
+                    );
+                });
+            }
         }
 
         // RECURRENCE LOGIC (Moved from updateStatus to support EditTaskModal completion)
