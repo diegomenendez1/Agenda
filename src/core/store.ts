@@ -110,6 +110,7 @@ interface Actions {
     deleteNotification: (id: EntityId) => Promise<void>;
     clearAllNotifications: () => Promise<void>;
     sendNotification: (userId: EntityId, type: 'mention' | 'assignment' | 'status_change' | 'system' | 'rejection', title: string, message: string, link?: string) => Promise<void>;
+    sendEmail: (to: string, subject: string, html: string) => Promise<void>; // NEW
     claimTask: (taskId: EntityId) => Promise<boolean>;
     unassignTask: (taskId: EntityId, userId: EntityId) => Promise<void>;
 
@@ -354,6 +355,22 @@ export const useStore = create<Store>((set, get) => ({
         } catch (error) {
             console.error("Failed to decline invitation:", error);
             toast.error("Failed to decline invitation");
+        }
+    },
+
+    sendEmail: async (to, subject, html) => {
+        try {
+            // Updated to use Direct SQL Function (Bypassing Edge Function)
+            const { error } = await supabase.rpc('send_email_via_resend', {
+                to_email: to,
+                subject: subject,
+                html_body: html
+            });
+
+            if (error) throw error;
+            console.log(`[Store] Email sent to ${to} via SQL`);
+        } catch (error) {
+            console.error('[Store] Failed to send email:', error);
         }
     },
 
@@ -1081,6 +1098,12 @@ export const useStore = create<Store>((set, get) => ({
             taskData.assigneeIds.forEach(uid => {
                 if (uid !== currentUserId) {
                     get().sendNotification(uid, 'assignment', 'New Task Assigned', `You were assigned to "${taskData.title}"`, `/tasks?taskId=${id}`);
+
+                    // Trigger email
+                    const assignee = get().team[uid];
+                    if (assignee && assignee.email) {
+                        get().sendEmail(assignee.email, `New Task: ${taskData.title}`, `<p>Hello,</p><p>You have been assigned a new task: <strong>${taskData.title}</strong></p><p>Due Date: ${taskData.dueDate ? new Date(taskData.dueDate).toLocaleDateString() : 'No Deadline'}</p><p><a href="${window.location.origin}/tasks?taskId=${id}">View Task</a></p>`);
+                    }
                 }
             });
         }
@@ -1231,6 +1254,12 @@ export const useStore = create<Store>((set, get) => ({
         assigneeIds.forEach(uid => {
             if (uid !== currentUserId) {
                 state.sendNotification(uid, 'assignment', 'Task Assigned', `You were assigned to "${task?.title}"`, `/tasks?taskId=${id}`);
+
+                // Trigger email
+                const assignee = state.team[uid];
+                if (assignee && assignee.email) {
+                    state.sendEmail(assignee.email, `New Task: ${task?.title}`, `<p>Hello,</p><p>You have been assigned a new task: <strong>${task?.title}</strong></p><p>Due Date: ${task?.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No Deadline'}</p><p><a href="${window.location.origin}/tasks?taskId=${id}">View Task</a></p>`);
+                }
             }
         });
     },
