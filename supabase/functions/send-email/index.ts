@@ -23,7 +23,10 @@ serve(async (req) => {
     }
 
     try {
-        const { to, subject, html, taskTitle, dueDate, assignerName }: EmailPayload = await req.json();
+        const body = await req.json();
+        console.log('REQUEST_BODY:', JSON.stringify(body));
+
+        const { to, subject, html, taskTitle, dueDate, assignerName }: EmailPayload = body;
 
         if (!to || !subject || !html) {
             throw new Error('Missing required fields: to, subject, html');
@@ -54,7 +57,7 @@ serve(async (req) => {
         const data = await res.json();
 
         if (!res.ok) {
-            console.error('Resend API Error:', data);
+            console.error('RESEND_ERROR_DETAIL:', JSON.stringify(data, null, 2));
             return new Response(JSON.stringify({ error: data }), {
                 status: 400,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
