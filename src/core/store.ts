@@ -1796,7 +1796,7 @@ export const useStore = create<Store>((set, get) => ({
     sendNotification: async (userId, type, title, message, link) => {
         const id = uuidv4();
         // Database Insert
-        await supabase.from('notifications').insert({
+        const { error } = await supabase.from('notifications').insert({
             id,
             user_id: userId,
             organization_id: get().user?.organizationId, // NEW
@@ -1806,6 +1806,10 @@ export const useStore = create<Store>((set, get) => ({
             link,
             read: false
         });
+
+        if (error) {
+            console.error("Failed to persist notification:", error);
+        }
     },
 
     claimTask: async (taskId) => {
