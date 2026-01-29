@@ -1850,10 +1850,9 @@ export const useStore = create<Store>((set, get) => ({
         });
 
         if (error) {
-            console.error("Failed to persist notification:", error);
-            toast.error("Debug: Notification Insert Failed");
+            console.error("[Store] Failed to persist notification:", error);
         } else {
-            console.log("Notification inserted successfully for", userId);
+            console.log("[Store] Notification sent successfully.");
         }
     },
 
