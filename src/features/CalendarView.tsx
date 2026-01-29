@@ -129,11 +129,23 @@ function CalendarContent() {
 
     // --- Safety: Safe Task Filtering ---
     const weekTasks = useMemo(() => {
-        if (!tasks) return [];
+        if (!tasks || !user) return [];
         const weekEnd = addDays(weekStart, 7);
+        const currentUserId = String(user.id);
+
         return Object.values(tasks).filter(task => {
-            if (task.organizationId !== useStore.getState().user?.organizationId) return false;
-            if (filterMode === 'me' && task.ownerId !== user?.id && !task.assigneeIds?.includes(user?.id || '')) return false;
+            // 1. Organization Check
+            if (String(task.organizationId) !== String(user.organizationId)) return false;
+
+            // 2. Member Filter ('me' mode)
+            if (filterMode === 'me') {
+                const isOwner = String(task.ownerId) === currentUserId;
+                const isAssignee = task.assigneeIds?.some(id => String(id) === currentUserId);
+
+                if (!isOwner && !isAssignee) return false;
+            }
+
+            // 3. Date & Validity Check
             if (!task.dueDate) return false;
             try {
                 const taskDate = new Date(task.dueDate);
@@ -142,7 +154,7 @@ function CalendarContent() {
                 return false;
             }
         });
-    }, [tasks, weekStart, filterMode, user?.id]);
+    }, [tasks, weekStart, filterMode, user]);
 
     // --- Logic: Overlap Handling ---
     const getPositionedTasks = (day: Date) => {
@@ -298,12 +310,14 @@ function CalendarContent() {
                         {format(currentDate, 'MMMM yyyy')}
                     </h2>
 
-                    <div className="flex items-center gap-1 bg-bg-input rounded-lg p-1 border border-border-subtle ml-4">
+                    <div className="flex items-center gap-1 bg-bg-app border border-border-subtle rounded-lg p-1 ml-4 shadow-inner">
                         <button
                             onClick={() => setFilterMode('all')}
                             className={clsx(
-                                "px-3 py-1 text-[10px] font-bold rounded transition-all",
-                                filterMode === 'all' ? "bg-bg-card text-accent-primary shadow-sm" : "text-text-muted hover:text-text-primary"
+                                "px-4 py-1 text-[11px] font-bold rounded-md transition-all outline-none",
+                                filterMode === 'all'
+                                    ? "bg-accent-primary text-white shadow-md ring-1 ring-accent-primary"
+                                    : "text-text-muted hover:text-text-primary hover:bg-bg-input"
                             )}
                         >
                             All Tasks
@@ -311,8 +325,10 @@ function CalendarContent() {
                         <button
                             onClick={() => setFilterMode('me')}
                             className={clsx(
-                                "px-3 py-1 text-[10px] font-bold rounded transition-all",
-                                filterMode === 'me' ? "bg-bg-card text-accent-primary shadow-sm" : "text-text-muted hover:text-text-primary"
+                                "px-4 py-1 text-[11px] font-bold rounded-md transition-all outline-none",
+                                filterMode === 'me'
+                                    ? "bg-accent-primary text-white shadow-md ring-1 ring-accent-primary"
+                                    : "text-text-muted hover:text-text-primary hover:bg-bg-input"
                             )}
                         >
                             My Tasks
