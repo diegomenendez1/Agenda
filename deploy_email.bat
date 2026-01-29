@@ -4,7 +4,8 @@ echo   CONFIGURANDO SISTEMA DE EMAILS (AGENDA APP)
 echo ===================================================
 echo.
 echo 1. Configurando clave de Resend en Supabase...
-call npx supabase secrets set RESEND_API_KEY=re_BKU6Pjk1_L4aU72V7WVKcCjJmc2WP5kKd --project-ref dovmyyrnhudfwvrlrzmw
+set /p RESEND_KEY="Ingresa tu RESEND_API_KEY: "
+call npx supabase secrets set RESEND_API_KEY=%RESEND_KEY% --project-ref dovmyyrnhudfwvrlrzmw
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo [ERROR] No se pudo configurar el secreto. Es probable que necesites hacer login.
