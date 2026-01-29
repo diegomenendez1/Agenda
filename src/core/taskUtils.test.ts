@@ -1,16 +1,20 @@
 import { describe, it, expect } from 'vitest';
 import { filterAndSortTasks } from './taskUtils';
-import type { Task, User } from './types';
+import type { Task, UserProfile } from './types';
 
 // --- MOCK DATA FACTORIES ---
 
-const createMockUser = (id: string, orgId: string = 'org-1'): User => ({
+const createMockUser = (id: string, orgId: string = 'org-1'): UserProfile => ({
     id,
     organizationId: orgId,
     email: `${id}@test.com`,
     name: `User ${id}`,
-    preferences: {}
-} as User);
+    role: 'member',
+    preferences: {
+        autoPrioritize: false,
+        theme: 'system'
+    }
+} as UserProfile);
 
 const createMockTask = (
     id: string,
@@ -28,13 +32,12 @@ const createMockTask = (
     assigneeIds: [],
     createdAt: Date.now(),
     updatedAt: Date.now(),
+    tags: [],
     ...overrides
 });
 
 describe('Task Visibility & Security Logic', () => {
     const userA = createMockUser('user-a', 'org-1');
-    const userB = createMockUser('user-b', 'org-1');
-    const userAlien = createMockUser('user-alien', 'org-2'); // Different Org
 
     describe('Security: Organization Isolation', () => {
         it('should strictly filter out tasks from other organizations', () => {
@@ -52,6 +55,7 @@ describe('Task Visibility & Security Logic', () => {
             // User A must NEVER see data from Org 2
         });
     });
+
 
     describe('Privacy: Access Control', () => {
         it('should not show private tasks of other users', () => {

@@ -3,19 +3,19 @@ import { useStore } from '../core/store';
 import { format } from 'date-fns';
 import {
     CheckCircle2, Circle, AlertCircle, Calendar,
-    ArrowUp, MoreHorizontal, Clock, Lock, Users
+    MoreHorizontal, Clock, Lock, Users
 } from 'lucide-react';
 import clsx from 'clsx';
-import type { Task, EntityId } from '../core/types';
+import type { Task } from '../core/types';
 import { EditTaskModal } from './EditTaskModal';
 
 interface TaskTableProps {
     tasks: Task[];
-    onToggleStatus?: (taskId: EntityId) => void;
+    onToggleStatus?: (taskId: string) => void;
 }
 
 export function TaskTable({ tasks, onToggleStatus }: TaskTableProps) {
-    const { toggleTaskStatus: storeToggleTaskStatus, team, user } = useStore();
+    const { toggleTaskStatus: storeToggleTaskStatus, team } = useStore();
     const [editingTask, setEditingTask] = useState<Task | null>(null);
 
     const handleToggle = onToggleStatus || storeToggleTaskStatus;
@@ -61,7 +61,6 @@ export function TaskTable({ tasks, onToggleStatus }: TaskTableProps) {
                                 const isDone = task.status === 'done';
                                 const assigneeIds = task.assigneeIds || [];
                                 const members = assigneeIds.map(id => team[id]).filter(Boolean);
-                                const isShared = task.visibility === 'team';
 
                                 return (
                                     <tr

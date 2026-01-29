@@ -3,7 +3,6 @@ import { X, Flag, Clock, Trash2, User, Lock, Sparkles, ArrowRight, Layout, Alert
 import { useStore } from '../core/store';
 import { ActivityFeed } from './ActivityFeed';
 import type { Task, Priority, TaskStatus, RecurrenceConfig } from '../core/types';
-import { fetchWithRetry } from '../core/api';
 import clsx from 'clsx';
 import { format, isValid } from 'date-fns';
 import { getDescendants } from '../core/hierarchyUtils';

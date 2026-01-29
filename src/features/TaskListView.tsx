@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useStore } from '../core/store';
 import { CheckCircle2, Calendar, ClipboardList, LayoutList, KanbanSquare, Trash2, Plus, X, Lock, Users, Table, Sparkles, Loader2 } from 'lucide-react';
-import { supabase } from '../core/supabase';
 import { TaskItem } from '../components/TaskItem';
 import { KanbanBoard } from '../components/KanbanBoard';
 import { TaskTable } from '../components/TaskTable';
@@ -9,7 +8,6 @@ import { TaskTable } from '../components/TaskTable';
 import { EditTaskModal } from '../components/EditTaskModal';
 
 import { AvatarMemberFilter } from '../components/AvatarMemberFilter';
-import { isSameDay, isFuture } from 'date-fns';
 import { useSearchParams, useParams } from 'react-router-dom';
 import clsx from 'clsx';
 import type { EntityId } from '../core/types';

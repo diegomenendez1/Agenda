@@ -10,6 +10,7 @@ async function main() {
 
     const stagehand = new Stagehand({
         env: "LOCAL",
+        // @ts-ignore
         modelName: "gpt-5-mini",
         modelClientOptions: {
             apiKey: process.env.OPENAI_API_KEY,
@@ -52,6 +53,7 @@ async function main() {
         await page.goto("https://example.com");
         console.log("Navigated to example.com");
 
+        // @ts-ignore
         const extraction = await stagehand.extract({
             instruction: "Extract the title and the main paragraph of the page.",
             schema: {

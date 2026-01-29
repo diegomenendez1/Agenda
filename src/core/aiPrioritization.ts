@@ -1,5 +1,4 @@
 import { supabase } from './supabase';
-import { toast } from 'sonner';
 
 /**
  * Service to handle AI prioritization directly from the client.

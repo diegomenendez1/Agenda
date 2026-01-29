@@ -1,5 +1,5 @@
 import { isSameDay, isFuture } from 'date-fns';
-import type { Task, User, EntityId } from './types';
+import type { Task, EntityId, UserProfile } from './types';
 
 // Types for filtering
 export type TimeFilter = 'all' | 'today' | 'upcoming';
@@ -18,7 +18,7 @@ export interface FilterOptions {
  */
 export function filterAndSortTasks(
     tasks: Record<string, Task>,
-    user: User | null,
+    user: UserProfile | null,
     options: FilterOptions
 ): Task[] {
     if (!user) return [];

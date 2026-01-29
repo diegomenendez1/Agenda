@@ -1,6 +1,4 @@
 import { supabase } from './supabase';
-import { toast } from 'sonner';
-import { v4 as uuidv4 } from 'uuid';
 
 export interface PromptContext {
     userRoleContext?: string;

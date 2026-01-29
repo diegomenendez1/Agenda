@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { X, Flag, ArrowRight, Sparkles, Loader2, Clock, User, Check, Eye, EyeOff, ListTodo } from 'lucide-react';
 import { useStore } from '../core/store';
 import type { InboxItem, Priority } from '../core/types';
-import { fetchWithRetry } from '../core/api';
 import clsx from 'clsx';
 import { format } from 'date-fns';
 import { getDescendants } from '../core/hierarchyUtils';
@@ -132,27 +131,6 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
         }
     };
 
-    const applySingleResult = (data: AIResponse) => {
-        const priorityMap: Record<string, Priority> = {
-            'P1': 'critical', 'P2': 'high', 'P3': 'medium', 'P4': 'low',
-            'critical': 'critical', 'high': 'high', 'medium': 'medium', 'low': 'low'
-        };
-
-        if (data.ai_title) setTitle(data.ai_title);
-
-        const mappedPriority = priorityMap[data.ai_priority as string] || 'medium';
-        setPriority(mappedPriority as Priority);
-
-        if (data.ai_date) setDueDate(data.ai_date.split('T')[0]);
-        if (data.ai_context) setContext(data.ai_context);
-
-        if (data.ai_assignee_ids && Array.isArray(data.ai_assignee_ids)) {
-            setAssigneeIds(data.ai_assignee_ids);
-        }
-
-        // Ensure UI transitions
-        setIsProcessing(false);
-    };
 
     const [isSuccess, setIsSuccess] = useState(false);
 

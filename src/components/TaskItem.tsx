@@ -3,7 +3,7 @@ import { useStore } from '../core/store';
 import { CheckCircle2, Circle, AlertCircle, Calendar, Lock, Edit2, Mail, Clock, Users, Repeat } from 'lucide-react';
 import clsx from 'clsx';
 import { format } from 'date-fns';
-import type { Task } from '../core/types';
+import type { Task, EntityId } from '../core/types';
 import { EditTaskModal } from './EditTaskModal';
 
 interface TaskItemProps {
