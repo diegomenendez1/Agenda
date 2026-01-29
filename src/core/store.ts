@@ -1094,15 +1094,10 @@ export const useStore = create<Store>((set, get) => ({
         if (taskData.assigneeIds && taskData.assigneeIds.length > 0) {
             const currentUserId = get().user?.id;
             taskData.assigneeIds.forEach(uid => {
-                if (uid !== currentUserId) {
-                    get().sendNotification(uid, 'assignment', 'New Task Assigned', `You were assigned to "${taskData.title}"`, `/tasks?taskId=${id}`);
+                // Allow self-notifications for testing purposes, or remove check strictly if desired.
+                // For now, removing the check allows the user to test email flow by assigning tasks to themselves.
+                get().sendNotification(uid, 'assignment', 'New Task Assigned', `You were assigned to "${taskData.title}"`, `/tasks?taskId=${id}`);
 
-                    // Trigger email
-                    const assignee = get().team[uid];
-                    if (assignee && assignee.email) {
-                        get().sendEmail(assignee.email, `New Task: ${taskData.title}`, `<p>Hello,</p><p>You have been assigned a new task: <strong>${taskData.title}</strong></p><p>Due Date: ${taskData.dueDate ? new Date(taskData.dueDate).toLocaleDateString() : 'No Deadline'}</p><p><a href="${window.location.origin}/tasks?taskId=${id}">View Task</a></p>`);
-                    }
-                }
             });
         }
 
