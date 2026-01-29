@@ -83,8 +83,76 @@ function CalendarContent() {
         });
     }, [tasks, weekStart]);
 
+    // --- Logic: Overlap Handling ---
+    const getPositionedTasks = (day: Date) => {
+        const dayTasks = weekTasks.filter(t => isSameDay(new Date(t.dueDate!), day));
+        if (dayTasks.length === 0) return [];
+
+        // 1. Sort by start time
+        const sorted = [...dayTasks].sort((a, b) => {
+            const da = new Date(a.dueDate!);
+            const db = new Date(b.dueDate!);
+            return da.getTime() - db.getTime();
+        });
+
+        // 2. Build clusters of overlapping tasks
+        const clusters: any[][] = [];
+        let currentCluster: any[] = [];
+        let clusterEnd = 0;
+
+        sorted.forEach(task => {
+            const start = new Date(task.dueDate!).getTime();
+            const end = start + (task.estimatedMinutes || 60) * 60 * 1000;
+
+            if (start < clusterEnd) {
+                currentCluster.push(task);
+                clusterEnd = Math.max(clusterEnd, end);
+            } else {
+                if (currentCluster.length > 0) clusters.push(currentCluster);
+                currentCluster = [task];
+                clusterEnd = end;
+            }
+        });
+        if (currentCluster.length > 0) clusters.push(currentCluster);
+
+        // 3. Assign columns within each cluster
+        const results: any[] = [];
+        clusters.forEach(cluster => {
+            const columns: any[][] = [];
+            cluster.forEach(task => {
+                let colIndex = columns.findIndex(col => {
+                    const lastTask = col[col.length - 1];
+                    const lastEnd = new Date(lastTask.dueDate!).getTime() + (lastTask.estimatedMinutes || 60) * 60 * 1000;
+                    return new Date(task.dueDate!).getTime() >= lastEnd;
+                });
+
+                if (colIndex === -1) {
+                    columns.push([task]);
+                    colIndex = columns.length - 1;
+                } else {
+                    columns[colIndex].push(task);
+                }
+
+                results.push({
+                    ...task,
+                    colIndex,
+                    totalCols: 0, // Placeholder
+                    cluster
+                });
+            });
+
+            // Update totalCols for everyone in this cluster based on columns needed
+            cluster.forEach(task => {
+                const res = results.find(r => r.id === task.id);
+                if (res) res.totalCols = columns.length;
+            });
+        });
+
+        return results;
+    };
+
     // --- Logic: Positioning ---
-    const getTaskStyle = (task: Task) => {
+    const getTaskStyle = (task: any) => {
         try {
             if (!task.dueDate) return { display: 'none' };
             const date = new Date(task.dueDate);
@@ -92,20 +160,21 @@ function CalendarContent() {
 
             const startHour = date.getHours();
             const startMin = date.getMinutes();
-            // Default duration 1h if not tracked
-            const durationMinutes = 60;
+            const durationMinutes = task.estimatedMinutes || 60;
 
-            // Top: (Hour * 80px) + (Minutes / 60 * 80px)
             const top = (startHour * 80) + ((startMin / 60) * 80);
-            // Height: (Duration / 60 * 80px)
-            const height = (durationMinutes / 60) * 80;
+            const height = Math.max((durationMinutes / 60) * 80, 24); // Min height 24px
+
+            const width = 100 / (task.totalCols || 1);
+            const left = (task.colIndex || 0) * width;
 
             return {
                 top: `${top}px`,
                 height: `${height}px`,
-                left: '2px',
-                right: '2px',
-                position: 'absolute' as const
+                left: `${left}%`,
+                width: `${width}%`,
+                position: 'absolute' as const,
+                zIndex: (task.colIndex || 0) + 10
             };
         } catch (e) {
             return { display: 'none' };
@@ -203,7 +272,12 @@ function CalendarContent() {
                 </div>
 
                 {/* Scrollable Content */}
-                <div className="flex-1 overflow-y-auto custom-scrollbar relative bg-bg-app/30">
+                <div ref={(ref) => {
+                    if (ref && !ref.dataset.scrolled) {
+                        ref.scrollTop = workingStart * 80;
+                        ref.dataset.scrolled = "true";
+                    }
+                }} className="flex-1 overflow-y-auto custom-scrollbar relative bg-bg-app/30">
                     <div className="grid grid-cols-8 min-h-[1920px]"> {/* 24h * 80px = 1920px */}
 
                         {/* Time labels Column */}
@@ -246,90 +320,80 @@ function CalendarContent() {
                                     );
                                 })}
 
-                                {/* Tasks Overlay */}
-                                {weekTasks
-                                    .filter(t => isSameDay(new Date(t.dueDate!), day))
-                                    .map(task => {
-                                        // Prepare data for rendering
-                                        const assigneeIds = task.assigneeIds || [];
-                                        const members = assigneeIds.map(id => team[id]).filter(Boolean);
-                                        const isDone = task.status === 'done';
+                                {getPositionedTasks(day).map(task => {
+                                    // Prepare data for rendering
+                                    const assigneeIds = task.assigneeIds || [];
+                                    const members = assigneeIds.map((id: string) => team[id]).filter(Boolean);
+                                    const isDone = task.status === 'done';
 
-                                        // Determine styles
-                                        let cardStyle = "bg-bg-card border-border-subtle text-text-primary";
-                                        if (isDone) {
-                                            cardStyle = "bg-bg-input/50 dashed border-border-subtle text-text-muted decoration-slate-400";
-                                        } else if (task.priority === 'critical') {
-                                            cardStyle = "bg-red-500/20 border-red-500/50 text-red-700 dark:text-red-200 shadow-sm shadow-red-900/5 backdrop-blur-sm hover:bg-red-500/30";
-                                        } else if (task.priority === 'high') {
-                                            cardStyle = "bg-orange-500/20 border-orange-500/50 text-orange-700 dark:text-orange-200 shadow-sm shadow-orange-900/5 backdrop-blur-sm hover:bg-orange-500/30";
-                                        } else if (task.priority === 'medium') {
-                                            cardStyle = "bg-blue-500/20 border-blue-500/50 text-blue-700 dark:text-blue-200 shadow-sm shadow-blue-900/5 backdrop-blur-sm hover:bg-blue-500/30";
-                                        }
+                                    // Determine styles
+                                    let cardStyle = "bg-bg-card border-border-subtle text-text-primary";
+                                    if (isDone) {
+                                        cardStyle = "bg-bg-input/50 dashed border-border-subtle text-text-muted decoration-slate-400";
+                                    } else if (task.priority === 'critical') {
+                                        cardStyle = "bg-red-500/20 border-red-500/50 text-red-700 dark:text-red-200 shadow-sm shadow-red-900/5 backdrop-blur-sm hover:bg-red-500/30";
+                                    } else if (task.priority === 'high') {
+                                        cardStyle = "bg-orange-500/20 border-orange-500/50 text-orange-700 dark:text-orange-200 shadow-sm shadow-orange-900/5 backdrop-blur-sm hover:bg-orange-500/30";
+                                    } else if (task.priority === 'medium') {
+                                        cardStyle = "bg-blue-500/20 border-blue-500/50 text-blue-700 dark:text-blue-200 shadow-sm shadow-blue-900/5 backdrop-blur-sm hover:bg-blue-500/30";
+                                    }
 
-                                        return (
-                                            <div
-                                                key={task.id}
-                                                draggable
-                                                onDragStart={(e) => handleDragStart(e, task)}
-                                                onDoubleClick={(e) => handleTaskDoubleClick(task, e)}
-                                                className={clsx(
-                                                    "rounded-md p-1.5 text-xs border cursor-pointer hover:z-30 transition-all group/card select-none overflow-hidden flex flex-col gap-0.5",
-                                                    "hover:shadow-lg hover:scale-[1.02]",
-                                                    cardStyle,
-                                                    "left-[2px] right-[2px]"
-                                                )}
-                                                style={getTaskStyle(task)}
-                                                title={`${task.title} - ${task.status}`}
-                                            >
-                                                {/* Title & Status */}
-                                                <div className="flex items-start justify-between gap-1">
-                                                    <div className={clsx("font-semibold truncate leading-tight", isDone && "line-through")}>
-                                                        {task.title}
-                                                    </div>
-                                                </div>
-
-                                                {/* Metadata Row (Time, Status, Avatars) */}
-                                                <div className="flex items-center justify-between mt-auto pt-1">
-                                                    {/* Time & Status */}
-                                                    <div className="flex items-center gap-1.5 opacity-90 scale-95 origin-left">
-                                                        <div className="flex items-center gap-0.5">
-                                                            <Clock size={10} />
-                                                            <span className="text-[10px] font-medium leading-none">
-                                                                {format(new Date(task.dueDate!), 'HH:mm')}
-                                                            </span>
-                                                        </div>
-                                                        {/* Tiny Status indicator if not implicit by color */}
-                                                        {!isDone && (
-                                                            <span className="text-[9px] uppercase font-bold opacity-80 tracking-tighter border border-border-subtle px-0.5 rounded">
-                                                                {task.status.replace('_', ' ')}
-                                                            </span>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Avatars */}
-                                                    {members.length > 0 && (
-                                                        <div className="flex -space-x-1.5 shrink-0">
-                                                            {members.slice(0, 3).map((member) => (
-                                                                <div key={member.id} className="w-4 h-4 rounded-full border border-border-subtle bg-bg-card relative z-10" title={member.name}>
-                                                                    <img
-                                                                        src={member.avatar || `https://ui-avatars.com/api/?name=${member.name}&background=random`}
-                                                                        alt={member.name}
-                                                                        className="w-full h-full rounded-full object-cover"
-                                                                    />
-                                                                </div>
-                                                            ))}
-                                                            {members.length > 3 && (
-                                                                <div className="w-4 h-4 rounded-full bg-bg-input border border-border-subtle flex items-center justify-center text-[8px] font-bold text-text-primary z-0">
-                                                                    +{members.length - 3}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    )}
+                                    return (
+                                        <div
+                                            key={task.id}
+                                            draggable
+                                            onDragStart={(e) => handleDragStart(e, task)}
+                                            onDoubleClick={(e) => handleTaskDoubleClick(task, e)}
+                                            className={clsx(
+                                                "rounded-md p-1.5 text-[10px] border cursor-pointer hover:z-[100] transition-all group/card select-none overflow-hidden flex flex-col gap-0.5",
+                                                "hover:shadow-lg hover:ring-1 hover:ring-primary/30",
+                                                cardStyle
+                                            )}
+                                            style={getTaskStyle(task)}
+                                            title={`${task.title} - ${task.status}`}
+                                        >
+                                            {/* Title & Status */}
+                                            <div className="flex items-start justify-between gap-1">
+                                                <div className={clsx("font-bold truncate leading-tight", isDone && "line-through")}>
+                                                    {task.title}
                                                 </div>
                                             </div>
-                                        );
-                                    })}
+
+                                            {/* Metadata Row (Time, Status, Avatars) */}
+                                            <div className="flex items-center justify-between mt-auto">
+                                                {/* Time & Status */}
+                                                <div className="flex items-center gap-1 opacity-90 scale-90 origin-left">
+                                                    <div className="flex items-center gap-0.5 font-medium whitespace-nowrap">
+                                                        <Clock size={8} />
+                                                        <span>
+                                                            {format(new Date(task.dueDate!), 'HH:mm')}
+                                                        </span>
+                                                    </div>
+                                                    {!isDone && (
+                                                        <span className="text-[8px] uppercase font-bold opacity-70 tracking-tighter border border-current px-0.5 rounded leading-none">
+                                                            {task.status.replace('_', ' ')}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {/* Avatars */}
+                                                {members.length > 0 && (
+                                                    <div className="flex -space-x-1 shrink-0">
+                                                        {members.slice(0, 2).map((member: any) => (
+                                                            <div key={member.id} className="w-3.5 h-3.5 rounded-full border border-white/50 bg-bg-card relative z-10" title={member.name}>
+                                                                <img
+                                                                    src={member.avatar || `https://ui-avatars.com/api/?name=${member.name}&background=random`}
+                                                                    alt={member.name}
+                                                                    className="w-full h-full rounded-full object-cover"
+                                                                />
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
 
                                 {/* Current Time Indicator */}
                                 {isSameDay(day, today) && (

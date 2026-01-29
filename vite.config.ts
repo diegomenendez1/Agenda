@@ -10,24 +10,16 @@ export default defineConfig(({ mode }) => {
       port: 3000,
       proxy: {
         '/api/auto-process': {
-          target: env.VITE_N8N_WEBHOOK_URL || 'http://localhost:5678', // Fallback to avoid crash, but will likely 404 if not set
+          target: env.VITE_N8N_WEBHOOK_URL || 'http://localhost:5678',
           changeOrigin: true,
           secure: false,
-          rewrite: (path) => {
-            // Robust rewrite: Ensure we don't end up with double slashes or missing slashes
-            return path.replace(/^\/api\/auto-process/, '');
-          },
-          configure: (proxy, _options) => {
-            proxy.on('error', (err, _req, _res) => {
-              console.log('proxy error', err);
-            });
-            proxy.on('proxyReq', (_proxyReq, req, _res) => {
-              console.log('Sending Request to the Target:', req.method, req.url);
-            });
-            proxy.on('proxyRes', (proxyRes, req, _res) => {
-              console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
-            });
-          },
+          rewrite: (path) => path.replace(/^\/api\/auto-process/, ''),
+        },
+        '/api/openai': {
+          target: 'https://api.openai.com',
+          changeOrigin: true,
+          secure: true,
+          rewrite: (path) => path.replace(/^\/api\/openai/, ''),
         }
       }
     }

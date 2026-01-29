@@ -35,7 +35,8 @@ export function TaskListView() {
             if (!user?.id) return;
 
             // Use Direct Client Service based on User Request for simpler flow
-            const result = await runAITaskPrioritization(user.id);
+            const workingHours = user.preferences?.workingHours || { start: 9, end: 18 };
+            const result = await runAITaskPrioritization(user.id, workingHours);
 
             toast.success(`AI Reorganized ${result.count} tasks based on global context!`);
 

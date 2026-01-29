@@ -35,62 +35,24 @@ export async function processTaskInputWithAI(
 
         if (teamError) console.warn("Failed to fetch team context", teamError);
 
-        // 2. Build Prompt
-        const availableProjects = projectsData || [];
-        const availableTeam = teamData || [];
+        const availableProjects = projectsData?.map(p => `${p.id}:${p.name}`).join('|') || 'None';
+        const availableTeam = teamData?.map(m => `${m.id}:${m.full_name}`).join('|') || 'None';
         const currentDate = new Date().toISOString().split('T')[0];
 
-        const systemPrompt = `
-### ROL
-Eres un Asistente Ejecutivo Senior experto en metodología GTD. Tu objetivo es procesar inputs crudos y convertirlos en tareas estructuradas y accionables.
+        const systemPrompt = `Role: Senior Executive Asst (GTD). Convert raw input into structured tasks. 
+Rules:
+1. One task unless actions are totally unrelated.
+2. Priority: critical|high|medium|low based on role context.
+3. Use refs: Projects[${availableProjects}], Team[${availableTeam}].
+4. Date: Today is ${currentDate}.
+Output JSON: { "tasks": [{ "title": "Action", "priority": "lvl", "date": "YYYY-MM-DD", "reason": "why", "pid": "id", "aids": ["ids"] }] }`;
 
-### INSTRUCCIONES CLAVE
-1. **Atomicidad y Cohesión (EVITAR SOBRE-DESGLOSE):** 
-   - Mantén el input como **una sola tarea** siempre que sea posible.
-   - **NO desgloses** una tarea si el usuario menciona un objetivo y su propósito (ej. "Subir dashboard para la sesión" = 1 tarea). 
-   - **SOLO desglosa** si el input contiene acciones totalmente independientes y sin relación biyectiva (ej. "Comprar leche y enviar reporte a Juan" = 2 tareas).
-   
-2. **Priorización por Contexto:** Usa el "Contexto del Rol" para determinar la importancia.
-   - Si una tarea NO encaja con el rol, crea la tarea con prioridad "low" y sin proyecto. Jamás descartes información.
+        const userPrompt = `Input: "${inputText}"\nRoleCtx: "${context.userRoleContext || 'Productivity'}"`;
 
-3. **Mapeo Estricto:** 
-   - Usa SOLO los IDs de "Proyectos" y "Equipo" proporcionados en las listas de referencia. Si no hay coincidencia clara, usa null.
-
-4. **Fechas:** "Para hoy" = ${currentDate}.
-
-### FORMATO DE SALIDA (JSON ARRAY)
-Devuelve SIEMPRE una lista (Array) de objetos JSON válidos bajo la clave "tasks".
-{
-  "tasks": [
-    {
-      "ai_title": "Verbo de Acción + Objeto Claro",
-      "ai_priority": "critical" | "high" | "medium" | "low",
-      "ai_date": "YYYY-MM-DD" | null,
-      "ai_context": "Razón breve",
-      "ai_project_id": "UUID_EXACTO" | null,
-      "ai_assignee_ids": ["UUID_EXACTO"] | []
-    }
-  ]
-}
-`;
-
-        const userPrompt = `
-==== DATOS DE ENTRADA ===
-Fecha de hoy: ${currentDate}
-INPUT DEL USUARIO:
-"${inputText}"
-
-=== CONTEXTO DEL ROL (FILTRO PRINCIPAL) ===
-"${context.userRoleContext || 'Contexto general de productividad.'}"
-
-=== LISTAS DE REFERENCIA ===
-Proyectos: ${JSON.stringify(availableProjects)}
-Equipo: ${JSON.stringify(availableTeam)}
-`;
 
         // 3. Call OpenAI (STRICTLY GPT-5-MINI)
         console.log("AI Attempt with model: gpt-5-mini");
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch('/api/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -117,26 +79,28 @@ Equipo: ${JSON.stringify(availableTeam)}
         }
 
         const json = await response.json();
-        const content = JSON.parse(json.choices[0].message.content);
+        const content = typeof json.choices[0].message.content === 'string'
+            ? JSON.parse(json.choices[0].message.content)
+            : json.choices[0].message.content;
         const aiTasks = content.tasks || [];
 
         // 4. Return Tasks (Do NOT insert - verify first)
         const tasksToReturn = aiTasks.map((t: any) => ({
-            title: t.ai_title,
+            title: t.title,
             status: 'todo',
-            priority: t.ai_priority,
-            due_date: t.ai_date ? new Date(t.ai_date).getTime() : null, // BIGINT
-            project_id: t.ai_project_id,
-            assignee_ids: t.ai_assignee_ids,
+            priority: t.priority,
+            due_date: t.date ? new Date(t.date).getTime() : null, // BIGINT
+            project_id: t.pid,
+            assignee_ids: t.aids,
             user_id: userId,
             organization_id: context.organizationId,
             tags: ['ai-generated'],
-            visibility: t.ai_assignee_ids?.length > 0 ? 'team' : 'private',
+            visibility: t.aids?.length > 0 ? 'team' : 'private',
             smart_analysis: {
-                summary: t.ai_context,
+                summary: t.reason,
                 originalContext: inputText,
                 confidence: 1,
-                suggestedPriority: t.ai_priority
+                suggestedPriority: t.priority
             },
             created_at: Date.now(), // BIGINT
             updated_at: new Date().toISOString() // TIMESTAMPTZ (String)
