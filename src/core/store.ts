@@ -575,7 +575,7 @@ export const useStore = create<Store>((set, get) => ({
                 // Load Private AI Context fallback
                 let aiContext = '';
                 try {
-                    const { data: aiData } = await supabase.from('user_ai_metadata').select('ai_context').eq('user_id', user.id).single();
+                    const { data: aiData } = await supabase.from('user_ai_metadata').select('ai_context').eq('user_id', user.id).maybeSingle();
                     aiContext = aiData?.ai_context || '';
                 } catch (e) { console.warn('AI context load failed', e); }
 
