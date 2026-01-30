@@ -117,8 +117,20 @@ function CalendarContent() {
         };
     }, [resizing, tasks, updateTask]);
 
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 1024);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday start
-    const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+    // If mobile, show 1 day (currentDate). If desktop, show 7 days.
+    const weekDays = isMobile
+        ? [currentDate]
+        : Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+
     const hours = Array.from({ length: 24 }, (_, i) => i);
     const today = new Date();
 
@@ -130,7 +142,7 @@ function CalendarContent() {
     // --- Safety: Safe Task Filtering ---
     const weekTasks = useMemo(() => {
         if (!tasks || !user) return [];
-        const weekEnd = addDays(weekStart, 7);
+        const weekEnd = isMobile ? addDays(currentDate, 1) : addDays(weekStart, 7);
         const currentUserId = String(user.id);
 
         return Object.values(tasks).filter(task => {
@@ -336,13 +348,13 @@ function CalendarContent() {
                     </div>
 
                     <div className="flex items-center gap-1 bg-bg-input rounded-lg p-1 border border-border-subtle">
-                        <button onClick={() => setCurrentDate(subWeeks(currentDate, 1))} className="p-1 hover:bg-bg-card rounded text-text-muted hover:text-text-primary transition-colors">
+                        <button onClick={() => setCurrentDate(isMobile ? addDays(currentDate, -1) : subWeeks(currentDate, 1))} className="p-1 hover:bg-bg-card rounded text-text-muted hover:text-text-primary transition-colors">
                             <ChevronLeft size={18} />
                         </button>
                         <button onClick={() => setCurrentDate(new Date())} className="px-3 py-1 text-xs font-bold text-text-primary hover:bg-bg-card rounded transition-colors">
                             Today
                         </button>
-                        <button onClick={() => setCurrentDate(addWeeks(currentDate, 1))} className="p-1 hover:bg-bg-card rounded text-text-muted hover:text-text-primary transition-colors">
+                        <button onClick={() => setCurrentDate(isMobile ? addDays(currentDate, 1) : addWeeks(currentDate, 1))} className="p-1 hover:bg-bg-card rounded text-text-muted hover:text-text-primary transition-colors">
                             <ChevronRight size={18} />
                         </button>
                     </div>
@@ -352,7 +364,10 @@ function CalendarContent() {
             {/* Calendar Grid */}
             <div className="flex-1 flex flex-col overflow-hidden relative">
                 {/* Days Header */}
-                <div className="grid grid-cols-8 border-b border-border-subtle bg-bg-card z-10 shadow-sm shrink-0">
+                <div
+                    className="grid border-b border-border-subtle bg-bg-card z-10 shadow-sm shrink-0"
+                    style={{ gridTemplateColumns: `60px repeat(${weekDays.length}, 1fr)` }}
+                >
                     <div className="p-4 border-r border-border-subtle text-xs font-semibold text-text-muted uppercase tracking-wider text-center flex items-center justify-center bg-bg-app/50 relative">
                         TIME
                         <div className="absolute inset-x-0 bottom-0 h-0.5 bg-accent-primary/20"></div>
@@ -386,7 +401,10 @@ function CalendarContent() {
                         ref.dataset.scrolled = "true";
                     }
                 }} className="flex-1 overflow-y-auto custom-scrollbar relative bg-bg-app/30">
-                    <div className="grid grid-cols-8 min-h-[1920px]"> {/* 24h * 80px = 1920px */}
+                    <div
+                        className="grid min-h-[1920px]"
+                        style={{ gridTemplateColumns: `60px repeat(${weekDays.length}, 1fr)` }}
+                    > {/* 24h * 80px = 1920px */}
 
                         {/* Time labels Column */}
                         <div className="border-r border-border-subtle bg-bg-card/30 relative">

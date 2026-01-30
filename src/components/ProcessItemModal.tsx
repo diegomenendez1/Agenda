@@ -21,8 +21,11 @@ interface AIResponse {
     ai_assignee_ids?: string[];
 }
 
+import { useTranslation } from '../core/i18n';
+
 export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
     const { convertInboxToTask, addTask, deleteInboxItem, team, user } = useStore();
+    const { t } = useTranslation();
 
     // VISIBILITY LOGIC (Refactored)
     const visibleMemberIds = useMemo(() => {
@@ -57,7 +60,8 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
     const [showAIPreview, setShowAIPreview] = useState(false);
     const [isEditingDetails, setIsEditingDetails] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [loadingText, setLoadingText] = useState("Analyzing...");
+    const [error, setError] = useState<string | null>(null);
+    const [loadingText, setLoadingText] = useState(t.modal.ai_processing);
 
     useEffect(() => {
         if (!isProcessing) return;
@@ -76,6 +80,23 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
         return () => clearInterval(interval);
     }, [isProcessing]);
 
+    const handleReviewOnly = () => {
+        // Heuristic: Take first line as subject for the "Review" task
+        const firstLine = item.text.split('\n')[0].trim();
+        const subject = firstLine.length > 60 ? firstLine.substring(0, 60) + '...' : firstLine;
+
+        setTitle(`Revisar: ${subject}`);
+        setContext(`Subject exacto para buscar: "${firstLine}"\n\n---\nContexto:\n${item.text.substring(0, 500)}...`);
+        setPriority('medium');
+        setDueDate('');
+
+        // Ensure single task mode
+        setCandidates([]);
+        setIsEditingDetails(true);
+        // Clear any previous AI preview flags if we want it to look 'manual'
+        setShowAIPreview(false);
+    };
+
     const handleAutoProcess = async () => {
         setIsProcessing(true);
         setError(null);
@@ -86,7 +107,8 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
             // Use Client Service instead of N8N
             const results = await processTaskInputWithAI(user.id, item.text, {
                 organizationId: user.organizationId,
-                userRoleContext: user.preferences?.aiContext
+                userRoleContext: user.preferences?.aiContext,
+                appLanguage: user.preferences?.appLanguage
             });
 
             if (results.length === 0) throw new Error("AI returned no tasks/actions.");
@@ -208,12 +230,12 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                     <div>
                         <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
                             <Sparkles className="w-5 h-5 text-violet-500" />
-                            {candidates.length > 1 ? 'Select Tasks to Create' : 'Process Item'}
+                            {candidates.length > 1 ? t.modal.select_tasks : t.modal.process_title}
                         </h2>
                         <p className="text-text-muted text-sm mt-1">
                             {candidates.length > 1
-                                ? `AI found ${candidates.length} potential tasks in this item`
-                                : 'Turn this thought into an actionable task'
+                                ? t.modal.ai_found.replace('{n}', candidates.length.toString()) + ` (${candidates.length})`
+                                : t.modal.turn_thought
                             }
                         </p>
                     </div>
@@ -230,7 +252,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                     {/* Original Item context */}
                     <div className="bg-bg-surface p-4 rounded-xl border border-border-subtle/50">
                         <label className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2 block">
-                            Original Input
+                            {t.modal.original_input}
                         </label>
                         <p className="text-text-primary">{item.text}</p>
                         <div className="mt-2 text-xs text-text-muted flex gap-3">
@@ -245,32 +267,52 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                     {/* AI Process Trigger (Optional) */}
                     {/* AI Process Button - Large centered version */}
                     {candidates.length <= 1 && (
-                        <div className="flex justify-center py-4">
-                            <button
-                                type="button"
-                                onClick={handleAutoProcess}
-                                disabled={isProcessing}
-                                className={clsx(
-                                    "flex items-center justify-center gap-2 px-6 py-3 w-full",
-                                    "bg-violet-500/10 text-violet-600 font-bold rounded-xl border border-violet-500/20",
-                                    "hover:bg-violet-500/20 transition-all",
-                                    "disabled:opacity-50 disabled:cursor-not-allowed"
-                                )}
-                            >
-                                {isProcessing ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        <span className="text-sm">{loadingText}</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <Sparkles className="w-4 h-4" />
-                                        <span className="text-sm">Auto-Fill Details</span>
-                                    </>
-                                )}
-                            </button>
+                        <div className="flex flex-col gap-3 py-4">
+                            <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider text-center mb-2">
+                                {t.modal.how_process}
+                            </h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <button
+                                    type="button"
+                                    onClick={handleReviewOnly}
+                                    disabled={isProcessing}
+                                    className="flex flex-col items-center justify-center gap-2 px-4 py-4 bg-bg-surface border border-border-subtle hover:border-accent-primary/50 hover:bg-accent-primary/5 rounded-xl transition-all group shadow-sm hover:shadow-md"
+                                >
+                                    <div className="w-10 h-10 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                        <Eye size={20} />
+                                    </div>
+                                    <div className="text-center">
+                                        <span className="block text-sm font-bold text-text-primary">{t.modal.review_only}</span>
+                                        <span className="block text-[10px] text-text-muted">{t.modal.review_sub}</span>
+                                    </div>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={handleAutoProcess}
+                                    disabled={isProcessing}
+                                    className="flex flex-col items-center justify-center gap-2 px-4 py-4 bg-bg-surface border border-border-subtle hover:border-violet-500/50 hover:bg-violet-500/5 rounded-xl transition-all group shadow-sm hover:shadow-md"
+                                >
+                                    {isProcessing ? (
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Loader2 className="w-8 h-8 animate-spin text-violet-500" />
+                                            <span className="text-xs text-violet-500 font-medium">{loadingText}</span>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="w-10 h-10 rounded-full bg-violet-500/10 text-violet-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                <Sparkles size={20} />
+                                            </div>
+                                            <div className="text-center">
+                                                <span className="block text-sm font-bold text-text-primary">{t.modal.extract_actions}</span>
+                                                <span className="block text-[10px] text-text-muted">{t.modal.extract_sub}</span>
+                                            </div>
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                             {error && (
-                                <div className="text-[10px] text-red-500 font-medium animate-in fade-in slide-in-from-right-2 max-w-[200px] text-right absolute right-6 top-1/2 -translate-y-1/2">
+                                <div className="text-[10px] text-red-500 font-medium text-center mt-2 animate-in fade-in">
                                     {error}
                                 </div>
                             )}
@@ -339,14 +381,14 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                             {/* Input Title */}
                             <div>
                                 <div className="flex items-center justify-between mb-2">
-                                    <label className="block text-xs uppercase text-text-muted font-bold tracking-wider">Title</label>
+                                    <label className="block text-xs uppercase text-text-muted font-bold tracking-wider">{t.modal.labels.title}</label>
                                     {title !== originalTitle && (
                                         <button
                                             type="button"
                                             onClick={() => setTitle(originalTitle)}
                                             className="text-[10px] text-accent-primary hover:underline flex items-center gap-1 font-bold"
                                         >
-                                            <X size={10} /> Use Original
+                                            <X size={10} /> {t.modal.use_original}
                                         </button>
                                     )}
                                 </div>
@@ -364,12 +406,12 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
 
                             {/* Extra Context */}
                             <div>
-                                <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2">Extra Context / Description</label>
+                                <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2">{t.modal.labels.desc}</label>
                                 <textarea
                                     value={context}
                                     onChange={e => setContext(e.target.value)}
                                     className="input w-full min-h-[80px] text-sm resize-y leading-relaxed"
-                                    placeholder="Add details, context or instructions..."
+                                    placeholder={t.modal.desc_placeholder}
                                 />
                             </div>
 
@@ -379,7 +421,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                                 {/* Due Date */}
                                 <div className="col-span-2 md:col-span-1">
                                     <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
-                                        <Clock size={12} className="text-accent-secondary" /> Due Date
+                                        <Clock size={12} className="text-accent-secondary" /> {t.modal.labels.due_date.split('&')[0]}
                                     </label>
                                     <input
                                         type="date"
@@ -393,12 +435,12 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                                 <div className="col-span-2 animate-in fade-in slide-in-from-top-2">
                                     <div className="flex items-center justify-between mb-2">
                                         <label className="block text-xs uppercase text-text-muted font-bold tracking-wider flex items-center gap-2">
-                                            <User size={12} className="text-accent-secondary" /> Share / Delegate
+                                            <User size={12} className="text-accent-secondary" /> {t.modal.labels.share}
                                         </label>
                                         <div className="text-[10px] text-text-muted italic">
                                             {assigneeIds.length > 0
-                                                ? <span className="text-accent-primary font-bold flex items-center gap-1"><Eye size={10} /> Shared with Team</span>
-                                                : <span className="flex items-center gap-1"><EyeOff size={10} /> Private Task</span>}
+                                                ? <span className="text-accent-primary font-bold flex items-center gap-1"><Eye size={10} /> {t.modal.shared_with_team}</span>
+                                                : <span className="flex items-center gap-1"><EyeOff size={10} /> {t.modal.private_task}</span>}
                                         </div>
                                     </div>
 
@@ -456,7 +498,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                                 {/* Priority */}
                                 <div className="col-span-2">
                                     <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
-                                        <Flag size={12} className="text-accent-secondary" /> Priority
+                                        <Flag size={12} className="text-accent-secondary" /> {t.modal.labels.priority}
                                     </label>
                                     <div className="flex gap-2">
                                         {(['critical', 'high', 'medium', 'low'] as Priority[]).map((p) => (
@@ -493,7 +535,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                                     onClick={() => setCandidates([])}
                                     className="text-text-muted hover:text-text-primary text-xs font-bold uppercase tracking-wider px-2 py-1 rounded hover:bg-bg-subtle transition-colors"
                                 >
-                                    Switch to Manual
+                                    {t.modal.manual_switch}
                                 </button>
                             )}
                         </div>
@@ -502,7 +544,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                                 onClick={onClose}
                                 className="px-6 py-2.5 text-text-secondary hover:text-text-primary hover:bg-bg-card-hover rounded-xl transition-colors font-bold text-sm"
                             >
-                                Cancel
+                                {t.actions.cancel}
                             </button>
                             <button
                                 onClick={candidates.length > 1 ? handleSaveMultiple : handleSave}
@@ -518,16 +560,16 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                                 {isSuccess ? (
                                     <>
                                         <Check size={18} className="animate-bounce" />
-                                        <span>Confirmed!</span>
+                                        <span>{t.modal.confirmed}</span>
                                     </>
                                 ) : candidates.length > 1 ? (
                                     <>
                                         <ListTodo size={18} />
-                                        <span>Create {selectedCandidates.length} Tasks</span>
+                                        <span>{t.modal.create_n_tasks.replace('{n}', selectedCandidates.length.toString()) + ' ' + selectedCandidates.length}</span>
                                     </>
                                 ) : (
                                     <>
-                                        <span>Confirm & Create</span>
+                                        <span>{t.modal.confirm_create}</span>
                                         <ArrowRight size={16} />
                                     </>
                                 )}

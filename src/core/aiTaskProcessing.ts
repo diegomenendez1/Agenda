@@ -3,6 +3,7 @@ import { supabase } from './supabase';
 export interface PromptContext {
     userRoleContext?: string;
     organizationId?: string;
+    appLanguage?: 'es' | 'en'; // NEW
 }
 
 /**
@@ -39,13 +40,17 @@ export async function processTaskInputWithAI(
         const availableTeam = teamData?.map(m => `${m.id}:${m.full_name}`).join('|') || 'None';
         const currentDate = new Date().toISOString().split('T')[0];
 
+        const targetLang = context.appLanguage === 'en' ? 'English' : 'Spanish';
+
         const systemPrompt = `Role: Senior Executive Asst (GTD). Convert raw input into structured tasks. 
 Rules:
-1. One task unless actions are totally unrelated.
-2. Priority: critical|high|medium|low based on role context.
-3. Use refs: Projects[${availableProjects}], Team[${availableTeam}].
-4. Date: Today is ${currentDate}.
-Output JSON: { "tasks": [{ "title": "Action", "priority": "lvl", "date": "YYYY-MM-DD", "reason": "why", "pid": "id", "aids": ["ids"] }] }`;
+1. OUTPUT LANGUAGE: MUST BE IN ${targetLang.toUpperCase()}.
+2. PRESERVE ORIGINALS: Text inside quotes "..." must remain in original language (e.g. email subjects).
+3. One task unless actions are totally unrelated.
+4. Priority: critical|high|medium|low based on role context.
+5. Use refs: Projects[${availableProjects}], Team[${availableTeam}].
+6. Date: Today is ${currentDate}.
+Output JSON: { "tasks": [{ "title": "Action in ${targetLang}", "priority": "lvl", "date": "YYYY-MM-DD", "reason": "why in ${targetLang}", "pid": "id", "aids": ["ids"] }] }`;
 
         const userPrompt = `Input: "${inputText}"\nRoleCtx: "${context.userRoleContext || 'Productivity'}"`;
 

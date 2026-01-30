@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { useStore } from '../core/store';
 import { User, Save, Users, Check, X } from 'lucide-react';
 import clsx from 'clsx';
+import { useTranslation } from '../core/i18n';
 
 export function UserProfile() {
     const { user, updateUserProfile } = useStore();
+    const { t } = useTranslation();
     const [name, setName] = useState('');
 
     const [aiContext, setAiContext] = useState('');
@@ -13,8 +15,11 @@ export function UserProfile() {
         if (user) {
             setName(user.name);
             setAiContext(user.preferences?.aiContext || '');
+            setLanguage(user.preferences?.appLanguage || 'es');
         }
     }, [user]);
+
+    const [language, setLanguage] = useState<'es' | 'en'>('es');
 
     const handleSave = async () => {
         if (!user) return;
@@ -25,7 +30,8 @@ export function UserProfile() {
             preferences: {
                 ...user.preferences,
                 theme: 'light',
-                aiContext
+                aiContext,
+                appLanguage: language
             }
         });
     };
@@ -34,8 +40,8 @@ export function UserProfile() {
 
     return (
         <div className="max-w-2xl mx-auto p-6">
-            <h1 className="text-3xl font-bold mb-2">Account Settings</h1>
-            <p className="text-text-secondary mb-8">Manage your personal information and application preferences.</p>
+            <h1 className="text-3xl font-bold mb-2">{t.settings.title}</h1>
+            <p className="text-text-secondary mb-8">{t.settings.subtitle}</p>
 
             <div className="bg-bg-card border border-border-subtle rounded-xl overflow-hidden shadow-sm">
 
@@ -61,11 +67,11 @@ export function UserProfile() {
                     {/* Identity Section */}
                     <div className="space-y-4">
                         <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
-                            Personal Information
+                            {t.settings.personal_info}
                         </h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-text-secondary">Full Name</label>
+                                <label className="text-sm font-medium text-text-secondary">{t.settings.full_name}</label>
                                 <input
                                     type="text"
                                     value={name}
@@ -74,7 +80,7 @@ export function UserProfile() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-text-secondary">Email Address</label>
+                                <label className="text-sm font-medium text-text-secondary">{t.settings.email}</label>
                                 <input
                                     type="email"
                                     value={user.email}
@@ -85,17 +91,42 @@ export function UserProfile() {
                         </div>
                     </div>
 
+
+                    <div className="h-px bg-border-subtle" />
+
+                    {/* Language Settings */}
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+                            {t.settings.language_region}
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-text-secondary">{t.settings.app_language}</label>
+                                <select
+                                    value={language}
+                                    onChange={(e) => setLanguage(e.target.value as 'es' | 'en')}
+                                    className="input w-full bg-bg-input focus:bg-bg-card transition-all"
+                                >
+                                    <option value="es">Español (Spanish)</option>
+                                    <option value="en">English (Inglés)</option>
+                                </select>
+                                <p className="text-xs text-text-muted mt-1">
+                                    {t.settings.ai_note}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="h-px bg-border-subtle" />
 
                     {/* AI Assistant Context - Restricted to Head/Owner */}
                     {(user?.role === 'owner' || user?.role === 'head') && (
                         <div className="space-y-4">
                             <div className="flex items-center gap-2">
-                                <h3 className="text-lg font-semibold text-text-primary">AI Assistant Context</h3>
+                                <h3 className="text-lg font-semibold text-text-primary">{t.settings.ai_context_title}</h3>
                             </div>
                             <p className="text-sm text-text-secondary">
-                                Define your team's focus, your role, or any specific instructions for the AI when processing tasks.
-                                This helps filter noise and prioritize what matters.
+                                {t.settings.ai_context_desc}
                             </p>
                             <textarea
                                 value={aiContext}
@@ -110,10 +141,10 @@ export function UserProfile() {
 
                     {/* Working Hours Configuration */}
                     <div className="space-y-4">
-                        <h3 className="text-lg font-semibold text-text-primary">Calendar Preferences</h3>
+                        <h3 className="text-lg font-semibold text-text-primary">{t.settings.calendar_prefs}</h3>
                         <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-text-secondary">Working Day Start</label>
+                                <label className="text-sm font-medium text-text-secondary">{t.settings.working_start}</label>
                                 <select
                                     value={user.preferences?.workingHours?.start ?? 9}
                                     onChange={(e) => {
@@ -141,7 +172,7 @@ export function UserProfile() {
                                 </select>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-medium text-text-secondary">Working Day End</label>
+                                <label className="text-sm font-medium text-text-secondary">{t.settings.working_end}</label>
                                 <select
                                     value={user.preferences?.workingHours?.end ?? 18}
                                     onChange={(e) => {
@@ -171,7 +202,7 @@ export function UserProfile() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium text-text-secondary">Working Days</label>
+                            <label className="text-sm font-medium text-text-secondary">{t.settings.working_days}</label>
                             <div className="flex flex-wrap gap-2">
                                 {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => {
                                     const workingDays = user.preferences?.workingHours?.workingDays || [1, 2, 3, 4, 5];
@@ -213,7 +244,7 @@ export function UserProfile() {
                         </div>
 
                         <p className="text-xs text-text-muted">
-                            These hours and days will be used by the AI to intelligently schedule your tasks.
+                            {t.settings.calendar_note}
                         </p>
                     </div>
 
@@ -227,7 +258,7 @@ export function UserProfile() {
                             className="btn btn-primary px-8 py-2.5 shadow-lg shadow-accent-primary/20 hover:shadow-accent-primary/30 transition-all active:scale-95"
                         >
                             <Save size={18} className="mr-2" />
-                            Save Changes
+                            {t.settings.save}
                         </button>
                     </div>
                 </div>
@@ -238,6 +269,7 @@ export function UserProfile() {
 
 function TeamInvitations() {
     const { user, activeInvitations, acceptPendingInvitation, declinePendingInvitation } = useStore();
+    const { t } = useTranslation();
 
     const myInvitations = activeInvitations.filter(i =>
         i.status === 'pending' &&
@@ -250,7 +282,7 @@ function TeamInvitations() {
         <div className="bg-accent-primary/5 border border-accent-primary/20 rounded-xl p-4 animate-enter mb-8">
             <h3 className="text-sm font-bold text-accent-primary flex items-center gap-2 mb-3">
                 <Users size={16} />
-                Team Invitations
+                {t.settings.invitations}
             </h3>
             <div className="space-y-3">
                 {myInvitations.map((invite) => (
@@ -261,10 +293,10 @@ function TeamInvitations() {
                             </div>
                             <div>
                                 <p className="text-sm font-medium text-text-primary">
-                                    Join <span className="font-bold text-accent-primary">{invite.organizationName}</span>
+                                    {t.settings.join} <span className="font-bold text-accent-primary">{invite.organizationName}</span>
                                 </p>
                                 <p className="text-xs text-text-muted">
-                                    Invited by {invite.inviterName} • {invite.role}
+                                    {t.settings.invited_by} {invite.inviterName} • {invite.role}
                                 </p>
                             </div>
                         </div>
@@ -281,7 +313,7 @@ function TeamInvitations() {
                                 className="px-4 py-2 bg-accent-primary text-white text-xs font-bold rounded-lg shadow-md shadow-accent-primary/20 hover:bg-accent-primary-hover transition-all flex items-center gap-1.5"
                             >
                                 <Check size={14} />
-                                Accept
+                                {t.settings.accept}
                             </button>
                         </div>
                     </div>

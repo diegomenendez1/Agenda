@@ -15,8 +15,11 @@ interface EditTaskModalProps {
     mode?: 'edit' | 'create'; // NEW
 }
 
+import { useTranslation } from '../core/i18n';
+
 export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edit' }: EditTaskModalProps) {
     const { updateTask, addTask, updateStatus, deleteTask, unassignTask, team, user } = useStore();
+    const { t } = useTranslation();
     const [showActivity, setShowActivity] = useState(true); // Default visible
 
     // VISIBILITY LOGIC (Refactored)
@@ -52,7 +55,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
     const [dueDateStr, setDueDateStr] = useState((initialDate && isValid(initialDate)) ? format(initialDate, "yyyy-MM-dd'T'HH:mm") : '');
 
     const [aiLoading, setAiLoading] = useState(false);
-    const [loadingText, setLoadingText] = useState("Analyzing...");
+    const [loadingText, setLoadingText] = useState(t.modal.ai_processing);
     const [assigneeSearch, setAssigneeSearch] = useState('');
 
     // Fix: Stale Data - Sync state with task prop when it updates
@@ -91,7 +94,8 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
             // Use Client Service instead of N8N
             const results = await processTaskInputWithAI(user.id, task.title || '', {
                 organizationId: user.organizationId,
-                userRoleContext: user.preferences?.aiContext
+                userRoleContext: user.preferences?.aiContext,
+                appLanguage: user.preferences?.appLanguage
             });
 
             if (results.length > 0) {
@@ -258,7 +262,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                 <div className="flex items-center justify-between p-5 border-b border-border-subtle bg-bg-app/50 shrink-0">
                     <div className="flex items-center gap-3">
                         <h2 className="font-display font-semibold text-lg text-text-primary">
-                            {isProcessing ? 'Accept & Process Item' : mode === 'create' ? 'Create New Task' : 'Edit Task'}
+                            {isProcessing ? t.modal.accept_process : mode === 'create' ? t.modal.create_task : t.modal.edit_task}
                         </h2>
                     </div>
                     <div className="flex items-center gap-2">
@@ -417,34 +421,45 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
 
                                 <div>
                                     <div className="flex items-center justify-between mb-2">
-                                        <label className="block text-xs uppercase text-text-muted font-bold tracking-wider">Title</label>
+                                        <label className="block text-xs uppercase text-text-muted font-bold tracking-wider">{t.modal.labels.title}</label>
                                         {canEdit && title !== originalTitle && (
                                             <button
                                                 type="button"
                                                 onClick={() => setTitle(originalTitle)}
                                                 className="text-[10px] text-accent-primary hover:underline flex items-center gap-1 font-bold"
                                             >
-                                                <X size={10} /> Use Original
+                                                <X size={10} /> {t.modal.use_original}
                                             </button>
                                         )}
                                     </div>
-                                    <input
+                                    <textarea
                                         autoFocus={canEdit}
                                         disabled={!canEdit}
-                                        type="text"
                                         value={title}
-                                        onChange={e => setTitle(e.target.value)}
+                                        onChange={e => {
+                                            setTitle(e.target.value);
+                                            e.target.style.height = 'auto';
+                                            e.target.style.height = e.target.scrollHeight + 'px';
+                                        }}
+                                        onKeyDown={e => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                // Optional: trigger save or focus description
+                                            }
+                                        }}
                                         className={clsx(
-                                            "input w-full text-lg font-medium transition-all bg-transparent border-transparent px-0 hover:bg-bg-input hover:px-3 focus:bg-bg-input focus:px-3 focus:border-accent-primary",
+                                            "input w-full text-lg font-medium transition-all bg-transparent border-transparent px-0 hover:bg-bg-input hover:px-3 focus:bg-bg-input focus:px-3 focus:border-accent-primary resize-none overflow-hidden h-auto",
                                             title !== originalTitle && "ring-2 ring-violet-500/20 border-violet-500/30",
                                             !canEdit && "opacity-70 cursor-not-allowed"
                                         )}
                                         placeholder="Task Title"
+                                        rows={1}
+                                        style={{ minHeight: '44px' }}
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2">Description / Context</label>
+                                    <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2">{t.modal.labels.desc}</label>
                                     <textarea
                                         disabled={!canEdit}
                                         value={description}
@@ -453,7 +468,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                             "input w-full min-h-[120px] text-sm resize-y leading-relaxed",
                                             !canEdit && "opacity-70 cursor-not-allowed bg-transparent border-transparent px-0 resize-none"
                                         )}
-                                        placeholder={canEdit ? "Add details, context or instructions..." : "No description provided."}
+                                        placeholder={canEdit ? t.modal.desc_placeholder : t.modal.no_desc}
                                     />
                                 </div>
 
@@ -461,7 +476,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                 <div className="grid grid-cols-2 gap-5 animate-in slide-in-from-top-2">
                                     <div className="col-span-2">
                                         <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
-                                            <ListTodo size={12} className="text-accent-secondary" /> Status
+                                            <ListTodo size={12} className="text-accent-secondary" /> {t.modal.labels.status}
                                         </label>
                                         <select
                                             disabled={!canEdit}
@@ -483,7 +498,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
 
                                     <div className="col-span-2 md:col-span-1">
                                         <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
-                                            <Clock size={12} className="text-accent-secondary" /> Due Date & Repeat
+                                            <Clock size={12} className="text-accent-secondary" /> {t.modal.labels.due_date}
                                         </label>
                                         <div className="flex gap-2">
                                             <input
@@ -535,7 +550,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                     <div className="col-span-2 animate-in fade-in slide-in-from-top-2">
                                         <div className="flex items-center justify-between mb-2">
                                             <label className="block text-xs uppercase text-text-muted font-bold tracking-wider flex items-center gap-2">
-                                                <User size={12} className="text-accent-secondary" /> Share / Delegate
+                                                <User size={12} className="text-accent-secondary" /> {t.modal.labels.share}
                                             </label>
                                             <div className="flex items-center gap-2">
 
@@ -549,15 +564,15 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                                             visibility === 'team' || assigneeIds.filter(uid => uid !== user?.id).length > 0 ? "text-accent-primary" : "text-text-muted"
                                                         )}
                                                     >
-                                                        <option value="private">Private Task</option>
-                                                        <option value="team">Team Visible</option>
+                                                        <option value="private">{t.modal.private_task}</option>
+                                                        <option value="team">{t.modal.shared_with_team}</option>
                                                     </select>
                                                 </div>
                                                 <div className="relative group/search">
                                                     <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
                                                     <input
                                                         type="text"
-                                                        placeholder="Find member..."
+                                                        placeholder={t.modal.find_member}
                                                         value={assigneeSearch}
                                                         onChange={e => setAssigneeSearch(e.target.value)}
                                                         className="pl-7 pr-2 py-1 bg-bg-surface border border-transparent hover:border-border-subtle rounded-full text-xs w-[120px] focus:w-[150px] transition-all focus:border-accent-primary focus:outline-none"
@@ -626,7 +641,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
 
                                     <div className="col-span-2">
                                         <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
-                                            <Flag size={12} className="text-accent-secondary" /> Priority
+                                            <Flag size={12} className="text-accent-secondary" /> {t.modal.labels.priority}
                                         </label>
                                         <div className="flex gap-2">
                                             {(['critical', 'high', 'medium', 'low'] as Priority[]).map((p) => (
@@ -719,14 +734,14 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                     {isSuccess ? (
                                         <>
                                             <Check size={18} className="animate-bounce" />
-                                            <span>Saved!</span>
+                                            <span>{t.modal.saved}</span>
                                         </>
                                     ) : (
                                         <>
                                             <span>
-                                                {isProcessing ? 'Confirm & To Do' :
-                                                    mode === 'create' ? 'Create Task' :
-                                                        (status === 'done' && !isOwner) ? 'Submit for Review' : 'Save Changes'}
+                                                {isProcessing ? t.modal.confirm_todo :
+                                                    mode === 'create' ? t.modal.create_task :
+                                                        (status === 'done' && !isOwner) ? t.modal.submit_review : t.actions.save}
                                             </span>
                                             <ArrowRight size={16} />
                                         </>

@@ -13,8 +13,11 @@ interface SidebarProps {
     onClose?: () => void;
 }
 
+import { useTranslation } from '../core/i18n';
+
 export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     const { user, myWorkspaces } = useStore();
+    const { t } = useTranslation();
     const [collapsed, setCollapsed] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
@@ -24,13 +27,13 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     };
 
     const navItems = [
-        { icon: Inbox, label: 'Inbox', path: '/inbox' },
-        { icon: CheckSquare, label: 'My Tasks', path: '/tasks' },
-        { icon: Users, label: 'My Team', path: '/my-team' },
-        { icon: Calendar, label: 'Calendar', path: '/calendar' },
+        { icon: Inbox, label: t.nav.inbox, path: '/inbox' },
+        { icon: CheckSquare, label: t.nav.my_tasks, path: '/tasks' },
+        { icon: Users, label: t.nav.my_team, path: '/my-team' },
+        { icon: Calendar, label: t.nav.calendar, path: '/calendar' },
 
-        { icon: TrendingUp, label: 'Analytics', path: '/kpis' },
-        { icon: StickyNote, label: 'Notes', path: '/notes' },
+        { icon: TrendingUp, label: t.nav.analytics, path: '/kpis' },
+        { icon: StickyNote, label: t.nav.notes, path: '/notes' },
     ];
 
     return (
@@ -86,7 +89,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                                                 <ChevronRight className="w-3 h-3 rotate-90 opacity-50" />
                                             </span>
                                             <span className="text-[11px] text-text-muted font-medium tracking-wide uppercase block mt-0.5">
-                                                Switch Workspace
+                                                {t.nav.switch_workspace}
                                             </span>
                                         </button>
 
@@ -192,7 +195,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                                 onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
                             >
                                 <SearchIcon size={16} className="text-text-muted group-hover:text-accent-primary transition-colors" />
-                                <span className="flex-1 text-xs font-medium text-text-secondary">Search...</span>
+                                <span className="flex-1 text-xs font-medium text-text-secondary">{t.nav.search}</span>
                                 <kbd className="text-[10px] text-text-muted font-sans border border-border-subtle px-1.5 py-0.5 rounded bg-bg-input group-hover:bg-bg-card transition-colors">⌘K</kbd>
                             </button>
                         )}
@@ -239,7 +242,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                                     }}
                                     className="flex items-center gap-2 text-[10px] text-text-muted hover:text-red-500 transition-colors w-full justify-center"
                                 >
-                                    <span className={clsx((!collapsed || isOpen) ? "inline" : "hidden")}>Leave Team</span>
+                                    <span className={clsx((!collapsed || isOpen) ? "inline" : "hidden")}>{t.nav.leave_team}</span>
                                 </button>
                             </div>
                         )}

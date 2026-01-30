@@ -8,6 +8,7 @@ import {
 import clsx from 'clsx';
 import type { Task } from '../core/types';
 import { EditTaskModal } from './EditTaskModal';
+import { useTranslation } from '../core/i18n';
 
 interface TaskTableProps {
     tasks: Task[];
@@ -16,6 +17,7 @@ interface TaskTableProps {
 
 export function TaskTable({ tasks, onToggleStatus }: TaskTableProps) {
     const { toggleTaskStatus: storeToggleTaskStatus, team } = useStore();
+    const { t } = useTranslation();
     const [editingTask, setEditingTask] = useState<Task | null>(null);
 
     const handleToggle = onToggleStatus || storeToggleTaskStatus;
@@ -23,10 +25,10 @@ export function TaskTable({ tasks, onToggleStatus }: TaskTableProps) {
     // Simple column headers definition
     const columns = [
         { key: 'status', label: '', width: 'w-10' },
-        { key: 'title', label: 'Task Name', width: 'w-1/3' },
-        { key: 'assignees', label: 'Assignees', width: 'w-32' },
-        { key: 'priority', label: 'Priority', width: 'w-24' },
-        { key: 'dueDate', label: 'Due Date', width: 'w-32' },
+        { key: 'title', label: t.table.column_title, width: 'w-1/3' },
+        { key: 'assignees', label: t.table.column_assignees, width: 'w-32' },
+        { key: 'priority', label: t.table.column_priority, width: 'w-24' },
+        { key: 'dueDate', label: t.table.column_due_date, width: 'w-32' },
         { key: 'actions', label: '', width: 'w-10' },
     ];
 
@@ -34,7 +36,7 @@ export function TaskTable({ tasks, onToggleStatus }: TaskTableProps) {
         return (
             <div className="flex flex-col items-center justify-center p-12 text-text-muted border-2 border-dashed border-border-subtle rounded-xl bg-bg-card/30">
                 <CheckCircle2 size={48} className="mb-4 opacity-20" />
-                <p>No tasks match your filters.</p>
+                <p>{t.table.empty_state}</p>
             </div>
         );
     }
@@ -43,7 +45,7 @@ export function TaskTable({ tasks, onToggleStatus }: TaskTableProps) {
         <>
             <div className="w-full overflow-hidden border border-border-subtle rounded-xl bg-bg-card shadow-sm">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left border-collapse min-w-[1000px]">
                         <thead>
                             <tr className="bg-bg-input/50 text-xs font-bold text-text-muted uppercase tracking-wider border-b border-border-subtle">
                                 {columns.map((col) => (
@@ -100,7 +102,7 @@ export function TaskTable({ tasks, onToggleStatus }: TaskTableProps) {
                                                 </span>
                                                 {(task.status === 'backlog' && !isDone) && (
                                                     <span className="flex items-center gap-1 text-[10px] text-amber-600 font-bold uppercase tracking-wider">
-                                                        <Clock size={10} /> Backlog
+                                                        <Clock size={10} /> {t.status.backlog.split(' ')[0]}
                                                     </span>
                                                 )}
                                             </div>
@@ -137,18 +139,18 @@ export function TaskTable({ tasks, onToggleStatus }: TaskTableProps) {
                                             <div className="flex items-center">
                                                 {task.priority === 'critical' ? (
                                                     <span className="px-2 py-0.5 rounded bg-red-500/10 text-red-600 text-[10px] font-bold uppercase border border-red-500/20 flex items-center gap-1">
-                                                        <AlertCircle size={10} /> Critical
+                                                        <AlertCircle size={10} /> {t.priority.critical}
                                                     </span>
                                                 ) : task.priority === 'high' ? (
                                                     <span className="px-2 py-0.5 rounded bg-orange-500/10 text-orange-600 text-[10px] font-bold uppercase border border-orange-500/20">
-                                                        High
+                                                        {t.priority.high}
                                                     </span>
                                                 ) : task.priority === 'medium' ? (
                                                     <span className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 text-[10px] font-bold uppercase border border-blue-500/20">
-                                                        Medium
+                                                        {t.priority.medium}
                                                     </span>
                                                 ) : (
-                                                    <span className="text-text-muted text-xs opacity-60">Low</span>
+                                                    <span className="text-text-muted text-xs opacity-60">{t.priority.low}</span>
                                                 )}
                                             </div>
                                         </td>

@@ -19,6 +19,7 @@ export interface UserProfile {
         theme: 'light' | 'dark' | 'system';
         taskViewMode?: 'list' | 'board' | 'table';
         aiContext?: string;
+        appLanguage?: 'es' | 'en'; // NEW: Language preference
         workingHours?: {
             start: number;
             end: number;

@@ -117,7 +117,7 @@ export function TaskListView() {
 
     return (
         <div className={clsx(
-            "flex flex-col h-full bg-bg-app overflow-hidden px-6 pt-6 pb-2 md:px-8 md:pt-8 md:pb-2 transition-all duration-300"
+            "flex flex-col h-full bg-bg-app overflow-hidden px-4 pt-4 pb-2 md:px-8 md:pt-8 md:pb-2 transition-all duration-300"
         )}>
             {/* Header Section */}
             <header className="mb-8 flex flex-col xl:flex-row xl:items-center justify-between gap-6 animate-enter relative z-20">
@@ -128,7 +128,7 @@ export function TaskListView() {
                     <p className="text-text-muted text-lg font-light">Manage your personal and team assignments.</p>
                 </div>
 
-                <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 flex-wrap">
                     {/* Primary Action */}
                     {/* Primary Action */}
                     <div className="flex items-center gap-2">
@@ -165,7 +165,7 @@ export function TaskListView() {
                     </div>
 
                     {/* Unified Filter Bar */}
-                    <div className="flex items-center gap-1 p-1.5 bg-bg-surface/60 backdrop-blur-md border border-border-subtle rounded-2xl shadow-sm overflow-x-auto max-w-full">
+                    <div className="flex items-center gap-1 p-1.5 bg-bg-surface/60 backdrop-blur-md border border-border-subtle rounded-2xl shadow-sm overflow-x-auto max-w-full min-w-0">
 
                         {/* Scope Filters (Private vs Shared) */}
                         <div className="flex bg-bg-input/50 rounded-xl p-1 gap-1">

@@ -6,14 +6,10 @@ import { MoreHorizontal, Calendar, CheckCircle2, Lock, Flag, Clock, X, Trash2 } 
 import { format } from 'date-fns';
 import { EditTaskModal } from './EditTaskModal';
 
+import { useTranslation } from '../core/i18n';
+
 // Simplified columns - removed bgClass to reduce visual noise as requested
-const COLUMNS: { id: TaskStatus; label: string; colorClass: string }[] = [
-    { id: 'backlog', label: 'Backlog / Incoming', colorClass: 'bg-border-highlight' },
-    { id: 'todo', label: 'To Do', colorClass: 'bg-border-highlight' },
-    { id: 'in_progress', label: 'In Progress', colorClass: 'bg-border-highlight' },
-    { id: 'review', label: 'Review', colorClass: 'bg-border-highlight' },
-    { id: 'done', label: 'Done', colorClass: 'bg-border-highlight' }
-];
+// MOVED INSIDE COMPONENT FOR TRANSLATION
 
 interface KanbanBoardProps {
     tasks?: Task[];
@@ -21,6 +17,7 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
     const { tasks: storeTasks, updateStatus, updateTask, user, team } = useStore();
+    const { t } = useTranslation();
     const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
 
@@ -43,7 +40,17 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
         });
 
         return groups;
+
+
     }, [tasksToUse]);
+
+    const COLUMNS: { id: TaskStatus; label: string; colorClass: string }[] = [
+        { id: 'backlog', label: t.status.backlog, colorClass: 'bg-border-highlight' },
+        { id: 'todo', label: t.status.todo, colorClass: 'bg-border-highlight' },
+        { id: 'in_progress', label: t.status.in_progress, colorClass: 'bg-border-highlight' },
+        { id: 'review', label: t.status.review, colorClass: 'bg-border-highlight' },
+        { id: 'done', label: t.status.done, colorClass: 'bg-border-highlight' }
+    ];
 
     const handleDragStart = (e: React.DragEvent, taskId: string) => {
         setDraggedTaskId(taskId);
@@ -80,11 +87,11 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
     };
 
     return (
-        <div className="flex h-full gap-6 overflow-x-auto pb-4 px-2">
+        <div className="flex h-full gap-4 pb-4 px-2 flex-col overflow-y-auto lg:flex-row lg:overflow-x-auto lg:overflow-y-hidden">
             {COLUMNS.map(col => (
                 <div
                     key={col.id}
-                    className="flex-shrink-0 flex-1 min-w-[300px] flex flex-col gap-3 group/column"
+                    className="flex-shrink-0 flex-1 w-full lg:min-w-[220px] flex flex-col gap-3 group/column"
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, col.id)}
                 >
@@ -119,7 +126,7 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                 title="Clear Done Tasks"
                             >
                                 <Trash2 size={12} />
-                                <span className="hidden sm:inline">Clear</span>
+                                <span className="hidden sm:inline">{t.actions.clear_done.split(' ')[0]}</span>
                             </button>
                         )}
                     </div>
@@ -127,7 +134,7 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                     {/* Drop Zone / List */}
                     {/* Removed bgClass and added border-dashed for "sutiles lineas" effect if empty, or just subtle border container */}
                     <div className={clsx(
-                        "flex-1 rounded-2xl p-2 transition-all min-h-[150px] overflow-y-auto",
+                        "flex-1 rounded-2xl p-2 transition-all min-h-[100px] lg:min-h-[150px] overflow-y-auto",
                         "border border-border-subtle/40 bg-bg-app/50", // Very subtle container border instead of full background
                         "group-hover/column:border-border-subtle group-hover/column:bg-bg-input/10"
                     )}>
@@ -157,7 +164,7 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                         <div className="flex justify-between items-start mb-3">
                                             <div className="flex flex-col gap-1 pr-6 w-full">
 
-                                                <span className="text-[14px] font-medium text-text-primary line-clamp-3 leading-snug">
+                                                <span className="text-[14px] font-medium text-text-primary leading-snug">
                                                     {task.title}
                                                 </span>
                                             </div>
@@ -186,7 +193,7 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                                                 }}
                                                                 className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2 shadow-md shadow-indigo-500/20 active:scale-95"
                                                             >
-                                                                <CheckCircle2 size={14} /> Start Task
+                                                                <CheckCircle2 size={14} /> {t.actions.start}
                                                             </button>
                                                         )}
                                                     </div>
@@ -202,7 +209,7 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                                                     }}
                                                                     className="flex-1 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95"
                                                                 >
-                                                                    <CheckCircle2 size={14} /> Accept
+                                                                    <CheckCircle2 size={14} /> {t.actions.accept}
                                                                 </button>
                                                                 <button
                                                                     onClick={(e) => {
@@ -220,7 +227,7 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                                             (task.assigneeIds && task.assigneeIds.length > 0) ? (
                                                                 <>
                                                                     <div className="w-full py-2 bg-bg-input border border-border-subtle text-text-muted text-[10px] font-bold uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 cursor-default opacity-80">
-                                                                        <Clock size={14} /> Waiting for Team
+                                                                        <Clock size={14} /> {t.actions.waiting}
                                                                     </div>
                                                                     <button
                                                                         onClick={(e) => {
@@ -229,7 +236,7 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                                                         }}
                                                                         className="w-full py-2 bg-bg-surface hover:bg-indigo-50 text-text-muted hover:text-indigo-600 border border-border-subtle hover:border-indigo-200 text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2"
                                                                     >
-                                                                        <CheckCircle2 size={14} /> Skip & Start
+                                                                        <CheckCircle2 size={14} /> {t.actions.skip}
                                                                     </button>
                                                                 </>
                                                             ) : (
@@ -240,7 +247,7 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                                                     }}
                                                                     className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2 shadow-md shadow-indigo-500/20 active:scale-95"
                                                                 >
-                                                                    <CheckCircle2 size={14} /> Start Task
+                                                                    <CheckCircle2 size={14} /> {t.actions.start}
                                                                 </button>
                                                             )
                                                         ) : null}
