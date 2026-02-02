@@ -59,8 +59,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
     const [isProcessing, setIsProcessing] = useState(false);
     const [showAIPreview, setShowAIPreview] = useState(false);
     const [isEditingDetails, setIsEditingDetails] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const [modalError, setModalError] = useState<string | null>(null);
     const [loadingText, setLoadingText] = useState(t.modal.ai_processing);
 
     useEffect(() => {
@@ -99,7 +98,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
 
     const handleAutoProcess = async () => {
         setIsProcessing(true);
-        setError(null);
+        setModalError(null);
         setCandidates([]);
         try {
             if (!user?.id) throw new Error("User not found");
@@ -145,9 +144,9 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
             setShowAIPreview(true);
             setIsEditingDetails(true);
 
-        } catch (error: any) {
-            console.error('AI Processing Error:', error);
-            setError(`DEBUG: ${error.message}`);
+        } catch (err: any) {
+            console.error('AI Processing Error:', err);
+            setModalError(`DEBUG: ${err.message}`);
         } finally {
             setIsProcessing(false);
         }
@@ -157,7 +156,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
     const [isSuccess, setIsSuccess] = useState(false);
 
     const handleSave = async () => {
-        setError(null);
+        setModalError(null);
         try {
             setIsSuccess(true);
             // Micro-interaction delay for visual feedback
@@ -180,13 +179,13 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
         } catch (e) {
             console.error("Failed to process item:", e);
             setIsSuccess(false);
-            setError("Failed to save task. Please check your connection.");
+            setModalError("Failed to save task. Please check your connection.");
         }
     };
 
     const handleSaveMultiple = async () => {
         if (selectedCandidates.length === 0) return;
-        setError(null);
+        setModalError(null);
         try {
             setIsSuccess(true);
             await new Promise(resolve => setTimeout(resolve, 600));
@@ -218,7 +217,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
         } catch (e) {
             console.error("Failed to create tasks:", e);
             setIsSuccess(false);
-            setError("Failed to create tasks. Please try again.");
+            setModalError("Failed to create tasks. Please try again.");
         }
     };
 
@@ -311,9 +310,9 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                                     )}
                                 </button>
                             </div>
-                            {error && (
+                            {modalError && (
                                 <div className="text-[10px] text-red-500 font-medium text-center mt-2 animate-in fade-in">
-                                    {error}
+                                    {modalError}
                                 </div>
                             )}
                         </div>
