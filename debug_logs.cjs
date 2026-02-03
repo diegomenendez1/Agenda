@@ -1,21 +1,24 @@
-
+require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = 'https://dovmyyrnhudfwvrlrzmw.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRvdm15eXJuaHVkZnd2cmxyem13Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczMTI3NTMsImV4cCI6MjA4Mjg4ODc1M30.wM_qaUBOrE8BITOgE9asPG1vl2ZDdxgp8eqq_28stpY';
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function debug() {
-    console.log("Debugging Activity Logs RLS...");
+    console.log("Debugging Activity Logs RLS with Service Role...");
 
-    // Auth as Lead
-    await supabase.auth.signInWithPassword({
-        email: 'lead@test.com',
-        password: 'SocialTest.2026'
-    });
+    // Using Service Role Key bypasses the need for signIn for DB operations.
+    // Let's find the Head user to use as a reference
+    const { data: profile } = await supabase.from('profiles').select('id').eq('email', 'test1@test.com').single();
 
-    const user = (await supabase.auth.getUser()).data.user;
-    console.log("Logged in:", user.id);
+    if (!profile) {
+        console.error("Test profile not found. Please ensure 'test1@test.com' exists.");
+        return;
+    }
+
+    const userId = profile.id;
+    console.log("Using User ID:", userId);
 
     // Try Insert
     const { data, error } = await supabase.from('activity_logs').insert({
@@ -23,7 +26,7 @@ async function debug() {
         // Wait, activity logs need a valid task_id that exists in tasks table usually due to FK?
         // Let's use the API Integration task ID: '6fc1a087-02e8-43de-b804-0972e3f035e4' (from previous output)
         task_id: '6fc1a087-02e8-43de-b804-0972e3f035e4',
-        user_id: user.id,
+        user_id: userId,
         type: 'debug',
         content: 'Debug log entry',
         created_at: new Date().toISOString()
