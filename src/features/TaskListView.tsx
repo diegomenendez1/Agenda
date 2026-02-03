@@ -44,6 +44,9 @@ export function TaskListView() {
             console.error('Failed to reorganize', err);
             toast.error(err.message || 'AI Sort Failed');
         } finally {
+            // Force a refresh of the local store to ensure UI matches DB exactly
+            // This is safer than relying solely on Realtime for a mass update
+            await useStore.getState().initialize();
             setIsOrganizing(false);
         }
     };
