@@ -6,10 +6,10 @@ const DICTIONARY = {
         // Navigation (Sidebar)
         nav: {
             inbox: 'Bandeja de Entrada',
-            my_tasks: 'Mis Tareas',
-            my_team: 'Mi Equipo',
+            my_tasks: 'Mi Trabajo',
+            my_team: 'Equipo',
             calendar: 'Calendario',
-            analytics: 'Analíticas',
+            analytics: 'Insights',
             notes: 'Notas',
             search: 'Buscar...',
             switch_workspace: 'Cambiar Espacio',
@@ -119,15 +119,31 @@ const DICTIONARY = {
                 share: 'COMPARTIR / DELEGAR',
                 priority: 'PRIORIDAD'
             }
+        },
+        // Daily Digest
+        daily_digest: {
+            good_morning: 'Buenos días',
+            greeting_default: 'Hola',
+            intro_text: 'Aquí está tu enfoque para hoy.',
+            missed_deadlines: 'PLAZOS VENCIDOS',
+            missed_deadlines_sub: 'Plazos Vencidos',
+            needs_attention: 'NECESITA ATENCIÓN',
+            stalled_tasks: 'Tareas Estancadas',
+            blocked: '¿Bloqueado?',
+            todays_focus: 'ENFOQUE RECOMENDADO',
+            focus_sub: 'Basado en prioridad y fechas',
+            no_urgent: 'Sin tareas urgentes. ¡Disfruta tu día! ☕',
+            go_to_inbox: 'Ir al Inbox',
+            review: 'Revisar'
         }
     },
     en: {
         nav: {
             inbox: 'Inbox',
-            my_tasks: 'My Tasks',
-            my_team: 'My Team',
+            my_tasks: 'My Work',
+            my_team: 'Team',
             calendar: 'Calendar',
-            analytics: 'Analytics',
+            analytics: 'Insights',
             notes: 'Notes',
             search: 'Search...',
             switch_workspace: 'Switch Workspace',
@@ -233,6 +249,21 @@ const DICTIONARY = {
                 share: 'SHARE / DELEGATE',
                 priority: 'PRIORITY'
             }
+        },
+        daily_digest: {
+            good_morning: 'Good Morning',
+            greeting_default: 'Friend',
+            intro_text: 'Here is your focus for today.',
+            missed_deadlines: 'MISSED DEADLINES',
+            missed_deadlines_sub: 'Missed Deadlines',
+            needs_attention: 'NEEDS ATTENTION',
+            stalled_tasks: 'Stalled Tasks',
+            blocked: 'Blocked?',
+            todays_focus: 'RECOMMENDED FOCUS',
+            focus_sub: 'Based on priority & deadlines',
+            no_urgent: 'No urgent tasks. Enjoy your day! ☕',
+            go_to_inbox: 'Go to Inbox',
+            review: 'Review'
         }
     }
 };

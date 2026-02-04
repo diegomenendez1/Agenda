@@ -26,7 +26,7 @@ export const useStore = create<Store>((...a) => ({
     activeInvitations: [],
     myWorkspaces: [],
     // Loaded from localStorage in AuthSlice but default empty here
-    workspaceAliases: {},
+    // workspaceAliases: {}, remove duplicate
     realtimeCheck: undefined,
 
     // Slices

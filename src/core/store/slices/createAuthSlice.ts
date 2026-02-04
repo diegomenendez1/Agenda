@@ -20,7 +20,8 @@ export const createAuthSlice: StoreSlice<AuthSlice> = (set, get) => ({
             const aliases = get().workspaceAliases || {};
             const workspaces = (data || []).map((m) => ({
                 id: m.organization_id,
-                name: aliases[m.organization_id] || m.organizations?.name || 'Unknown Workspace',
+                // @ts-ignore
+                name: aliases[m.organization_id] || (Array.isArray(m.organizations) ? m.organizations[0]?.name : m.organizations?.name) || 'Unknown Workspace',
                 role: m.role,
                 joinedAt: m.joined_at ? new Date(m.joined_at).getTime() : Date.now()
             }));

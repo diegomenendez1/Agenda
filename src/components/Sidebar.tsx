@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Inbox, CheckSquare, Calendar, StickyNote, Users, Sparkles, LogOut, ChevronRight, TrendingUp, Plus } from 'lucide-react';
+import { Inbox, CheckCircle2, Calendar, StickyNote, Users, Sparkles, LogOut, ChevronRight, BarChart2, Plus, X } from 'lucide-react';
 import { useStore } from '../core/store';
 import { supabase } from '../core/supabase';
 import { NotificationCenter } from './NotificationCenter';
@@ -28,11 +28,11 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
     const navItems = [
         { icon: Inbox, label: t.nav.inbox, path: '/inbox' },
-        { icon: CheckSquare, label: t.nav.my_tasks, path: '/tasks' },
+        { icon: CheckCircle2, label: t.nav.my_tasks, path: '/tasks' },
         { icon: Users, label: t.nav.my_team, path: '/my-team' },
         { icon: Calendar, label: t.nav.calendar, path: '/calendar' },
 
-        { icon: TrendingUp, label: t.nav.analytics, path: '/kpis' },
+        { icon: BarChart2, label: t.nav.analytics, path: '/kpis' },
         { icon: StickyNote, label: t.nav.notes, path: '/notes' },
     ];
 
@@ -62,7 +62,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                     onClick={onClose}
                     className="lg:hidden absolute top-4 right-4 text-text-muted hover:text-text-primary"
                 >
-                    <ChevronRight className="rotate-180" size={24} />
+                    <X size={24} />
                 </button>
 
                 {/* Toggle Handle (Desktop Only) */}

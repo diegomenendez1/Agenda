@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../core/store';
 import { Sparkles, Loader2, Plus, CheckCircle2 } from 'lucide-react';
-import { TaskItem } from '../components/TaskItem';
+import { FocusCard } from '../components/FocusCard';
 import { KanbanBoard } from '../components/KanbanBoard';
 import { TaskTable } from '../components/TaskTable';
 import { EditTaskModal } from '../components/EditTaskModal';
@@ -9,6 +9,7 @@ import { useSearchParams, useParams } from 'react-router-dom';
 import clsx from 'clsx';
 import { runAITaskPrioritization } from '../core/aiPrioritization';
 import { toast } from 'sonner';
+import { isToday, isPast } from 'date-fns';
 
 // New Modular Code
 import { useTaskListLogic } from './tasks/useTaskListLogic';
@@ -57,7 +58,7 @@ export function TaskListView() {
     const handleAutoPrioritize = async () => {
         try {
             setIsOrganizing(true);
-            toast.info("Analyzing Global Context...");
+            toast.info("Optimizing your workflow...");
 
             if (!user?.id) return;
 
@@ -81,7 +82,7 @@ export function TaskListView() {
             {/* Header Section */}
             <header className="mb-8 flex flex-col xl:flex-row xl:items-center justify-between gap-6 animate-enter relative z-20">
                 <div>
-                    <h1 className="text-4xl font-display font-extrabold flex items-center gap-3 tracking-tight text-text-primary mb-2">
+                    <h1 className="text-3xl md:text-4xl font-display font-extrabold flex items-center gap-3 tracking-tight text-text-primary mb-2">
                         My Tasks
                     </h1>
                     <p className="text-text-muted text-lg font-light">Manage your personal and team assignments.</p>
@@ -97,7 +98,7 @@ export function TaskListView() {
                             title="Reorganize with AI"
                         >
                             {isOrganizing ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} />}
-                            <span className="hidden sm:inline">AI Sort</span>
+                            <span className="hidden sm:inline">Smart Sort</span>
                         </button>
 
                         <button
@@ -160,11 +161,36 @@ export function TaskListView() {
                         <p className="text-sm opacity-60 mt-1">Try changing the filter or create a new task.</p>
                     </div>
                 ) : (
-                    <ul className="flex flex-col gap-3 pb-20 max-w-5xl mx-auto w-full">
-                        {filteredTasks.map(task => (
-                            <TaskItem key={task.id} task={task} onToggleStatus={handleToggleTask} />
-                        ))}
-                    </ul>
+                    <div className="flex flex-col gap-8 pb-20 max-w-5xl mx-auto w-full animate-enter">
+                        {/* Smart Grouping Logic */}
+                        {(() => {
+                            const now = new Date();
+                            const todayTasks = filteredTasks.filter(t => t.dueDate && (isToday(t.dueDate) || isPast(t.dueDate)) && t.status !== 'done');
+                            const upcomingTasks = filteredTasks.filter(t => t.dueDate && !isToday(t.dueDate) && !isPast(t.dueDate) && t.status !== 'done');
+                            const noDateTasks = filteredTasks.filter(t => !t.dueDate && t.status !== 'done');
+                            const doneTasks = filteredTasks.filter(t => t.status === 'done');
+
+                            const renderGroup = (title: string, groupTasks: typeof filteredTasks) => (
+                                groupTasks.length > 0 && (
+                                    <div className="flex flex-col gap-3">
+                                        <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider pl-1 mb-1">{title} ({groupTasks.length})</h3>
+                                        {groupTasks.map(task => (
+                                            <FocusCard key={task.id} task={task} onToggleStatus={handleToggleTask} />
+                                        ))}
+                                    </div>
+                                )
+                            );
+
+                            return (
+                                <>
+                                    {renderGroup("Focus Now", todayTasks)}
+                                    {renderGroup("Upcoming", upcomingTasks)}
+                                    {renderGroup("Backlog / No Date", noDateTasks)}
+                                    {renderGroup("Completed", doneTasks)}
+                                </>
+                            );
+                        })()}
+                    </div>
                 )}
             </div>
 

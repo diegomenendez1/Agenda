@@ -7,70 +7,60 @@
 
 :root {
   /* 
-    THEME: Cortex Premium (Sophisticated, Depth, vibrant accents)
-    Values: Professional, Focus, Fluid.
+    THEME: Clear View (Calm Productivity, Scalable, Human)
+    Values: Clarity, Breathability, Focus.
   */
 
-  /* Base - clean, layered depth */
-  --bg-app: #FDFDFD;
-  /* Slightly warmer white for less harshness */
-  --bg-sidebar: #F8F9FA;
-  /* Very subtle distinction */
-
+  /* Base - Crisp & Airy */
+  --bg-app: #FFFFFF;
+  --bg-sidebar: #F9FAFB; /* Gray 50 - Very subtle separation */
   --bg-card: #FFFFFF;
-  --bg-card-hover: #F8FAFC;
-  /* Slate 50 */
-  --bg-input: #F3F4F6;
-  /* Gray 100 */
+  --bg-card-hover: #F9FAFB;
+  --bg-input: #F3F4F6; /* Gray 100 */
 
-  /* Text - High Contrast & Readability */
-  --text-primary: #0F172A;
-  /* Slate 900 - Deep & Sharp */
-  --text-secondary: #475569;
-  /* Slate 600 */
-  --text-muted: #94A3B8;
-  /* Slate 400 */
+  /* Text - High Legibility, softer than pure black */
+  --text-primary: #111827; /* Gray 900 */
+  --text-secondary: #4B5563; /* Gray 600 */
+  --text-muted: #9CA3AF; /* Gray 400 */
 
-  /* Borders - Refined */
-  --border-subtle: #E2E8F0;
-  /* Slate 200 */
-  --border-highlight: #CBD5E1;
-  /* Slate 300 */
+  /* Borders - Minimalist */
+  --border-subtle: #F3F4F6; /* Gray 100 */
+  --border-highlight: #E5E7EB; /* Gray 200 */
 
-  /* Shadows - Layered & Meaningful */
+  /* Shadows - Diffused & Natural */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  /* Subtle lift */
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04);
-  /* Card depth */
-  --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-  /* Float - Softer & Deeper */
-  --shadow-glow: 0 0 40px rgba(79, 70, 229, 0.15);
-  /* Accent glow - diffused */
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.03);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.1); 
 
-  /* Accents - "Electric Violet" to "Royal Indigo" */
-  --accent-primary: #4F46E5;
-  /* Indigo 600 */
-  --accent-secondary: #6366F1;
-  /* Indigo 500 */
-  --accent-glow: rgba(79, 70, 229, 0.2);
+  /* Accents - "Calm Blue" & "Focus Lavender" */
+  --accent-primary: #2563EB; /* Blue 600 - Trustworthy, standard */
+  --accent-secondary: #4F46E5; /* Indigo 600 */
+  --accent-glow: rgba(37, 99, 235, 0.15);
 
-  /* Status Colors - Refined Pastels */
-  --priority-critical: #F43F5E;
-  /* Rose 500 */
-  --priority-high: #F97316;
-  /* Orange 500 */
-  --priority-medium: #EAB308;
-  /* Yellow 500 */
-  --priority-low: #3B82F6;
-  /* Blue 500 */
-  --success: #10B981;
-  /* Emerald 500 */
+  /* Semantic - Soft & Friendly */
+  --priority-critical: #EF4444; /* Red 500 */
+  --priority-high: #F97316; /* Orange 500 */
+  --priority-medium: #EAB308; /* Yellow 500 */
+  --priority-low: #3B82F6; /* Blue 500 */
+  --success: #10B981; /* Emerald 500 */
 
-  /* Spacing & Radius */
-  --radius-panel: 24px;
-  --radius-card: 16px;
-  --radius-sm: 10px;
-  /* Slightly softer corners */
+  /* Soft Badge Backgrounds (New System) */
+  --bg-badge-critical: #FEE2E2;
+  --text-badge-critical: #991B1B;
+  --bg-badge-high: #FFEDD5;
+  --text-badge-high: #9A3412;
+  --bg-badge-medium: #FEF9C3;
+  --text-badge-medium: #854D0E;
+  --bg-badge-low: #DBEAFE;
+  --text-badge-low: #1E40AF;
+  --bg-badge-success: #D1FAE5;
+  --text-badge-success: #065F46;
+
+  /* Spacing & Radius - Friendly */
+  --radius-panel: 16px;
+  --radius-card: 12px;
+  --radius-sm: 8px;
 
   /* Font settings */
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
@@ -78,43 +68,39 @@
 }
 
 .dark {
-  /* Dark Mode - Deep Space / Obsidian */
-  --bg-app: #0B1120;
-  /* Deep Navy/Black */
-  --bg-sidebar: #0F172A;
-  /* Slate 900 */
+  /* Dark Mode - Comfort / Deep Slate */
+  --bg-app: #0F172A; /* Slate 900 */
+  --bg-sidebar: #0B1120; /* Deepest Navy (almost black) */
+  --bg-card: #1E293B; /* Slate 800 */
+  --bg-card-hover: #334155; /* Slate 700 */
+  --bg-input: #1E293B; 
 
-  --bg-card: #1E293B;
-  /* Slate 800 - Lighter than before for contrast */
-  --bg-card-hover: #334155;
-  /* Slate 700 */
+  --text-primary: #F9FAFB; /* Gray 50 */
+  --text-secondary: #D1D5DB; /* Gray 300 */
+  --text-muted: #6B7280; /* Gray 500 */
 
-  --bg-input: #0F172A;
-  /* Match sidebar for depth */
-
-  --text-primary: #F8FAFC;
-  /* Slate 50 */
-  --text-secondary: #E2E8F0;
-  /* Slate 200 - Brighter than before */
-  --text-muted: #94A3B8;
-  /* Slate 400 - More legible */
-
-  --border-subtle: #334155;
-  /* Slate 700 - Visible separation */
-  --border-highlight: #475569;
-  /* Slate 600 */
+  --border-subtle: #1E293B; 
+  --border-highlight: #374151; /* Gray 700 */
 
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.3);
   --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 10px 10px -5px rgb(0 0 0 / 0.3);
-  --shadow-glow: 0 0 50px rgba(99, 102, 241, 0.25);
+  --shadow-glow: 0 0 30px rgba(99, 102, 241, 0.2);
 
-  /* Accents - Vibrant */
-  --accent-primary: #818CF8;
-  /* Indigo 400 */
-  --accent-secondary: #A5B4FC;
-  /* Indigo 300 */
-  --accent-glow: rgba(129, 140, 248, 0.3);
+  --accent-primary: #60A5FA; /* Blue 400 - Lighter for dark mode */
+  --accent-secondary: #818CF8; /* Indigo 400 */
+  
+  /* Dark Badge Backgrounds */
+  --bg-badge-critical: #7F1D1D;
+  --text-badge-critical: #FECACA;
+  --bg-badge-high: #7C2D12;
+  --text-badge-high: #FED7AA;
+  --bg-badge-medium: #713F12;
+  --text-badge-medium: #FEF08A;
+  --bg-badge-low: #1E3A8A;
+  --text-badge-low: #BFDBFE;
+  --bg-badge-success: #064E3B;
+  --text-badge-success: #A7F3D0;
 }
 
 body {
