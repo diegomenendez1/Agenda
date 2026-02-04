@@ -1,7 +1,0 @@
-﻿≡ƒöÆ [AUDIT START] - Team Security & RLS Verification
----------------------------------------------------
-≡ƒöæ Authenticating Users...
-Γ£à User A (tester@test.com) Logged in. ID: c0a342a4-9373-41b5-a86b-db88cbaa0e65
-Γ£à User B (Diegomenendez1@gmail.com) Logged in. ID: e2f5b344-415f-4e15-a908-a75fb10d7d7d
-
-≡ƒò╡∩╕Å  Verifying Roles...

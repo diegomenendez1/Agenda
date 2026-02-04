@@ -144,7 +144,7 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                 // Strict ID comparison to avoid type mismatches
 
                                 // Debug log kept for verification
-                                // console.log('DEBUG V2:', { taskId: task.id, assignees: task.assigneeIds, userId: user?.id, isAssigned: isAssignedToMe });
+
 
                                 return (
                                     <div

@@ -1,14 +1,18 @@
-import { useState, useEffect, Component, type ErrorInfo, type ReactNode, useMemo, lazy, Suspense } from 'react';
-import { startOfWeek, addDays, format, isSameDay, addWeeks, subWeeks, setHours, isValid } from 'date-fns';
-import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Clock, AlertCircle } from 'lucide-react';
+import { useState, useEffect, Component, type ErrorInfo, type ReactNode, lazy, Suspense } from 'react';
+import { startOfWeek, addDays, format, isSameDay, setHours } from 'date-fns';
+import { Plus, AlertCircle } from 'lucide-react';
 import clsx from 'clsx';
 import { useStore } from '../core/store';
 import type { Task } from '../core/types';
 
-// Lazy load to prevent circular dependency crashes
+import { useCalendarLayout } from './calendar/useCalendarLayout';
+import { CalendarHeader } from './calendar/CalendarHeader';
+import { CalendarEvent } from './calendar/CalendarEvent';
+
+// Lazy load
 const EditTaskModal = lazy(() => import('../components/EditTaskModal').then(m => ({ default: m.EditTaskModal })));
 
-// Safety: Error Boundary to catch crashes within the Calendar only
+// --- Error Boundary ---
 class LocalErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean, error: Error | null }> {
     constructor(props: { children: ReactNode }) {
         super(props);
@@ -20,7 +24,10 @@ class LocalErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
     }
 
     componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-        console.error("CalendarView Crash:", error, errorInfo);
+        // Safe console error
+        if (import.meta.env.DEV) {
+            console.error("CalendarView Crash:", error, errorInfo);
+        }
     }
 
     render() {
@@ -58,24 +65,51 @@ function CalendarContent() {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [creationDate, setCreationDate] = useState<Date | null>(null);
+    const [filterMode, setFilterMode] = useState<'all' | 'me'>('all');
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
 
-    // --- State: Resizing ---
+    // --- Resizing State ---
     const [resizing, setResizing] = useState<{
         taskId: string;
         type: 'top' | 'bottom';
         initialY: number;
-        initialValue: number; // minutes or start time? Let's use minutes for duration
+        initialValue: number;
     } | null>(null);
 
-    // Live feedback during resize (optional but recommended for UX)
     const [resizePreview, setResizePreview] = useState<{ id: string, mins: number, topOffset?: number } | null>(null);
 
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 1024);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // --- Layout Handling ---
+    const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+    const today = new Date();
+    const workingStart = user?.preferences?.workingHours?.start ?? 9;
+    const workingEnd = user?.preferences?.workingHours?.end ?? 18;
+    const weekDays = isMobile ? [currentDate] : Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+    const hours = Array.from({ length: 24 }, (_, i) => i);
+
+    const { getPositionedTasks } = useCalendarLayout(
+        tasks,
+        currentDate,
+        weekStart,
+
+        filterMode,
+        user,
+        isMobile
+    );
+    // const getPositionedTasks = (day: Date) => []; // Safe Mode
+
+    // --- Resizing Logic ---
     useEffect(() => {
         if (!resizing) return;
 
         const handleMouseMove = (e: MouseEvent) => {
             const deltaY = e.clientY - resizing.initialY;
-            const deltaMins = Math.round((deltaY / 80) * 60 / 15) * 15; // 15 min snaps
+            const deltaMins = Math.round((deltaY / 80) * 60 / 15) * 15; // 80px per hour
 
             if (resizing.type === 'bottom') {
                 const newMins = Math.max(resizing.initialValue + deltaMins, 15);
@@ -96,7 +130,7 @@ function CalendarContent() {
                     const newMins = Math.max(resizing.initialValue + deltaMins, 15);
                     await updateTask(task.id, { estimatedMinutes: newMins });
                 } else {
-                    const newDate = new Date(task.dueDate!);
+                    const newDate = new Date(task.dueDate || Date.now());
                     newDate.setMinutes(newDate.getMinutes() + deltaMins);
                     const newMins = Math.max((task.estimatedMinutes || 60) - deltaMins, 15);
                     await updateTask(task.id, {
@@ -117,164 +151,6 @@ function CalendarContent() {
         };
     }, [resizing, tasks, updateTask]);
 
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
-
-    useEffect(() => {
-        const handleResize = () => setIsMobile(window.innerWidth < 1024);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday start
-    // If mobile, show 1 day (currentDate). If desktop, show 7 days.
-    const weekDays = isMobile
-        ? [currentDate]
-        : Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-
-    const hours = Array.from({ length: 24 }, (_, i) => i);
-    const today = new Date();
-
-    const workingStart = user?.preferences?.workingHours?.start ?? 9;
-    const workingEnd = user?.preferences?.workingHours?.end ?? 18;
-
-    const [filterMode, setFilterMode] = useState<'all' | 'me'>('all');
-
-    // --- Safety: Safe Task Filtering ---
-    const weekTasks = useMemo(() => {
-        if (!tasks || !user) return [];
-        const weekEnd = isMobile ? addDays(currentDate, 1) : addDays(weekStart, 7);
-        const currentUserId = String(user.id);
-
-        return Object.values(tasks).filter(task => {
-            // 1. Organization Check
-            if (String(task.organizationId) !== String(user.organizationId)) return false;
-
-            // 2. Member Filter ('me' mode)
-            if (filterMode === 'me') {
-                const isOwner = String(task.ownerId) === currentUserId;
-                const isAssignee = task.assigneeIds?.some(id => String(id) === currentUserId);
-
-                if (!isOwner && !isAssignee) return false;
-            }
-
-            // 3. Date & Validity Check
-            if (!task.dueDate) return false;
-            try {
-                const taskDate = new Date(task.dueDate);
-                return isValid(taskDate) && taskDate >= weekStart && taskDate < weekEnd;
-            } catch {
-                return false;
-            }
-        });
-    }, [tasks, weekStart, filterMode, user]);
-
-    // --- Logic: Overlap Handling ---
-    const getPositionedTasks = (day: Date) => {
-        const dayTasks = weekTasks.filter(t => isSameDay(new Date(t.dueDate!), day));
-        if (dayTasks.length === 0) return [];
-
-        // 1. Sort by start time
-        const sorted = [...dayTasks].sort((a, b) => {
-            const da = new Date(a.dueDate!);
-            const db = new Date(b.dueDate!);
-            return da.getTime() - db.getTime();
-        });
-
-        // 2. Build clusters of overlapping tasks
-        const clusters: any[][] = [];
-        let currentCluster: any[] = [];
-        let clusterEnd = 0;
-
-        sorted.forEach(task => {
-            const start = new Date(task.dueDate!).getTime();
-            const end = start + (task.estimatedMinutes || 60) * 60 * 1000;
-
-            if (start < clusterEnd) {
-                currentCluster.push(task);
-                clusterEnd = Math.max(clusterEnd, end);
-            } else {
-                if (currentCluster.length > 0) clusters.push(currentCluster);
-                currentCluster = [task];
-                clusterEnd = end;
-            }
-        });
-        if (currentCluster.length > 0) clusters.push(currentCluster);
-
-        // 3. Assign columns within each cluster
-        const results: any[] = [];
-        clusters.forEach(cluster => {
-            const columns: any[][] = [];
-            cluster.forEach(task => {
-                let colIndex = columns.findIndex(col => {
-                    const lastTask = col[col.length - 1];
-                    const lastEnd = new Date(lastTask.dueDate!).getTime() + (lastTask.estimatedMinutes || 60) * 60 * 1000;
-                    return new Date(task.dueDate!).getTime() >= lastEnd;
-                });
-
-                if (colIndex === -1) {
-                    columns.push([task]);
-                    colIndex = columns.length - 1;
-                } else {
-                    columns[colIndex].push(task);
-                }
-
-                results.push({
-                    ...task,
-                    colIndex,
-                    totalCols: 0, // Placeholder
-                    cluster
-                });
-            });
-
-            // Update totalCols for everyone in this cluster based on columns needed
-            cluster.forEach(task => {
-                const res = results.find(r => r.id === task.id);
-                if (res) res.totalCols = columns.length;
-            });
-        });
-
-        return results;
-    };
-
-    // --- Logic: Positioning ---
-    const getTaskStyle = (task: any) => {
-        try {
-            if (!task.dueDate) return { display: 'none' };
-            const date = new Date(task.dueDate);
-            if (!isValid(date)) return { display: 'none' };
-
-            let startMin = date.getHours() * 60 + date.getMinutes();
-            let durationMinutes = task.estimatedMinutes || 60;
-
-            if (resizePreview && resizePreview.id === task.id) {
-                durationMinutes = resizePreview.mins;
-                if (resizePreview.topOffset !== undefined) {
-                    startMin += resizePreview.topOffset;
-                }
-            }
-
-            const top = (startMin / 60) * 80;
-            const height = Math.max((durationMinutes / 60) * 80, 24); // Min height 24px
-
-            const width = 100 / (task.totalCols || 1);
-            const left = (task.colIndex || 0) * width;
-
-            return {
-                top: `${top}px`,
-                height: `${height}px`,
-                left: `calc(${left}% + 2px)`,
-                width: `calc(${width}% - 4px)`,
-                position: 'absolute' as const,
-                zIndex: (task.colIndex || 0) + (resizing?.taskId === task.id ? 1000 : 10),
-                opacity: resizing?.taskId === task.id ? 0.8 : 1,
-                userSelect: 'none' as const,
-                cursor: resizing ? 'grabbing' : 'pointer'
-            };
-        } catch (e) {
-            return { display: 'none' };
-        }
-    };
-
     // --- Interactions ---
     const handleSlotClick = (day: Date, hour: number) => {
         const d = new Date(day);
@@ -282,19 +158,9 @@ function CalendarContent() {
         setCreationDate(d);
     };
 
-    const handleTaskDoubleClick = (task: Task, e: React.MouseEvent) => {
-        e.stopPropagation();
-        setEditingTask(task);
-    };
-
     const handleDragStart = (e: React.DragEvent, task: Task) => {
         e.dataTransfer.setData('taskId', task.id);
         e.dataTransfer.effectAllowed = 'move';
-    };
-
-    const handleDragOver = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
     };
 
     const handleDrop = async (e: React.DragEvent, day: Date, hour: number) => {
@@ -312,54 +178,36 @@ function CalendarContent() {
         }
     };
 
+    // --- Handlers for Event Component ---
+    const onMouseDownTop = (e: React.MouseEvent, task: Task) => {
+        e.stopPropagation();
+        setResizing({
+            taskId: task.id,
+            type: 'top',
+            initialY: e.clientY,
+            initialValue: task.estimatedMinutes || 60
+        });
+    };
+
+    const onMouseDownBottom = (e: React.MouseEvent, task: Task) => {
+        e.stopPropagation();
+        setResizing({
+            taskId: task.id,
+            type: 'bottom',
+            initialY: e.clientY,
+            initialValue: task.estimatedMinutes || 60
+        });
+    };
+
     return (
         <div className="flex flex-col h-full overflow-hidden bg-bg-app">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border-subtle bg-bg-card/50 backdrop-blur-sm shrink-0">
-                <div className="flex items-center gap-4">
-                    <h2 className="text-xl font-display font-bold text-text-primary flex items-center gap-2">
-                        <CalendarIcon className="text-accent-primary" />
-                        {format(currentDate, 'MMMM yyyy')}
-                    </h2>
-
-                    <div className="flex items-center gap-1 bg-bg-app border border-border-subtle rounded-lg p-1 ml-4 shadow-inner">
-                        <button
-                            onClick={() => setFilterMode('all')}
-                            className={clsx(
-                                "px-4 py-1 text-[11px] font-bold rounded-md transition-all outline-none",
-                                filterMode === 'all'
-                                    ? "bg-accent-primary text-white shadow-md ring-1 ring-accent-primary"
-                                    : "text-text-muted hover:text-text-primary hover:bg-bg-input"
-                            )}
-                        >
-                            All Tasks
-                        </button>
-                        <button
-                            onClick={() => setFilterMode('me')}
-                            className={clsx(
-                                "px-4 py-1 text-[11px] font-bold rounded-md transition-all outline-none",
-                                filterMode === 'me'
-                                    ? "bg-accent-primary text-white shadow-md ring-1 ring-accent-primary"
-                                    : "text-text-muted hover:text-text-primary hover:bg-bg-input"
-                            )}
-                        >
-                            My Tasks
-                        </button>
-                    </div>
-
-                    <div className="flex items-center gap-1 bg-bg-input rounded-lg p-1 border border-border-subtle">
-                        <button onClick={() => setCurrentDate(isMobile ? addDays(currentDate, -1) : subWeeks(currentDate, 1))} className="p-1 hover:bg-bg-card rounded text-text-muted hover:text-text-primary transition-colors">
-                            <ChevronLeft size={18} />
-                        </button>
-                        <button onClick={() => setCurrentDate(new Date())} className="px-3 py-1 text-xs font-bold text-text-primary hover:bg-bg-card rounded transition-colors">
-                            Today
-                        </button>
-                        <button onClick={() => setCurrentDate(isMobile ? addDays(currentDate, 1) : addWeeks(currentDate, 1))} className="p-1 hover:bg-bg-card rounded text-text-muted hover:text-text-primary transition-colors">
-                            <ChevronRight size={18} />
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <CalendarHeader
+                currentDate={currentDate}
+                setCurrentDate={setCurrentDate}
+                filterMode={filterMode}
+                setFilterMode={setFilterMode}
+                isMobile={isMobile}
+            />
 
             {/* Calendar Grid */}
             <div className="flex-1 flex flex-col overflow-hidden relative">
@@ -404,8 +252,7 @@ function CalendarContent() {
                     <div
                         className="grid min-h-[1920px]"
                         style={{ gridTemplateColumns: `60px repeat(${weekDays.length}, 1fr)` }}
-                    > {/* 24h * 80px = 1920px */}
-
+                    >
                         {/* Time labels Column */}
                         <div className="border-r border-border-subtle bg-bg-card/30 relative">
                             {hours.map(hour => (
@@ -431,11 +278,10 @@ function CalendarContent() {
                                                 isWorkingHour ? "bg-transparent transition-opacity" : "bg-black/5 dark:bg-white/5",
                                                 "hover:bg-accent-primary/5"
                                             )}
-                                            onDragOver={handleDragOver}
+                                            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
                                             onDrop={(e) => handleDrop(e, day, hour)}
                                             onClick={() => handleSlotClick(day, hour)}
                                         >
-                                            {/* Hover Add Button (Visual Hint) */}
                                             <div className="absolute top-1 right-1 p-1.5 rounded-lg text-accent-primary opacity-0 group-hover/cell:opacity-100 transition-all z-20 scale-90">
                                                 <Plus size={16} strokeWidth={3} />
                                             </div>
@@ -443,107 +289,21 @@ function CalendarContent() {
                                     );
                                 })}
 
-                                {getPositionedTasks(day).map(task => {
-                                    // Prepare data for rendering
-                                    const assigneeIds = task.assigneeIds || [];
-                                    const members = assigneeIds.map((id: string) => team[id]).filter(Boolean);
-                                    const isDone = task.status === 'done';
-
-                                    // Determine styles
-                                    let cardStyle = "bg-bg-card border-border-subtle text-text-primary";
-                                    if (isDone) {
-                                        cardStyle = "bg-bg-input/50 dashed border-border-subtle text-text-muted decoration-slate-400";
-                                    } else if (task.priority === 'critical') {
-                                        cardStyle = "bg-red-500/20 border-red-500/50 text-red-700 dark:text-red-200 shadow-sm shadow-red-900/5 backdrop-blur-sm hover:bg-red-500/30";
-                                    } else if (task.priority === 'high') {
-                                        cardStyle = "bg-orange-500/20 border-orange-500/50 text-orange-700 dark:text-orange-200 shadow-sm shadow-orange-900/5 backdrop-blur-sm hover:bg-orange-500/30";
-                                    } else if (task.priority === 'medium') {
-                                        cardStyle = "bg-blue-500/20 border-blue-500/50 text-blue-700 dark:text-blue-200 shadow-sm shadow-blue-900/5 backdrop-blur-sm hover:bg-blue-500/30";
-                                    }
-
-                                    return (
-                                        <div
-                                            key={task.id}
-                                            draggable={!resizing}
-                                            onDragStart={(e) => handleDragStart(e, task)}
-                                            onClick={(e) => e.stopPropagation()}
-                                            onDoubleClick={(e) => handleTaskDoubleClick(task, e)}
-                                            className={clsx(
-                                                "rounded-md p-1.5 text-[10px] border cursor-pointer hover:z-[100] transition-all group/card select-none overflow-hidden flex flex-col gap-0.5",
-                                                "hover:shadow-lg hover:ring-1 hover:ring-primary/30",
-                                                cardStyle,
-                                                resizing?.taskId === task.id && "ring-2 ring-accent-primary z-[500]"
-                                            )}
-                                            style={getTaskStyle(task)}
-                                            title={`${task.title} - ${task.status}`}
-                                        >
-                                            {/* Resize Handles */}
-                                            <div
-                                                className="absolute top-0 left-0 right-0 h-1.5 cursor-ns-resize hover:bg-white/40 z-50 transition-colors"
-                                                onMouseDown={(e) => {
-                                                    e.stopPropagation();
-                                                    setResizing({
-                                                        taskId: task.id,
-                                                        type: 'top',
-                                                        initialY: e.clientY,
-                                                        initialValue: task.estimatedMinutes || 60
-                                                    });
-                                                }}
-                                            />
-                                            <div
-                                                className="absolute bottom-0 left-0 right-0 h-1.5 cursor-ns-resize hover:bg-white/40 z-50 transition-colors"
-                                                onMouseDown={(e) => {
-                                                    e.stopPropagation();
-                                                    setResizing({
-                                                        taskId: task.id,
-                                                        type: 'bottom',
-                                                        initialY: e.clientY,
-                                                        initialValue: task.estimatedMinutes || 60
-                                                    });
-                                                }}
-                                            />
-                                            {/* Title & Status */}
-                                            <div className="flex items-start justify-between gap-1">
-                                                <div className={clsx("font-bold truncate leading-tight", isDone && "line-through")}>
-                                                    {task.title}
-                                                </div>
-                                            </div>
-
-                                            {/* Metadata Row (Time, Status, Avatars) */}
-                                            <div className="flex items-center justify-between mt-auto">
-                                                {/* Time & Status */}
-                                                <div className="flex items-center gap-1 opacity-90 scale-90 origin-left">
-                                                    <div className="flex items-center gap-0.5 font-medium whitespace-nowrap">
-                                                        <Clock size={8} />
-                                                        <span>
-                                                            {format(new Date(task.dueDate!), 'HH:mm')}
-                                                        </span>
-                                                    </div>
-                                                    {!isDone && (
-                                                        <span className="text-[8px] uppercase font-bold opacity-70 tracking-tighter border border-current px-0.5 rounded leading-none">
-                                                            {task.status.replace('_', ' ')}
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                {/* Avatars */}
-                                                {members.length > 0 && (
-                                                    <div className="flex -space-x-1 shrink-0">
-                                                        {members.slice(0, 2).map((member: any) => (
-                                                            <div key={member.id} className="w-3.5 h-3.5 rounded-full border border-white/50 bg-bg-card relative z-10" title={member.name}>
-                                                                <img
-                                                                    src={member.avatar || `https://ui-avatars.com/api/?name=${member.name}&background=random`}
-                                                                    alt={member.name}
-                                                                    className="w-full h-full rounded-full object-cover"
-                                                                />
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
+                                {/* Render Events */}
+                                {getPositionedTasks(day).map(task => (
+                                    <CalendarEvent
+                                        key={task.id}
+                                        task={task}
+                                        team={team}
+                                        resizing={resizing}
+                                        resizePreview={resizePreview}
+                                        onMouseDownTop={onMouseDownTop}
+                                        onMouseDownBottom={onMouseDownBottom}
+                                        onClick={() => setEditingTask(task)} // Single click now opens edit for simplicity? Or keep double click logic?
+                                        onDoubleClick={() => setEditingTask(task)}
+                                        onDragStart={(e) => handleDragStart(e, task)}
+                                    />
+                                ))}
 
                                 {/* Current Time Indicator */}
                                 {isSameDay(day, today) && (
@@ -562,7 +322,6 @@ function CalendarContent() {
                 </div>
             </div>
 
-            {/* Modals - Lazy Loaded */}
             <Suspense fallback={null}>
                 {editingTask && (
                     <EditTaskModal
@@ -571,7 +330,6 @@ function CalendarContent() {
                         mode="edit"
                     />
                 )}
-
                 {creationDate && (
                     <EditTaskModal
                         task={{

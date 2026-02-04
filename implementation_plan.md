@@ -1,63 +1,64 @@
-# Intelligent Assistant - Implementation Plan
+# Plan de Refactorización: Modularización del Store Core
 
-## Objective
-Transform the existing "Volatile-Event" agenda into a high-end **Intelligent AI Assistant** that organizes tasks, parses complex inputs (emails), and orchestrates team workflows.
+## Objetivo
+Dividir el archivo monolítico `store.ts` (>1900 líneas) en módulos funcionales ("slices") utilizando el patrón de Slices de Zustand. Esto mejorará la mantenibilidad, legibilidad y facilitará pruebas unitarias futuras.
 
-## 1. Core Architecture & Data Model Updates
-We need to expand the data model to support "Intelligence" and "Teams".
+## Estructura Propuesta
 
-### New ENTITIES (Types)
-- **UserProfile**: `{ id, name, role, skills/context }` - Defines who the assistant is helping.
-- **TeamMember**: `{ id, name, avatar, role }` - For delegation.
-- **Task**:
-  - `priority`: 'high' | 'medium' | 'low' | 'auto' (AI detected)
-  - `status`: 'backlog' | 'todo' | 'in_progress' | 'review' | 'done'
-  - `source`: 'manual' | 'email' | 'voice'
-  - `smartAnalysis`: `{ originalText, confidence, reasoning }` - Stores AI processing metadata.
-  - `assigneeId`: Link to TeamMember.
+La nueva estructura de archivos será:
+```text
+src/core/store/
+├── index.ts              (Punto de entrada, combina los slices)
+├── types.ts              (Interfaces unificadas del Store)
+└── slices/
+    ├── createAuthSlice.ts
+    ├── createTaskSlice.ts
+    ├── createProjectSlice.ts
+    ├── createInboxSlice.ts
+    ├── createNoteSlice.ts
+    ├── createTeamSlice.ts
+    ├── createNotificationSlice.ts
+    ├── createActivitySlice.ts
+    ├── createAISlice.ts
+    └── createHabitSlice.ts
+```
 
-## 2. UI/UX "Premium" Overhaul
-The interface must feel alive and "Assistive", not passive.
-- **Aesthetic**: Deep space/midnight theme with "Glassmorphism" (translucent panels).
-- **Typography**: Inter (Clean, legible).
-- **Motion**: Micro-interactions when completing tasks or switching views.
+## Slices Definidos
 
-## 3. Key Features Implementation
+### 1. Auth Slice
+- **Estado:** `user`, `myWorkspaces`.
+- **Acciones:** `initialize`, `switchWorkspace`, `renameWorkspace`, `updateUserProfile`, `fetchWorkspaces`.
 
-### A. The "Neural" Input (Smart Capture)
-A central command center that is more than a text box.
-- Accepts massive text blocks (emails).
-- *Simulation*: Visual "Processing..." state where it highlights dates, names, and action items before converting them to tasks.
+### 2. Task Slice
+- **Estado:** `tasks`.
+- **Acciones:** `addTask`, `updateTask`, `updateStatus`, `assignTask`, `toggleTaskStatus`, `deleteTask`, `clearCompletedTasks`, `claimTask`, `unassignTask`.
+- **Dependencias:** `logActivity`, `sendNotification` (desde otros slices).
 
-### B. Dynamic Task Prioritization
-- Tasks are sorted not just by date but by `impact` and `urgency`.
-- Visual cues: Heatmap colors for high-priority items.
+### 3. Team Slice
+- **Estado:** `team`, `activeInvitations`.
+- **Acciones:** Gestión de invitaciones y miembros (`sendInvitation`, `leaveTeam`, etc.).
 
-### C. Team Orchestration (Kanban)
-- A Board view with columns: `Backlog` -> `In Progress` -> `Review` -> `Done`.
-- Drag-and-drop interface (using accessible HTML5 D&D or libraries if available, but likely custom for speed).
-- User avatars on tasks to show ownership.
+### 4. UI/Notification Slice
+- **Estado:** `notifications`, `onlineUsers`.
+- **Acciones:** Gestión de notificaciones y presencia.
 
-## 4. Workflows
+### 5. Activity Slice
+- **Estado:** `activities`.
+- **Acciones:** `logActivity`, `updateActivity`, `fetchActivities`.
 
-### Scenario 1: The "Email Dump"
-1. User pastes a 500-word email thread into "Inbox".
-2. System helps identify: "Action required by [User Role]".
-3. System extracts the single core task.
+### 6. Otros Slices (Simple CRUD)
+- **Inbox, Note, Project, Habit, AI.**
 
-### Scenario 2: Team Sync
-1. Leader opens "Team Board".
-2. Moves a task from "Backlog" to "In Progress".
-3. Assigns it to "Sarah".
+## Plan de Ejecución 
 
-## Technical Steps
-1.  **Refactor `src/core/types.ts`**: Add new fields.
-2.  **Update `src/core/store.ts`**: Add actions for `assignTask`, `updateStatus`.
-3.  **Design System Update**: Refine `index.css` for the Premium look.
-4.  **Build Components**:
-    - `SmartInput.tsx`: The parsing interface.
-    - `KanbanBoard.tsx`: The team view.
-    - `UserProfile.tsx`: Context settings.
+1.  **Crear Directorio:** Preparar `src/core/store/slices`.
+2.  **Extraer Tipos:** Mover las interfaces de acciones de `store.ts` a un archivo de tipos o dividirlas por slice.
+3.  **Migrar Slices Independientes:** Comenzar por los slices que tienen menos dependencias (`AISlice`, `HabitSlice`, `NoteSlice`).
+4.  **Migrar Slices Nucleares:** Mover `AuthSlice` y `ActivitySlice` (usados por todos).
+5.  **Migrar Slices Complejos:** Mover `TaskSlice` (lógica pesada).
+6.  **Reensamblar:** Actualizar `src/core/store.ts` (o `index.ts`) para usar `create(...)` combinando los slices.
+7.  **Verificación:** Asegurar que `useStore` sigue funcionando igual para los componentes existentes.
 
----
-*Generated by Antigravity*
+## Riesgos y Mitigación
+-   **Riesgo:** Referencias circulares o pérdida de contexto `this` (Zustand usa `get()` así que esto está controlado).
+-   **Mitigación:** Verificar cada función migrada para asegurar que usa `get()` correctamente para acceder a estados de otros slices (ej: `get().user`).

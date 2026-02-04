@@ -103,7 +103,7 @@ export interface Task {
     // New fields
     assigneeIds?: EntityId[];
     ownerId: EntityId; // The creator of the task
-    organizationId: EntityId; // NEW
+    organizationId?: EntityId; // NEW
     visibility: 'private' | 'team'; // Segmentation logic
     smartAnalysis?: SmartAnalysis;
     source?: 'manual' | 'email' | 'voice' | 'system' | 'meeting';

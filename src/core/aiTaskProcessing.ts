@@ -17,8 +17,7 @@ export async function processTaskInputWithAI(
 ) {
     if (!inputText.trim()) return [];
 
-    const openAiKey = import.meta.env.VITE_OPENAI_API_KEY;
-    if (!openAiKey) throw new Error("Missing VITE_OPENAI_API_KEY");
+
 
     try {
         // 1. Fetch Context (Projects & Team)
@@ -38,55 +37,24 @@ export async function processTaskInputWithAI(
 
         const availableProjects = projectsData?.map(p => `${p.id}:${p.name}`).join('|') || 'None';
         const availableTeam = teamData?.map(m => `${m.id}:${m.full_name}`).join('|') || 'None';
-        const currentDate = new Date().toISOString().split('T')[0];
 
-        const targetLang = context.appLanguage === 'en' ? 'English' : 'Spanish';
+        console.log("Invoking AI Edge Function...");
 
-        const systemPrompt = `Role: Senior Executive Asst (GTD). Convert raw input into structured tasks. 
-Rules:
-1. OUTPUT LANGUAGE: MUST BE IN ${targetLang.toUpperCase()}.
-2. PRESERVE ORIGINALS: Text inside quotes "..." must remain in original language (e.g. email subjects).
-3. One task unless actions are totally unrelated.
-4. Priority: critical|high|medium|low based on role context.
-5. Use refs: Projects[${availableProjects}], Team[${availableTeam}].
-6. Date: Today is ${currentDate}.
-Output JSON: { "tasks": [{ "title": "Action in ${targetLang}", "priority": "lvl", "date": "YYYY-MM-DD", "reason": "why in ${targetLang}", "pid": "id", "aids": ["ids"] }] }`;
-
-        const userPrompt = `Input: "${inputText}"\nRoleCtx: "${context.userRoleContext || 'Productivity'}"`;
-
-
-        // 3. Call OpenAI (STRICTLY GPT-5-MINI)
-        console.log("AI Attempt with model: gpt-5-mini");
-        const response = await fetch('/api/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${openAiKey}`
-            },
-            body: JSON.stringify({
-                model: 'gpt-5-mini',
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userPrompt }
-                ],
-                response_format: { type: "json_object" }
-            })
+        const { data: content, error } = await supabase.functions.invoke('ai-task-processing', {
+            body: {
+                inputText,
+                userRoleContext: context.userRoleContext || 'Productivity',
+                appLanguage: context.appLanguage || 'es',
+                availableProjects,
+                availableTeam
+            }
         });
 
-        if (!response.ok) {
-            const text = await response.text();
-            throw new Error(`AI-SVC: OpenAI ${response.status} - ${text}`);
+        if (error) {
+            console.error("Link to AI Function failed:", error);
+            throw error;
         }
 
-        if (!response || !response.ok) {
-            const err = await response?.text();
-            throw new Error(`OpenAI Error: ${response?.status} ${err}`);
-        }
-
-        const json = await response.json();
-        const content = typeof json.choices[0].message.content === 'string'
-            ? JSON.parse(json.choices[0].message.content)
-            : json.choices[0].message.content;
         const aiTasks = content.tasks || [];
 
         // 4. Return Tasks (Do NOT insert - verify first)
