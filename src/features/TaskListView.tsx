@@ -58,10 +58,11 @@ export function TaskListView() {
     const handleAutoPrioritize = async () => {
         try {
             setIsOrganizing(true);
-            toast.info("Optimizing your workflow...");
+            toast.info("Analyzing Global Context...");
 
             if (!user?.id) return;
 
+            // Use Direct Client Service based on User Request for simpler flow
             const workingHours = user.preferences?.workingHours || { start: 9, end: 18 };
             const result = await runAITaskPrioritization(user.id, workingHours);
 
@@ -71,6 +72,8 @@ export function TaskListView() {
             console.error('Failed to reorganize', err);
             toast.error(err.message || 'AI Sort Failed');
         } finally {
+            // Force a refresh of the local store to ensure UI matches DB exactly
+            await useStore.getState().initialize();
             setIsOrganizing(false);
         }
     };
