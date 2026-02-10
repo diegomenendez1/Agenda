@@ -674,7 +674,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                         </div>
                         <div className="p-4 border-t border-border-subtle bg-bg-card z-10 shrink-0">
                             <div className="flex justify-end gap-3">
-                                {status === 'review' && isOwner && (
+                                {status === 'review' && (isOwner || isAdmin) && (
                                     <>
                                         <button
                                             type="button"
@@ -691,7 +691,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                         </button>
                                     </>
                                 )}
-                                {status === 'review' && isOwner && (
+                                {status === 'review' && (isOwner || isAdmin) && (
                                     <button
                                         type="button"
                                         onClick={async () => {
@@ -726,7 +726,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                         "text-white px-8 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2",
                                         isSuccess
                                             ? "bg-green-500 shadow-green-500/30 scale-105"
-                                            : status === 'done' && !isOwner
+                                            : status === 'done' && !isOwner && !isAdmin
                                                 ? "bg-amber-600 hover:bg-amber-700 shadow-amber-500/20"
                                                 : "bg-violet-600 hover:bg-violet-700 shadow-violet-500/20"
                                     )}
@@ -741,7 +741,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                             <span>
                                                 {isProcessing ? t.modal.confirm_todo :
                                                     mode === 'create' ? t.modal.create_task :
-                                                        (status === 'done' && !isOwner) ? t.modal.submit_review : t.actions.save}
+                                                        (status === 'done' && !isOwner && !isAdmin) ? t.modal.submit_review : t.actions.save}
                                             </span>
                                             <ArrowRight size={16} />
                                         </>
