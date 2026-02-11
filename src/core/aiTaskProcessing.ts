@@ -38,7 +38,7 @@ export async function processTaskInputWithAI(
         const availableProjects = projectsData?.map(p => `${p.id}:${p.name}`).join('|') || 'None';
         const availableTeam = teamData?.map(m => `${m.id}:${m.full_name}`).join('|') || 'None';
 
-        console.log("Invoking AI Edge Function...");
+
 
         const { data: content, error } = await supabase.functions.invoke('ai-task-processing', {
             body: {

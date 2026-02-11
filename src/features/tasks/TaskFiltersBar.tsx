@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { clsx } from 'clsx';
 import { ClipboardList, CheckCircle2, Calendar, Lock, Users, X, LayoutList, Table, KanbanSquare, Trash2 } from 'lucide-react';
-import { AvatarMemberFilter } from '../../components/AvatarMemberFilter';
+import { AvatarMemberFilter } from '../team/AvatarMemberFilter';
 import type { TeamMember, Task, UserProfile, EntityId } from '../../core/types';
 
 interface TaskFiltersBarProps {
