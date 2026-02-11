@@ -186,7 +186,7 @@ export function MemberManagementModal({ isOpen, onClose, memberId }: MemberManag
                         <div>
                             <h2 className="text-2xl font-bold text-text-primary flex items-center gap-2">
                                 {member.name}
-                                {member.role === 'owner' && <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20">Owner</span>}
+                                {member.role === 'owner' && <span className="badge badge-medium">Owner</span>}
                             </h2>
                             <div className="flex items-center gap-4 mt-1 text-sm text-text-muted">
                                 <div className="flex items-center gap-1.5">
@@ -394,7 +394,7 @@ export function MemberManagementModal({ isOpen, onClose, memberId }: MemberManag
                                     <button
                                         onClick={handleSendPasswordReset}
                                         disabled={isSaving}
-                                        className="btn bg-white border border-border-subtle text-text-primary hover:bg-bg-input hover:border-border-strong shadow-sm text-xs font-semibold px-3 py-2"
+                                        className="btn btn-secondary text-xs px-3 py-2"
                                     >
                                         Send Reset Email
                                     </button>

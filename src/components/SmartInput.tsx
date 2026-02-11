@@ -84,15 +84,15 @@ export function SmartInput({ onCapture, isProcessing = false }: SmartInputProps)
                 {text.length > 0 && (
                     <div className="absolute top-2 right-12 flex items-center gap-2 pointer-events-none select-none z-10">
                         {isEmailMode ? (
-                            <span className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider text-accent-primary bg-accent-primary/10 px-2 py-0.5 rounded-full">
+                            <span className="badge badge-low">
                                 <Mail size={10} /> Email Context
                             </span>
                         ) : isMeetingMode ? (
-                            <span className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider text-purple-500 bg-purple-500/10 px-2 py-0.5 rounded-full">
+                            <span className="badge badge-medium">
                                 <MessageSquare size={10} /> Meeting Context
                             </span>
                         ) : (
-                            <span className="flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                            <span className="badge badge-success">
                                 <Zap size={10} /> Fast Task
                             </span>
                         )}

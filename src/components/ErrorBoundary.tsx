@@ -26,14 +26,14 @@ export class ErrorBoundary extends Component<Props, State> {
     public render() {
         if (this.state.hasError) {
             return (
-                <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#0E1016] text-white p-8">
+                <div className="h-screen w-screen flex flex-col items-center justify-center bg-bg-app text-text-primary p-8">
                     <h1 className="text-2xl font-bold text-red-500 mb-4">Something went wrong.</h1>
-                    <pre className="bg-black/50 p-4 rounded text-sm font-mono text-gray-300 max-w-2xl overflow-auto">
+                    <pre className="bg-bg-card p-4 rounded-xl border border-border-subtle text-sm font-mono text-text-secondary max-w-2xl overflow-auto shadow-sm">
                         {this.state.error?.toString()}
                     </pre>
                     <button
                         onClick={() => window.location.reload()}
-                        className="mt-6 px-4 py-2 bg-violet-600 rounded hover:bg-violet-700 transition"
+                        className="mt-6 px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-secondary transition shadow-sm"
                     >
                         Reload Application
                     </button>

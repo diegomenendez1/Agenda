@@ -83,29 +83,28 @@ export function TaskListView() {
             "flex flex-col h-full bg-bg-app overflow-hidden px-4 pt-4 pb-2 md:px-8 md:pt-8 md:pb-2 transition-all duration-300"
         )}>
             {/* Header Section */}
-            <header className="mb-8 flex flex-col xl:flex-row xl:items-center justify-between gap-6 animate-enter relative z-20">
-                <div>
-                    <h1 className="text-3xl md:text-4xl font-display font-extrabold flex items-center gap-3 tracking-tight text-text-primary mb-2">
-                        My Tasks
-                    </h1>
-                    <p className="text-text-muted text-lg font-light">Manage your personal and team assignments.</p>
-                </div>
+            <header className="mb-6 flex flex-col gap-6 animate-enter relative z-20">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-display font-extrabold flex items-center gap-3 tracking-tight text-text-primary">
+                            My Tasks
+                        </h1>
+                        <p className="text-text-muted text-base font-medium mt-1">Manage your personal and team assignments.</p>
+                    </div>
 
-                <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 flex-wrap">
-                    {/* Primary Actions */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3 self-start md:self-center">
                         <button
                             onClick={handleAutoPrioritize}
                             disabled={isOrganizing}
-                            className="group relative overflow-hidden bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-4 py-2.5 rounded-xl font-bold shadow-lg shadow-purple-500/25 transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-md shadow-indigo-500/20 transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Reorganize with AI"
                         >
-                            {isOrganizing ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} />}
+                            {isOrganizing ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
                             <span className="hidden sm:inline">Smart Sort</span>
                         </button>
 
                         <button
-                            className="group relative overflow-hidden bg-violet-600 hover:bg-violet-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-violet-500/25 transition-all active:scale-95 flex items-center gap-2.5"
+                            className="bg-accent-primary hover:bg-accent-secondary text-white px-4 py-2 rounded-lg font-bold text-sm shadow-md shadow-accent-primary/20 transition-all active:scale-95 flex items-center gap-2"
                             onClick={async () => {
                                 const { addTask } = useStore.getState();
                                 const newId = await addTask({
@@ -120,13 +119,14 @@ export function TaskListView() {
                                 }, 50);
                             }}
                         >
-                            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                            <Plus size={20} strokeWidth={2.5} />
-                            <span className="relative">New Task</span>
+                            <Plus size={18} strokeWidth={2.5} />
+                            <span className="hidden sm:inline">New Task</span>
                         </button>
                     </div>
+                </div>
 
-                    {/* Modular Filter Bar */}
+                {/* Unified Toolbar */}
+                <div className="w-full">
                     <TaskFiltersBar
                         timeFilter={timeFilter}
                         setTimeFilter={setTimeFilter}

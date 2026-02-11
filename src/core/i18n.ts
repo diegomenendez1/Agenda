@@ -5,6 +5,7 @@ const DICTIONARY = {
     es: {
         // Navigation (Sidebar)
         nav: {
+            dashboard: 'Panel',
             inbox: 'Bandeja de Entrada',
             my_tasks: 'Mi Trabajo',
             my_team: 'Equipo',
@@ -139,6 +140,7 @@ const DICTIONARY = {
     },
     en: {
         nav: {
+            dashboard: 'Dashboard',
             inbox: 'Inbox',
             my_tasks: 'My Work',
             my_team: 'Team',

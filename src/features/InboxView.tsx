@@ -78,14 +78,14 @@ export function InboxView() {
         .sort((a, b) => b.createdAt - a.createdAt);
 
     return (
-        <div className="flex flex-col h-full w-full max-w-5xl mx-auto p-6 md:p-10 transition-all duration-300 relative">
+        <div className="flex flex-col h-full w-full max-w-[1600px] mx-auto p-6 md:p-10 transition-all duration-300 relative">
             {/* Header Section */}
             <div className="mb-10 animate-enter">
                 <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-3xl font-display font-bold flex items-center gap-3 tracking-tight text-text-primary mb-2">
-                            <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center">
-                                <Inbox className="w-6 h-6 text-violet-600" />
+                            <div className="w-10 h-10 rounded-xl bg-accent-primary/10 flex items-center justify-center">
+                                <Inbox className="w-6 h-6 text-accent-primary" />
                             </div>
                             Inbox
                         </h1>
@@ -100,7 +100,7 @@ export function InboxView() {
                             className={clsx(
                                 "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all border",
                                 isSelectionMode
-                                    ? "bg-violet-500/10 text-violet-600 border-violet-500/30"
+                                    ? "bg-accent-primary/10 text-accent-primary border-accent-primary/30"
                                     : "bg-bg-card text-text-muted border-border-subtle hover:text-text-primary hover:border-border-highlight"
                             )}
                         >
@@ -111,14 +111,14 @@ export function InboxView() {
                 </header>
 
                 {!isSelectionMode && (
-                    <div className="w-full mb-6">
+                    <div className="w-full max-w-3xl mb-6">
                         <SmartInput onCapture={handleCapture} />
                     </div>
                 )}
             </div>
 
             {/* List Section */}
-            <div className="flex-1 overflow-y-auto -mx-2 px-2 pb-24">
+            <div className="flex-1 overflow-y-auto -mx-2 px-2 pb-24 custom-scrollbar">
                 {inboxItems.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-80 border-2 border-dashed border-border-subtle/60 rounded-2xl bg-bg-card/30">
                         <div className="bg-bg-card p-6 rounded-full mb-4 shadow-sm border border-border-subtle">
@@ -128,7 +128,7 @@ export function InboxView() {
                         <p className="text-text-muted">You're all caught up. Great job!</p>
                     </div>
                 ) : (
-                    <div className="grid gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pb-20">
                         {inboxItems.map(item => (
                             <div
                                 key={item.id}
@@ -141,20 +141,20 @@ export function InboxView() {
                                     }
                                 }}
                                 className={clsx(
-                                    "group relative bg-bg-card hover:bg-bg-card-hover border transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 rounded-xl p-5",
+                                    "group relative bg-bg-card hover:bg-bg-card-hover border transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5 rounded-xl p-5 flex flex-col h-full min-h-[160px]",
                                     editingId !== item.id && "cursor-pointer",
-                                    selectedIds.has(item.id) ? "border-violet-500 bg-violet-500/5 shadow-violet-500/10" : "border-border-subtle hover:border-violet-500/30"
+                                    selectedIds.has(item.id) ? "border-accent-primary bg-accent-primary/5 shadow-accent-primary/10" : "border-border-subtle hover:border-accent-primary/30"
                                 )}
                             >
-                                <div className="flex items-start gap-4">
+                                <div className="flex items-start gap-4 flex-1">
                                     {isSelectionMode && (
                                         <div className="pt-1">
                                             {selectedIds.has(item.id) ? (
-                                                <div className="w-5 h-5 rounded bg-violet-600 flex items-center justify-center text-white scale-110 transition-transform">
+                                                <div className="w-5 h-5 rounded bg-accent-primary flex items-center justify-center text-white scale-110 transition-transform">
                                                     <CheckSquare size={14} strokeWidth={3} />
                                                 </div>
                                             ) : (
-                                                <div className="w-5 h-5 rounded border-2 border-border-highlight bg-bg-app/50 group-hover:border-violet-400 group-hover:bg-bg-card transition-colors" />
+                                                <div className="w-5 h-5 rounded border-2 border-border-highlight bg-bg-app/50 group-hover:border-accent-primary/50 group-hover:bg-bg-card transition-colors" />
                                             )}
                                         </div>
                                     )}
@@ -175,17 +175,17 @@ export function InboxView() {
                                         </div>
                                     )}
 
-                                    <div className="flex-1 min-w-0 pt-1">
+                                    <div className="flex-1 min-w-0 pt-1 flex flex-col h-full">
                                         {editingId === item.id ? (
                                             <div
-                                                className="animate-in fade-in zoom-in-95 duration-200"
+                                                className="animate-in fade-in zoom-in-95 duration-200 flex flex-col h-full"
                                                 onClick={(e) => e.stopPropagation()}
                                             >
                                                 <textarea
                                                     value={editText}
                                                     onChange={(e) => setEditText(e.target.value)}
-                                                    className="w-full bg-transparent border border-violet-500/30 rounded-lg p-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-violet-500/50 resize-none text-base"
-                                                    rows={3}
+                                                    className="w-full bg-transparent border border-accent-primary/30 rounded-lg p-3 text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 resize-none text-base flex-1"
+                                                    rows={4}
                                                     autoFocus
                                                     onKeyDown={(e) => {
                                                         if (e.key === 'Enter' && !e.shiftKey) {
@@ -199,13 +199,13 @@ export function InboxView() {
                                                 <div className="flex justify-end gap-2 mt-2">
                                                     <button
                                                         onClick={cancelEdit}
-                                                        className="text-xs font-medium text-text-muted hover:text-text-primary px-3 py-1.5 rounded-md hover:bg-neutral-500/10 transition-colors"
+                                                        className="text-xs font-medium text-text-muted hover:text-text-primary px-3 py-1.5 rounded-md hover:bg-bg-input transition-colors"
                                                     >
                                                         Cancel
                                                     </button>
                                                     <button
                                                         onClick={saveEdit}
-                                                        className="text-xs font-medium bg-violet-600 text-white px-3 py-1.5 rounded-md hover:bg-violet-700 transition-colors shadow-sm shadow-violet-500/20"
+                                                        className="text-xs font-medium bg-accent-primary text-white px-3 py-1.5 rounded-md hover:brightness-110 transition-colors shadow-sm shadow-accent-primary/20"
                                                     >
                                                         Save
                                                     </button>
@@ -214,54 +214,50 @@ export function InboxView() {
                                         ) : (
                                             <>
                                                 <div className="flex items-center justify-between mb-2">
-                                                    <span className="text-xs font-bold text-text-muted uppercase tracking-wider">
+                                                    <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider bg-bg-app px-2 py-0.5 rounded-full">
                                                         {item.source}
                                                     </span>
-                                                    <span className="text-sm font-medium text-text-muted/80 tabular-nums">
+                                                    <span className="text-xs font-medium text-text-muted/80 tabular-nums">
                                                         {format(item.createdAt, 'MMM d • HH:mm')}
                                                     </span>
                                                 </div>
                                                 <p className={clsx(
-                                                    "text-text-primary text-base font-medium leading-relaxed line-clamp-3",
-                                                    selectedIds.has(item.id) && "text-violet-900"
+                                                    "text-text-primary text-base font-medium leading-relaxed line-clamp-4 flex-1",
+                                                    selectedIds.has(item.id) && "text-accent-secondary"
                                                 )}>
                                                     {item.text}
                                                 </p>
                                             </>
                                         )}
                                     </div>
-
-                                    {!isSelectionMode && (
-                                        <div className="flex items-center gap-2 self-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-4 group-hover:translate-x-0">
-                                            {!editingId && (
-                                                <>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            startEditing(item);
-                                                        }}
-                                                        className="p-2.5 text-text-muted hover:text-violet-500 hover:bg-violet-500/10 rounded-lg transition-colors"
-                                                        title="Edit"
-                                                    >
-                                                        <Pencil size={18} />
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            if (confirm('Are you sure you want to delete this specific item?')) {
-                                                                deleteInboxItem(item.id);
-                                                            }
-                                                        }}
-                                                        className="p-2.5 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                                                        title="Delete"
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </button>
-                                                </>
-                                            )}
-                                        </div>
-                                    )}
                                 </div>
+
+                                {!isSelectionMode && !editingId && (
+                                    <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-200 flex gap-1 bg-bg-card shadow-sm border border-border-subtle rounded-lg p-1">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                startEditing(item);
+                                            }}
+                                            className="p-1.5 text-text-muted hover:text-accent-primary hover:bg-accent-primary/10 rounded-md transition-colors"
+                                            title="Edit"
+                                        >
+                                            <Pencil size={14} />
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (confirm('Are you sure you want to delete this specific item?')) {
+                                                    deleteInboxItem(item.id);
+                                                }
+                                            }}
+                                            className="p-1.5 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-md transition-colors"
+                                            title="Delete"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -283,7 +279,7 @@ export function InboxView() {
                                 <span className="text-sm font-bold">{selectedIds.size} items selected</span>
                                 <button
                                     onClick={toggleAll}
-                                    className="text-[10px] uppercase tracking-wider font-bold text-violet-400 hover:text-violet-300 text-left"
+                                    className="text-[10px] uppercase tracking-wider font-bold text-accent-primary hover:text-accent-secondary text-left"
                                 >
                                     {selectedIds.size === inboxItems.length ? "Deselect All" : "Select All"}
                                 </button>

@@ -41,7 +41,7 @@ export function TaskFiltersBar({
     }, [tasks, user]);
 
     return (
-        <div className="flex items-center gap-1 p-1.5 bg-bg-surface/60 backdrop-blur-md border border-border-subtle rounded-2xl shadow-sm overflow-x-auto max-w-full min-w-0">
+        <div className="flex items-center gap-2 p-1 bg-transparent overflow-x-auto max-w-full min-w-0 no-scrollbar">
 
             {/* Scope Filters (Private vs Shared) */}
             <div className="flex bg-bg-input/50 rounded-xl p-1 gap-1">

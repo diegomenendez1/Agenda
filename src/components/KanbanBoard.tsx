@@ -45,11 +45,11 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
     }, [tasksToUse]);
 
     const COLUMNS: { id: TaskStatus; label: string; colorClass: string }[] = [
-        { id: 'backlog', label: t.status.backlog, colorClass: 'bg-border-highlight' },
-        { id: 'todo', label: t.status.todo, colorClass: 'bg-border-highlight' },
-        { id: 'in_progress', label: t.status.in_progress, colorClass: 'bg-border-highlight' },
-        { id: 'review', label: t.status.review, colorClass: 'bg-border-highlight' },
-        { id: 'done', label: t.status.done, colorClass: 'bg-border-highlight' }
+        { id: 'backlog', label: t.status.backlog, colorClass: 'bg-neutral-400' },
+        { id: 'todo', label: t.status.todo, colorClass: 'bg-blue-500' },
+        { id: 'in_progress', label: t.status.in_progress, colorClass: 'bg-indigo-500' },
+        { id: 'review', label: t.status.review, colorClass: 'bg-purple-500' },
+        { id: 'done', label: t.status.done, colorClass: 'bg-emerald-500' }
     ];
 
     const handleDragStart = (e: React.DragEvent, taskId: string) => {
@@ -76,42 +76,54 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
         setDraggedTaskId(null);
     };
 
-    const getPriorityBorder = (priority: string) => {
+    const getPriorityBadge = (priority: string) => {
         switch (priority) {
-            case 'critical': return 'border-l-[3px] border-l-red-600 shadow-sm shadow-red-500/10';
-            case 'high': return 'border-l-[3px] border-l-orange-500 shadow-sm shadow-orange-500/10';
-            case 'medium': return 'border-l-[3px] border-l-yellow-500 shadow-sm shadow-yellow-500/10';
-            case 'low': return 'border-l-[3px] border-l-blue-500 shadow-sm shadow-blue-500/10';
-            default: return 'border-l-[3px] border-l-transparent';
+            case 'critical':
+                return (
+                    <div className="px-2 py-0.5 rounded-md bg-red-50 text-red-700 border border-red-200 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                        <Flag size={10} className="fill-current" /> Critical
+                    </div>
+                );
+            case 'high':
+                return (
+                    <div className="px-2 py-0.5 rounded-md bg-orange-50 text-orange-700 border border-orange-200 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
+                        <Flag size={10} className="fill-current" /> High
+                    </div>
+                );
+            case 'medium':
+                return <div className="px-2 py-0.5 rounded-md bg-yellow-50 text-yellow-700 border border-yellow-200 text-[10px] font-bold uppercase tracking-wider">Medium</div>;
+            case 'low':
+                return <div className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-200 text-[10px] font-bold uppercase tracking-wider">Low</div>;
+            default:
+                return null;
         }
     };
 
     return (
-        <div className="flex h-full gap-4 pb-4 px-2 flex-col overflow-y-auto lg:flex-row lg:overflow-x-auto lg:overflow-y-hidden">
+        <div className="flex h-full gap-6 pb-4 px-2 flex-col overflow-y-auto lg:flex-row lg:overflow-x-auto lg:overflow-y-hidden snap-x snap-mandatory lg:snap-none">
             {COLUMNS.map(col => (
                 <div
                     key={col.id}
-                    className="flex-shrink-0 flex-1 w-full lg:min-w-[220px] flex flex-col gap-3 group/column"
+                    className="flex-shrink-0 flex-1 w-full lg:min-w-[320px] lg:max-w-[400px] flex flex-col gap-4 group/column snap-center"
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, col.id)}
                 >
                     {/* Column Header */}
                     <div className={clsx(
-                        "flex items-center justify-between px-4 py-3 rounded-xl border border-border-subtle shadow-sm transition-all group-hover/column:shadow-md",
+                        "flex items-center justify-between px-5 py-4 rounded-xl border border-border-subtle/60 shadow-sm transition-all group-hover/column:shadow-md group-hover/column:border-border-highlight",
                         "bg-bg-card relative overflow-hidden"
                     )}>
-                        <div className={clsx("absolute left-0 top-0 bottom-0 w-1.5", col.colorClass)} />
+                        <div className={clsx("absolute top-0 left-0 w-full h-1 opacity-80", col.colorClass)} />
 
-                        <div className="flex items-center gap-3 pl-2">
-                            <div className="flex flex-col">
-                                <h3 className="text-sm font-bold text-text-primary uppercase tracking-wide flex items-center gap-2">
-                                    {col.label}
-                                    {col.id === 'backlog' && <Lock size={12} className="text-text-muted" />}
-                                </h3>
-                                <span className="text-[10px] text-text-muted font-medium">
-                                    {tasksByStatus[col.id].length} tasks
-                                </span>
-                            </div>
+                        <div className="flex items-center gap-3">
+                            <div className={clsx("w-2 h-2 rounded-full", col.colorClass)} />
+                            <h3 className="text-sm font-bold text-text-primary uppercase tracking-wide flex items-center gap-2">
+                                {col.label}
+                                {col.id === 'backlog' && <Lock size={12} className="text-text-muted" />}
+                            </h3>
+                            <span className="text-[10px] bg-bg-input px-2 py-0.5 rounded-full text-text-muted font-bold border border-border-subtle">
+                                {tasksByStatus[col.id].length}
+                            </span>
                         </div>
 
                         {col.id === 'done' && tasksByStatus.done.length > 0 && (
@@ -122,246 +134,138 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                                         useStore.getState().clearCompletedTasks();
                                     }
                                 }}
-                                className="mr-2 p-1.5 rounded-lg text-text-muted hover:text-red-500 hover:bg-red-50 transition-all flex items-center gap-1 text-[10px] font-bold uppercase"
+                                className="p-1.5 rounded-lg text-text-muted hover:text-red-500 hover:bg-red-50 transition-all"
                                 title="Clear Done Tasks"
                             >
-                                <Trash2 size={12} />
-                                <span className="hidden sm:inline">{t.actions.clear_done.split(' ')[0]}</span>
+                                <Trash2 size={14} />
                             </button>
                         )}
                     </div>
 
                     {/* Drop Zone / List */}
-                    {/* Removed bgClass and added border-dashed for "sutiles lineas" effect if empty, or just subtle border container */}
                     <div className={clsx(
-                        "flex-1 rounded-2xl p-2 transition-all min-h-[100px] lg:min-h-[150px] overflow-y-auto",
-                        "border border-border-subtle/40 bg-bg-app/50", // Very subtle container border instead of full background
-                        "group-hover/column:border-border-subtle group-hover/column:bg-bg-input/10"
+                        "flex-1 rounded-2xl p-3 transition-all min-h-[100px] text-sm",
+                        "bg-bg-input/30 border border-transparent",
+                        "group-hover/column:bg-bg-input/50 group-hover/column:border-border-subtle/30"
                     )}>
-                        <div className="flex flex-col gap-3">
-                            {tasksByStatus[col.id].map(task => {
-                                // Strict ID comparison to avoid type mismatches
-                                // Strict ID comparison to avoid type mismatches
-
-                                // Debug log kept for verification
-
-
-                                return (
-                                    <div
-                                        key={task.id}
-                                        draggable={task.status !== 'backlog'}
-                                        onDragStart={(e) => task.status !== 'backlog' && handleDragStart(e, task.id)}
-                                        className={clsx(
-                                            "p-4 rounded-xl transition-all duration-200 group relative cursor-pointer",
-                                            "active:scale-[0.98]",
-                                            "bg-bg-card border border-border-subtle shadow-sm hover:shadow-lg hover:shadow-accent-primary/5 opacity-100",
-                                            getPriorityBorder(task.priority),
-                                            task.status === 'done' && "opacity-50 grayscale-[0.8]",
-                                            task.status === 'backlog' && "cursor-default",
+                        <div className="flex flex-col gap-3 h-full overflow-y-auto custom-scrollbar pr-1">
+                            {tasksByStatus[col.id].map(task => (
+                                <div
+                                    key={task.id}
+                                    draggable={task.status !== 'backlog'}
+                                    onDragStart={(e) => task.status !== 'backlog' && handleDragStart(e, task.id)}
+                                    className={clsx(
+                                        "p-4 rounded-xl transition-all duration-200 group relative cursor-pointer border",
+                                        "bg-bg-card hover:border-violet-300 hover:shadow-lg hover:shadow-violet-500/5 hover:-translate-y-0.5",
+                                        "border-border-subtle shadow-sm",
+                                        task.status === 'done' && "opacity-60 saturate-50 hover:opacity-100 transition-opacity",
+                                        task.status === 'backlog' && "cursor-default border-dashed"
+                                    )}
+                                    onClick={() => setEditingTask(task)}
+                                >
+                                    <div className="flex justify-between items-start gap-2 mb-2">
+                                        <h4 className={clsx(
+                                            "text-sm font-semibold text-text-primary leading-snug line-clamp-2",
+                                            task.status === 'done' && "line-through text-text-muted"
+                                        )}>
+                                            {task.title}
+                                        </h4>
+                                        {task.ownerId === user?.id && (
+                                            <button className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-text-primary transition-opacity p-1">
+                                                <MoreHorizontal size={14} />
+                                            </button>
                                         )}
-                                        onClick={() => setEditingTask(task)}
-                                    >
-                                        <div className="flex justify-between items-start mb-3">
-                                            <div className="flex flex-col gap-1 pr-6 w-full">
+                                    </div>
 
-                                                <span className="text-[14px] font-medium text-text-primary leading-snug">
-                                                    {task.title}
-                                                </span>
+                                    {/* Action for Backlog/Tasks */}
+                                    <div className="mb-3">
+                                        {task.status === 'backlog' && (
+                                            <div className="flex flex-col gap-2 mt-2">
+                                                {task.acceptedAt ? (
+                                                    (task.ownerId === user?.id || task.acceptedBy === user?.id) && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                updateStatus(task.id, 'todo');
+                                                            }}
+                                                            className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg shadow-sm"
+                                                        >
+                                                            Start
+                                                        </button>
+                                                    )
+                                                ) : task.assigneeIds?.includes(user?.id || '') ? (
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                updateTask(task.id, { acceptedAt: Date.now(), acceptedBy: user?.id });
+                                                            }}
+                                                            className="flex-1 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg shadow-sm"
+                                                        >
+                                                            Accept
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const newAssignees = (task.assigneeIds || []).filter(id => id !== user?.id);
+                                                                updateTask(task.id, { assigneeIds: newAssignees });
+                                                            }}
+                                                            className="px-2 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg border border-red-200"
+                                                        >
+                                                            <X size={14} />
+                                                        </button>
+                                                    </div>
+                                                ) : null}
                                             </div>
-                                            {task.ownerId === user?.id && (
-                                                <button className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-text-primary p-1 -mt-1 -mr-1 transition-opacity">
-                                                    <MoreHorizontal size={16} />
-                                                </button>
+                                        )}
+                                    </div>
+
+                                    <div className="flex items-center justify-between mt-auto pt-2 border-t border-border-subtle/50">
+                                        <div className="flex items-center gap-2">
+                                            {getPriorityBadge(task.priority)}
+                                            {task.dueDate && (
+                                                <div className={clsx(
+                                                    "flex items-center gap-1 text-[10px] font-medium",
+                                                    task.dueDate < Date.now() && task.status !== 'done' ? "text-red-500" : "text-text-muted"
+                                                )}>
+                                                    <Calendar size={10} />
+                                                    {format(task.dueDate, 'MMM d')}
+                                                </div>
                                             )}
                                         </div>
 
-                                        {/* Action for Backlog Items */}
-                                        {task.status === 'backlog' && (
-                                            <div className="flex flex-col gap-2 w-full mb-3">
-                                                {task.acceptedAt ? (
-                                                    <div className="flex flex-col gap-2">
-                                                        <div className="w-full py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 shadow-sm">
-                                                            <CheckCircle2 size={14} />
-                                                            Accepted by {team[task.acceptedBy || '']?.name?.split(' ')[0] || 'Team'}
-                                                        </div>
-                                                        {/* Only the owner or the person who accepted can "Start" it */}
-                                                        {(task.ownerId === user?.id || task.acceptedBy === user?.id) && (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    updateStatus(task.id, 'todo');
-                                                                }}
-                                                                className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2 shadow-md shadow-indigo-500/20 active:scale-95"
-                                                            >
-                                                                <CheckCircle2 size={14} /> {t.actions.start}
-                                                            </button>
-                                                        )}
+                                        {/* Assignees Avatars */}
+                                        <div className="flex -space-x-1.5">
+                                            {Array.from(new Set([task.ownerId, ...task.assigneeIds || []]))
+                                                .map(id => team[id])
+                                                .filter(Boolean)
+                                                .slice(0, 3)
+                                                .map(member => (
+                                                    <div
+                                                        key={member.id}
+                                                        className="w-5 h-5 rounded-full border border-bg-card bg-violet-100 flex items-center justify-center text-[8px] font-bold text-violet-700"
+                                                        title={member.name}
+                                                    >
+                                                        {member.avatar ? (
+                                                            <img src={member.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                                                        ) : member.name.charAt(0)}
                                                     </div>
-                                                ) : (
-                                                    <div className="flex flex-col gap-2">
-                                                        {/* Not Accepted Yet: Show Accept to Assignees, Waiting to Owner */}
-                                                        {task.assigneeIds?.includes(user?.id || '') ? (
-                                                            <div className="flex gap-2">
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        updateTask(task.id, { acceptedAt: Date.now(), acceptedBy: user?.id });
-                                                                    }}
-                                                                    className="flex-1 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95"
-                                                                >
-                                                                    <CheckCircle2 size={14} /> {t.actions.accept}
-                                                                </button>
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        const newAssignees = (task.assigneeIds || []).filter(id => id !== user?.id);
-                                                                        updateTask(task.id, { assigneeIds: newAssignees });
-                                                                    }}
-                                                                    className="px-3 py-2 bg-bg-input hover:bg-red-50 text-text-muted hover:text-red-500 border border-border-subtle hover:border-red-200 rounded-lg transition-colors"
-                                                                    title="Reject"
-                                                                >
-                                                                    <X size={14} />
-                                                                </button>
-                                                            </div>
-                                                        ) : task.ownerId === user?.id ? (
-                                                            (task.assigneeIds && task.assigneeIds.length > 0) ? (
-                                                                <>
-                                                                    <div className="w-full py-2 bg-bg-input border border-border-subtle text-text-muted text-[10px] font-bold uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 cursor-default opacity-80">
-                                                                        <Clock size={14} /> {t.actions.waiting}
-                                                                    </div>
-                                                                    <button
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            updateStatus(task.id, 'todo');
-                                                                        }}
-                                                                        className="w-full py-2 bg-bg-surface hover:bg-indigo-50 text-text-muted hover:text-indigo-600 border border-border-subtle hover:border-indigo-200 text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2"
-                                                                    >
-                                                                        <CheckCircle2 size={14} /> {t.actions.skip}
-                                                                    </button>
-                                                                </>
-                                                            ) : (
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        updateStatus(task.id, 'todo');
-                                                                    }}
-                                                                    className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2 shadow-md shadow-indigo-500/20 active:scale-95"
-                                                                >
-                                                                    <CheckCircle2 size={14} /> {t.actions.start}
-                                                                </button>
-                                                            )
-                                                        ) : null}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {/* Meta info */}
-                                        <div className="flex flex-col gap-2.5 pt-3 border-t border-border-subtle/40 mt-1">
-                                            <div className="flex items-center justify-between gap-2">
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    {task.dueDate && (
-                                                        <div className={clsx(
-                                                            "flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold border transition-colors",
-                                                            task.dueDate < Date.now() && task.status !== 'done'
-                                                                ? "bg-red-500/10 text-red-600 border-red-500/20"
-                                                                : "bg-bg-input text-text-muted border-border-subtle"
-                                                        )}>
-                                                            <Calendar size={10} />
-                                                            {format(task.dueDate, 'MMM d')}
-                                                        </div>
-                                                    )}
-                                                    {task.acceptedAt && (
-                                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-500/5 border border-emerald-500/20 text-[9px] text-emerald-600 font-bold uppercase tracking-wider">
-                                                            <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-                                                            Accepted {format(task.acceptedAt, 'MMM d, p')}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                <div className="flex items-center gap-1.5">
-                                                    {task.priority === 'critical' && (
-                                                        <div className="px-1.5 py-0.5 rounded bg-red-500/10 text-red-600 border border-red-500/20 text-[9px] font-bold uppercase">Critical</div>
-                                                    )}
-                                                    {task.priority === 'high' && <Flag size={12} className="text-orange-500" />}
-                                                    {task.priority === 'medium' && <Flag size={12} className="text-yellow-500" />}
-                                                    {task.priority === 'low' && <Flag size={12} className="text-blue-500" />}
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center justify-between gap-3">
-                                                {/* Assignees & Owner */}
-                                                {(() => {
-                                                    const uniqueIds = Array.from(new Set([task.ownerId, ...task.assigneeIds || []]));
-                                                    const members = uniqueIds.map(id => team[id]).filter(Boolean);
-
-                                                    if (members.length === 0) return <div />;
-
-                                                    return (
-                                                        <div className="flex items-center gap-2 overflow-hidden w-full">
-                                                            <div className="flex -space-x-1.5 shrink-0">
-                                                                {members.slice(0, 3).map((member) => {
-                                                                    const colors = ['bg-pink-500', 'bg-violet-500', 'bg-indigo-500', 'bg-cyan-500', 'bg-teal-500', 'bg-emerald-500', 'bg-orange-500'];
-                                                                    const colorClass = colors[member.name.length % colors.length];
-
-                                                                    return (
-                                                                        <div
-                                                                            key={member.id}
-                                                                            className={clsx(
-                                                                                "w-5 h-5 rounded-full border-2 border-bg-card flex items-center justify-center text-[8px] font-bold text-white shadow-sm ring-1 ring-border-subtle/20",
-                                                                                !member.avatar && colorClass
-                                                                            )}
-                                                                            title={member.name}
-                                                                        >
-                                                                            {member.avatar ? (
-                                                                                <img src={member.avatar} alt={member.name} className="w-full h-full rounded-full object-cover" />
-                                                                            ) : (
-                                                                                member.name.substring(0, 2).toUpperCase()
-                                                                            )}
-                                                                        </div>
-                                                                    );
-                                                                })}
-                                                                {members.length > 3 && (
-                                                                    <div className="w-5 h-5 rounded-full bg-bg-input border-2 border-bg-card flex items-center justify-center text-[8px] font-bold text-text-muted shadow-sm">
-                                                                        +{members.length - 3}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-
-                                                            <span className="text-[10px] text-text-muted truncate opacity-80 group-hover:opacity-100 transition-opacity whitespace-nowrap overflow-hidden">
-                                                                {members.map(m => m.name?.split(' ')[0]).join(', ')}
-                                                            </span>
-                                                        </div>
-                                                    );
-                                                })()}
-                                            </div>
+                                                ))}
                                         </div>
                                     </div>
-                                );
-                            })}
-
-                            {/* Empty State placeholder if needed, acts as "lineas" visual aid */}
-                            {tasksByStatus[col.id].length === 0 && (
-                                <div className="h-full border-2 border-dashed border-border-subtle/30 rounded-xl flex items-center justify-center opacity-50">
-                                    <div className="w-full h-full min-h-[100px]" />
                                 </div>
-                            )}
+                            ))}
                         </div>
                     </div>
                 </div>
-            ))
-            }
+            ))}
 
-            {
-                editingTask && (
-                    <EditTaskModal
-                        task={editingTask}
-                        onClose={() => {
-                            setEditingTask(null);
-                        }}
-                    />
-                )
-            }
-        </div >
+            {editingTask && (
+                <EditTaskModal
+                    task={editingTask}
+                    onClose={() => setEditingTask(null)}
+                />
+            )}
+        </div>
     );
 }

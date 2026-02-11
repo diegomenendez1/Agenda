@@ -205,7 +205,7 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2.5 rounded-xl font-medium text-text-muted hover:bg-bg-input hover:text-text-primary transition-colors text-sm"
+                            className="btn btn-ghost"
                         >
                             Cancel
                         </button>
@@ -213,10 +213,7 @@ export function InviteMemberModal({ isOpen, onClose }: InviteMemberModalProps) {
                             type="submit"
                             disabled={isSubmitting || isSuccess}
                             className={clsx(
-                                "relative px-6 py-2.5 rounded-xl font-bold shadow-lg transition-all flex items-center gap-2 text-white",
-                                isSuccess
-                                    ? "bg-green-500 shadow-green-500/30"
-                                    : "bg-accent-primary hover:bg-accent-primary/90 shadow-accent-primary/20",
+                                "btn btn-primary",
                                 (isSubmitting || !email) && "opacity-70 cursor-not-allowed"
                             )}
                         >

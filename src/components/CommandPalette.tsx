@@ -120,7 +120,7 @@ export function CommandPalette() {
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-start justify-center pt-[15vh] transition-opacity duration-200">
-            <div className="w-full max-w-[600px] bg-bg-card border border-border-subtle/50 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-top-4 duration-200 ring-1 ring-white/10">
+            <div className="w-full max-w-[600px] bg-bg-card border border-border-subtle rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 slide-in-from-top-4 duration-200">
 
                 <div className="flex items-center px-5 py-4 border-b border-border-subtle gap-4">
                     <Search className="text-accent-primary w-5 h-5" strokeWidth={2.5} />
@@ -132,7 +132,7 @@ export function CommandPalette() {
                         value={query}
                         onChange={e => setQuery(e.target.value)}
                     />
-                    <div className="text-[10px] font-bold tracking-wider text-text-muted border border-border-subtle px-2 py-1 rounded bg-bg-input">ESC</div>
+                    <kbd className="text-[10px] font-bold tracking-wider text-text-muted border border-border-subtle px-2 py-1 rounded bg-bg-input">ESC</kbd>
                 </div>
 
                 <div className="max-h-[320px] overflow-y-auto p-2 scrollbar-thin scrollbar-thumb-border-subtle scrollbar-track-transparent">
@@ -150,10 +150,10 @@ export function CommandPalette() {
                                     setIsOpen(false);
                                 }}
                                 className={clsx(
-                                    "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[15px] transition-all text-left group",
+                                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[14px] transition-all text-left group",
                                     index === selectedIndex
                                         ? "bg-accent-primary text-white shadow-md shadow-accent-primary/20"
-                                        : "text-text-secondary hover:bg-bg-input hover:text-text-primary"
+                                        : "text-text-secondary hover:bg-bg-card-hover hover:text-text-primary"
                                 )}
                                 onMouseEnter={() => setSelectedIndex(index)}
                             >

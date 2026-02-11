@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 import { InboxView } from './features/InboxView';
+import { DashboardView } from './features/DashboardView';
 import { TaskListView } from './features/TaskListView';
 import { CalendarView } from './features/CalendarView';
 
@@ -94,7 +95,7 @@ export default function App() {
                   <div className="flex-1 overflow-auto custom-scrollbar relative">
                     <ErrorBoundary>
                       <Routes>
-                        <Route path="/" element={<Navigate to="/inbox" replace />} />
+                        <Route path="/" element={<DashboardView />} />
                         <Route path="/inbox" element={<InboxView />} />
                         <Route path="/tasks" element={<TaskListView />} />
                         <Route path="/tasks/:taskId" element={<TaskListView />} />

@@ -15,86 +15,99 @@ export function KPIView() {
     return (
         <div className="h-full flex flex-col bg-bg-app text-text-primary overflow-hidden">
             {/* Header */}
-            <header className="px-6 py-5 border-b border-border-subtle flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 bg-accent-primary/10 rounded-lg text-accent-primary">
-                        <TrendingUp size={24} />
+            <header className="px-6 py-8 border-b border-border-subtle flex flex-col md:flex-row md:items-center justify-between gap-6 shrink-0 max-w-[1600px] mx-auto w-full">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-accent-primary/10 rounded-2xl flex items-center justify-center text-accent-primary shadow-inner">
+                        <TrendingUp size={28} />
                     </div>
                     <div>
-                        <h1 className="text-xl font-display font-bold">Analytics & Control</h1>
-                        <p className="text-xs text-text-muted">Workspace insights and performance metrics</p>
+                        <h1 className="text-3xl font-display font-extrabold tracking-tight">Analytics & Control</h1>
+                        <p className="text-sm text-text-muted mt-0.5 font-medium italic opacity-80">Workspace insights and performance metrics</p>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <DateRangePicker value={filter.dateRange} onChange={(d) => setFilter({ ...filter, dateRange: d })} />
+                    <div className="bg-bg-card border border-border-subtle p-1 rounded-2xl shadow-sm flex items-center">
+                        <DateRangePicker value={filter.dateRange} onChange={(d) => setFilter({ ...filter, dateRange: d })} />
+                    </div>
                 </div>
             </header>
 
             {/* Tabs */}
-            <div className="px-6 pt-4 shrink-0">
-                <div className="flex gap-6 border-b border-border-subtle">
+            <div className="px-6 pt-2 shrink-0 max-w-[1600px] mx-auto w-full">
+                <div className="flex gap-8 border-b border-border-subtle pb-px relative no-scrollbar overflow-x-auto">
                     <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={BarChart2} label="Overview" />
                     <TabButton active={activeTab === 'team'} onClick={() => setActiveTab('team')} icon={Users} label="Team Performance" />
-
                 </div>
             </div>
 
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
-                <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="max-w-[1600px] mx-auto space-y-8 animate-enter">
 
                     {/* --- TAB: OVERVIEW --- */}
                     {activeTab === 'overview' && (
                         <>
                             {/* Stats Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                 <StatCard
                                     label="Total Tasks"
                                     value={overviewMetrics.total}
                                     icon={Activity}
                                     color="blue"
-                                    trend={`${overviewMetrics.velocity} / day`}
+                                    trend={`${overviewMetrics.velocity} tasks / day`}
+                                    description="Active volume"
                                 />
                                 <StatCard
                                     label="Completed"
                                     value={overviewMetrics.completed}
                                     icon={CheckCircle}
                                     color="emerald"
-                                    trend={`${overviewMetrics.completionRate}% Rate`}
+                                    trend={`${overviewMetrics.completionRate}% completion`}
+                                    description="Team output"
                                 />
                                 <StatCard
                                     label="Pending"
                                     value={overviewMetrics.total - overviewMetrics.completed}
                                     icon={Clock}
                                     color="amber"
+                                    description="Work in progress"
                                 />
                                 <StatCard
                                     label="Overdue"
                                     value={overviewMetrics.overdue}
                                     icon={AlertCircle}
                                     color="red"
-                                    trend="Requires Action"
+                                    trend="Immediate action"
+                                    description="Critical items"
                                 />
                             </div>
 
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                                 {/* Velocity Chart */}
-                                <div className="glass-panel p-6 rounded-2xl border border-border-subtle shadow-sm lg:col-span-2">
-                                    <h3 className="font-bold mb-6 flex items-center gap-2">
-                                        <TrendingUp className="w-5 h-5 text-accent-primary" />
+                                <div className="bg-bg-card p-8 rounded-3xl border border-border-subtle shadow-sm lg:col-span-2 relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-accent-primary/5 rounded-bl-full -mr-16 -mt-16 transition-transform group-hover:scale-110" />
+                                    <h3 className="text-lg font-bold mb-8 flex items-center gap-3">
+                                        <div className="p-2 bg-accent-primary/10 rounded-xl text-accent-primary">
+                                            <TrendingUp size={20} />
+                                        </div>
                                         Activity Velocity
                                     </h3>
-                                    <VelocityChart data={activityHistory} height={220} />
+                                    <div className="h-[250px]">
+                                        <VelocityChart data={activityHistory} height={250} />
+                                    </div>
                                 </div>
 
                                 {/* Status Distribution */}
-                                <div className="glass-panel p-6 rounded-2xl border border-border-subtle shadow-sm flex flex-col">
-                                    <h3 className="font-bold mb-6 flex items-center gap-2">
-                                        <BarChart2 className="w-5 h-5 text-text-muted" />
+                                <div className="bg-bg-card p-8 rounded-3xl border border-border-subtle shadow-sm flex flex-col relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-text-muted/5 rounded-bl-full -mr-16 -mt-16 transition-transform group-hover:scale-110" />
+                                    <h3 className="text-lg font-bold mb-8 flex items-center gap-3">
+                                        <div className="p-2 bg-bg-app rounded-xl text-text-muted border border-border-subtle">
+                                            <BarChart2 size={20} />
+                                        </div>
                                         Task Status
                                     </h3>
-                                    <div className="flex-1 flex items-center justify-center">
+                                    <div className="flex-1 flex items-center justify-center p-4">
                                         <StatusChart
                                             data={[
                                                 { status: 'Done', count: overviewMetrics.completed, color: '#10b981' },
@@ -110,23 +123,25 @@ export function KPIView() {
 
                     {/* --- TAB: TEAM --- */}
                     {activeTab === 'team' && (
-                        <div className="glass-panel p-8 rounded-2xl border border-border-subtle shadow-sm">
-                            <div className="flex items-center justify-between mb-8">
-                                <h3 className="text-lg font-bold flex items-center gap-2">
-                                    <Users className="w-5 h-5 text-accent-primary" />
-                                    Workload & Performance
+                        <div className="bg-bg-card p-10 rounded-3xl border border-border-subtle shadow-sm relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-accent-primary/5 rounded-bl-full -mr-32 -mt-32 transition-transform group-hover:scale-105" />
+                            <div className="flex items-center justify-between mb-10 relative z-10">
+                                <h3 className="text-2xl font-bold flex items-center gap-4">
+                                    <div className="p-3 bg-accent-primary/10 rounded-2xl text-accent-primary shadow-sm">
+                                        <Users size={28} />
+                                    </div>
+                                    Workload & performance
                                 </h3>
-                                <div className="text-sm text-text-muted">
-                                    Sorted by total assigned tasks
+                                <div className="bg-bg-app border border-border-subtle px-4 py-1.5 rounded-full text-xs font-bold text-text-muted uppercase tracking-widest shadow-inner">
+                                    Sorted by total volume
                                 </div>
                             </div>
 
-                            <WorkloadChart data={teamMetrics} />
+                            <div className="relative z-10 min-h-[400px]">
+                                <WorkloadChart data={teamMetrics} />
+                            </div>
                         </div>
                     )}
-
-                    {/* --- TAB: PROJECTS --- */}
-
                 </div>
             </div>
         </div>
@@ -140,36 +155,58 @@ function TabButton({ active, onClick, icon: Icon, label }: any) {
         <button
             onClick={onClick}
             className={clsx(
-                "flex items-center gap-2 pb-3 px-1 text-sm font-medium transition-all relative",
-                active ? "text-accent-primary" : "text-text-muted hover:text-text-secondary"
+                "group flex items-center gap-2.5 pb-4 px-1 text-sm font-bold transition-all relative whitespace-nowrap",
+                active ? "text-accent-primary" : "text-text-muted hover:text-text-primary"
             )}
         >
-            <Icon size={18} />
+            <Icon size={18} className={clsx("transition-transform", active && "scale-110")} />
             {label}
             {active && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent-primary rounded-t-full animate-in zoom-in-50 duration-200" />
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-accent-primary rounded-t-full shadow-[0_-2px_6px_rgba(var(--accent-primary-rgb),0.3)] anim-scale-x" />
             )}
         </button>
     );
 }
 
-function StatCard({ label, value, icon: Icon, color, trend }: any) {
+function StatCard({ label, value, icon: Icon, color, trend, description }: any) {
     const colors: any = {
-        blue: "text-blue-500 bg-blue-500/10",
-        emerald: "text-emerald-500 bg-emerald-500/10",
-        amber: "text-amber-500 bg-amber-500/10",
-        red: "text-red-500 bg-red-500/10",
+        blue: "text-blue-500 bg-blue-500/10 shadow-blue-500/5",
+        emerald: "text-emerald-500 bg-emerald-500/10 shadow-emerald-500/5",
+        amber: "text-amber-500 bg-amber-500/10 shadow-amber-500/5",
+        red: "text-red-500 bg-red-500/10 shadow-red-500/5",
+    };
+
+    const bgAccents: any = {
+        blue: "bg-blue-500/5",
+        emerald: "bg-emerald-500/5",
+        amber: "bg-amber-500/5",
+        red: "bg-red-500/5",
     };
 
     return (
-        <div className="glass-panel p-5 rounded-xl border border-border-subtle shadow-sm flex items-center gap-4 hover:bg-bg-card-hover transition-colors">
-            <div className={clsx("p-3 rounded-xl", colors[color])}>
-                <Icon size={24} />
+        <div className="group bg-bg-card p-6 rounded-3xl border border-border-subtle shadow-sm flex flex-col hover:shadow-xl hover:border-border-highlight transition-all duration-300 relative overflow-hidden hover:-translate-y-1">
+            <div className={clsx("absolute top-0 right-0 w-24 h-24 rounded-bl-full -mr-12 -mt-12 transition-transform group-hover:scale-110", bgAccents[color])} />
+
+            <div className="flex items-center gap-3 mb-6 relative z-10">
+                <div className={clsx("p-3 rounded-2xl transition-transform group-hover:rotate-6 shadow-lg", colors[color])}>
+                    <Icon size={24} strokeWidth={2.5} />
+                </div>
+                <div>
+                    <div className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mb-0.5">{description || "Metric"}</div>
+                    <div className="text-xs font-bold text-text-primary/70">{label}</div>
+                </div>
             </div>
-            <div>
-                <div className="text-2xl font-bold font-display text-text-primary leading-none">{value}</div>
-                <div className="text-xs font-medium text-text-muted mt-1">{label}</div>
-                {trend && <div className="text-[10px] font-bold text-text-secondary mt-0.5">{trend}</div>}
+
+            <div className="relative z-10 mt-auto">
+                <div className="text-4xl font-display font-extrabold text-text-primary tracking-tight tabular-nums transition-colors group-hover:text-accent-primary">
+                    {value}
+                </div>
+                {trend && (
+                    <div className="flex items-center gap-1.5 mt-2 bg-bg-app border border-border-subtle p-1.5 px-3 rounded-xl w-fit shadow-inner">
+                        <div className={clsx("w-1.5 h-1.5 rounded-full animate-pulse", color === 'red' ? "bg-red-500" : "bg-emerald-500")} />
+                        <span className="text-[10px] font-black text-text-muted uppercase tracking-widest">{trend}</span>
+                    </div>
+                )}
             </div>
         </div>
     );

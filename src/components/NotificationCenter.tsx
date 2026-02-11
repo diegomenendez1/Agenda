@@ -55,8 +55,8 @@ export function NotificationCenter() {
             case 'assignment': return <AlertCircle size={16} className="text-orange-500" />;
             case 'rejection': return <XCircle size={16} className="text-red-500" />;
             case 'status_change': return <Clock size={16} className="text-purple-500" />;
-            case 'system': return <Check size={16} className="text-gray-500" />;
-            default: return <MessageSquare size={16} className="text-gray-500" />;
+            case 'system': return <Check size={16} className="text-text-muted" />;
+            default: return <MessageSquare size={16} className="text-text-muted" />;
         }
     };
 

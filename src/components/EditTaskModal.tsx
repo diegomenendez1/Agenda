@@ -256,7 +256,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className={clsx(
                 "w-full bg-bg-card border border-border-subtle rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden flex flex-col",
-                showActivity ? "max-w-5xl h-[85vh]" : "max-w-lg max-h-[90vh]"
+                showActivity ? "max-w-6xl h-[85vh]" : "max-w-2xl max-h-[90vh]"
             )}>
 
                 <div className="flex items-center justify-between p-5 border-b border-border-subtle bg-bg-app/50 shrink-0">
@@ -653,10 +653,10 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                                     className={clsx(
                                                         "flex-1 py-2 rounded-lg border text-xs font-bold uppercase tracking-wider transition-all shadow-sm",
                                                         priority === p
-                                                            ? p === 'critical' ? "bg-red-600 text-white border-red-700 shadow-red-600/20" :
-                                                                p === 'high' ? "bg-orange-500 text-white border-orange-600 shadow-orange-500/20" :
-                                                                    p === 'medium' ? "bg-yellow-500 text-white border-yellow-600 shadow-yellow-500/20" :
-                                                                        "bg-blue-500 text-white border-blue-600 shadow-blue-500/20"
+                                                            ? p === 'critical' ? "bg-red-100 text-red-700 border-red-200 ring-1 ring-red-500/20" :
+                                                                p === 'high' ? "bg-orange-100 text-orange-700 border-orange-200 ring-1 ring-orange-500/20" :
+                                                                    p === 'medium' ? "bg-yellow-100 text-yellow-700 border-yellow-200 ring-1 ring-yellow-500/20" :
+                                                                        "bg-blue-100 text-blue-700 border-blue-200 ring-1 ring-blue-500/20"
                                                             : "bg-bg-input border-transparent text-text-muted hover:bg-bg-card-hover hover:text-text-primary",
                                                         !canEdit && priority !== p && "opacity-30",
                                                         !canEdit && "cursor-default group-hover:bg-transparent"
