@@ -6,8 +6,8 @@ const DICTIONARY = {
         // Navigation (Sidebar)
         nav: {
             dashboard: 'Panel',
-            inbox: 'Bandeja de Entrada',
-            my_tasks: 'Mi Trabajo',
+            inbox: 'Captura',
+            my_tasks: 'Mis Cosas',
             my_team: 'Equipo',
             calendar: 'Calendario',
             analytics: 'Insights',
@@ -19,7 +19,7 @@ const DICTIONARY = {
         },
         // Task Status (Kanban)
         status: {
-            backlog: 'Backlog / Entrantes',
+            backlog: 'Por Clasificar',
             todo: 'Por Hacer',
             in_progress: 'En Progreso',
             review: 'Revisión',
@@ -78,7 +78,7 @@ const DICTIONARY = {
         },
         // Modals & Forms
         modal: {
-            process_title: 'Procesar Elemento',
+            process_title: 'Organizar',
             edit_task: 'Editar Tarea',
             create_task: 'Crear Nueva Tarea',
             accept_process: 'Aceptar y Procesar',

@@ -73,7 +73,7 @@ export default function App() {
           !user ? <Navigate to="/auth" /> : !user.organizationId ? <OnboardingView /> : (
             <div className="flex h-screen w-screen overflow-hidden bg-bg-app text-text-primary">
 
-              <div className="h-full flex gap-0 relative z-10 w-full max-w-[1920px] mx-auto">
+              <div className="h-full flex gap-0 relative z-10 w-full">
                 <ErrorBoundary>
                   <Sidebar isOpen={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
                 </ErrorBoundary>

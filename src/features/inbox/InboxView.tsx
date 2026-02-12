@@ -143,11 +143,11 @@ export function InboxView() {
                         </p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div className="flex flex-col border border-border-subtle rounded-2xl overflow-hidden bg-bg-card shadow-sm divide-y divide-border-subtle">
                         {inboxItems.map((item, index) => (
                             <div
                                 key={item.id}
-                                style={{ animationDelay: `${index * 50}ms` }}
+                                style={{ animationDelay: `${index * 30}ms` }}
                                 onClick={() => {
                                     if (isSelectionMode) {
                                         toggleSelection(item.id);
@@ -157,129 +157,105 @@ export function InboxView() {
                                     }
                                 }}
                                 className={clsx(
-                                    "group relative bg-bg-card hover:bg-bg-card-hover border transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-1 rounded-2xl p-6 flex flex-col h-full min-h-[180px] animate-enter overflow-hidden",
+                                    "group relative flex items-center gap-4 px-6 py-4 transition-all duration-200 hover:bg-bg-input/50 animate-enter",
                                     editingId !== item.id && "cursor-pointer",
                                     selectedIds.has(item.id)
-                                        ? "border-accent-primary ring-2 ring-accent-primary/20 bg-accent-primary/5 shadow-md"
-                                        : "border-border-subtle"
+                                        ? "bg-accent-primary/5 shadow-inner"
+                                        : "bg-transparent"
                                 )}
                             >
-                                {/* Decorative background icon */}
-                                <div className="absolute top-0 right-0 p-4 opacity-[0.07] group-hover:opacity-[0.1] transition-opacity pointer-events-none">
-                                    {item.source === 'email' ? <Mail size={80} /> :
-                                        item.source === 'meeting' ? <MessageSquare size={80} /> :
-                                            <Inbox size={80} />}
-                                </div>
-                                <div className="flex items-start gap-4 flex-1">
-                                    {isSelectionMode && (
-                                        <div className="pt-1 select-none">
-                                            {selectedIds.has(item.id) ? (
-                                                <div className="w-6 h-6 rounded-lg bg-accent-primary flex items-center justify-center text-white scale-110 transition-transform shadow-md">
-                                                    <CheckSquare size={16} strokeWidth={3} />
-                                                </div>
-                                            ) : (
-                                                <div className="w-6 h-6 rounded-lg border-2 border-border-highlight bg-bg-app/50 group-hover:border-accent-primary/50 group-hover:scale-110 transition-all duration-200" />
-                                            )}
-                                        </div>
-                                    )}
+                                {/* Selection Checkbox */}
+                                {(isSelectionMode || selectedIds.has(item.id)) && (
+                                    <div className="shrink-0 animate-in fade-in zoom-in-90 duration-200">
+                                        {selectedIds.has(item.id) ? (
+                                            <div className="w-5 h-5 rounded-md bg-accent-primary flex items-center justify-center text-white shadow-sm">
+                                                <CheckSquare size={14} strokeWidth={3} />
+                                            </div>
+                                        ) : (
+                                            <div className="w-5 h-5 rounded-md border-2 border-border-highlight bg-bg-app/50 group-hover:border-accent-primary/50 transition-colors" />
+                                        )}
+                                    </div>
+                                )}
 
-                                    <div className="flex-1 min-w-0 flex flex-col h-full">
+                                {/* Main Content Row */}
+                                <div className="flex-1 flex items-center gap-4 min-w-0">
+                                    {/* Source Icon */}
+                                    <div className={clsx(
+                                        "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm border border-border-subtle/50",
+                                        item.source === 'email' ? "bg-blue-500/10 text-blue-500" :
+                                            item.source === 'meeting' ? "bg-purple-500/10 text-purple-500" :
+                                                "bg-emerald-500/10 text-emerald-500"
+                                    )}>
+                                        {item.source === 'email' ? <Mail size={16} /> :
+                                            item.source === 'meeting' ? <MessageSquare size={16} /> :
+                                                <User size={16} />}
+                                    </div>
+
+                                    {/* Text Content */}
+                                    <div className="flex-1 min-w-0">
                                         {editingId === item.id ? (
                                             <div
-                                                className="animate-in fade-in zoom-in-95 duration-200 flex flex-col h-full"
+                                                className="flex items-center gap-2 w-full"
                                                 onClick={(e) => e.stopPropagation()}
                                             >
-                                                <textarea
+                                                <input
                                                     value={editText}
                                                     onChange={(e) => setEditText(e.target.value)}
-                                                    className="w-full bg-bg-input border border-accent-primary/30 rounded-xl p-4 text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/50 resize-none text-base flex-1 shadow-inner"
-                                                    rows={4}
+                                                    className="flex-1 bg-bg-input border-b-2 border-accent-primary/50 py-1 text-text-primary focus:outline-none text-[16px] font-medium"
                                                     autoFocus
                                                     onKeyDown={(e) => {
-                                                        if (e.key === 'Enter' && !e.shiftKey) {
-                                                            e.preventDefault();
-                                                            saveEdit();
-                                                        } else if (e.key === 'Escape') {
-                                                            cancelEdit();
-                                                        }
+                                                        if (e.key === 'Enter') saveEdit();
+                                                        else if (e.key === 'Escape') cancelEdit();
                                                     }}
                                                 />
-                                                <div className="flex justify-end gap-2 mt-4">
-                                                    <button
-                                                        onClick={cancelEdit}
-                                                        className="px-4 py-2 rounded-lg text-sm font-semibold text-text-muted hover:text-text-primary hover:bg-bg-input transition-colors"
-                                                    >
-                                                        Cancel
-                                                    </button>
-                                                    <button
-                                                        onClick={saveEdit}
-                                                        className="px-4 py-2 rounded-lg text-sm font-semibold bg-accent-primary text-white hover:brightness-110 transition-all shadow-md shadow-accent-primary/20"
-                                                    >
-                                                        Save Changes
-                                                    </button>
+                                                <div className="flex gap-1">
+                                                    <button onClick={saveEdit} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg"><CheckCircle2 size={18} /></button>
+                                                    <button onClick={cancelEdit} className="p-1.5 text-text-muted hover:bg-bg-input rounded-lg"><X size={18} /></button>
                                                 </div>
                                             </div>
                                         ) : (
-                                            <>
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className={clsx(
-                                                            "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm",
-                                                            item.source === 'email' ? "bg-blue-500/10 text-blue-500" :
-                                                                item.source === 'meeting' ? "bg-purple-500/10 text-purple-500" :
-                                                                    "bg-emerald-500/10 text-emerald-500"
-                                                        )}>
-                                                            {item.source === 'email' ? <Mail size={16} /> :
-                                                                item.source === 'meeting' ? <MessageSquare size={16} /> :
-                                                                    <User size={16} />}
-                                                        </div>
-                                                        <span className={clsx(
-                                                            "badge text-[10px] font-bold",
-                                                            item.source === 'email' ? "badge-low" :
-                                                                item.source === 'meeting' ? "badge-medium" :
-                                                                    "badge-success"
-                                                        )}>
-                                                            {item.source}
-                                                        </span>
-                                                    </div>
-                                                    <span className="text-xs font-medium text-text-muted/70 tabular-nums">
-                                                        {format(item.createdAt, 'MMM d • HH:mm')}
-                                                    </span>
-                                                </div>
+                                            <div className="flex items-center justify-between gap-4">
                                                 <p className={clsx(
-                                                    "text-text-primary text-[17px] font-display font-semibold leading-relaxed line-clamp-4 flex-1 tracking-tight relative z-10",
-                                                    selectedIds.has(item.id) ? "text-indigo-600" : "group-hover:text-violet-600 transition-colors duration-300"
+                                                    "text-[16px] font-medium truncate tracking-tight transition-colors duration-200",
+                                                    selectedIds.has(item.id) ? "text-accent-primary" : "text-text-primary group-hover:text-violet-600"
                                                 )}>
                                                     {item.text}
                                                 </p>
-                                            </>
+
+                                                <div className="flex items-center gap-4 shrink-0">
+                                                    <span className="text-xs font-semibold text-text-muted/50 tabular-nums hidden sm:block">
+                                                        {format(item.createdAt, 'MMM d, HH:mm')}
+                                                    </span>
+
+                                                    {/* Hover Actions */}
+                                                    {!isSelectionMode && (
+                                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-2 group-hover:translate-x-0">
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); startEditing(item); }}
+                                                                className="p-1.5 text-text-muted hover:text-accent-primary hover:bg-accent-primary/10 rounded-lg transition-colors"
+                                                                title="Edit"
+                                                            >
+                                                                <Pencil size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (confirm('Delete this item permanently?')) {
+                                                                        deleteInboxItem(item.id);
+                                                                    }
+                                                                }}
+                                                                className="p-1.5 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                                title="Delete"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
                                 </div>
-
-                                {!isSelectionMode && !editingId && (
-                                    <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 flex gap-1.5 p-1 bg-white/80 dark:bg-slate-800/80 backdrop-blur-md rounded-xl border border-border-subtle shadow-xl translate-x-2 group-hover:translate-x-0">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); startEditing(item); }}
-                                            className="p-2 text-text-muted hover:text-accent-primary hover:bg-accent-primary/10 rounded-lg transition-colors"
-                                            title="Edit"
-                                        >
-                                            <Pencil size={16} />
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (confirm('Delete this item permanently?')) {
-                                                    deleteInboxItem(item.id);
-                                                }
-                                            }}
-                                            className="p-2 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-                                            title="Delete"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
-                                )}
                             </div>
                         ))}
                     </div>
@@ -321,7 +297,7 @@ export function InboxView() {
 
             {processingItem && (
                 <ProcessItemModal
-                    item={processingItem}
+                    item={processingItem!}
                     onClose={() => setProcessingItem(null)}
                 />
             )}

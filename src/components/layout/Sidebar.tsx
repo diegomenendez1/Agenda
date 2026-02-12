@@ -33,7 +33,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         { icon: Users, label: t.nav.my_team, path: '/my-team' },
         { icon: Calendar, label: t.nav.calendar, path: '/calendar' },
 
-        { icon: BarChart2, label: t.nav.analytics, path: '/kpis' },
+        // { icon: BarChart2, label: t.nav.analytics, path: '/kpis' }, // Hidden for MVP Simplicity
         { icon: StickyNote, label: t.nav.notes, path: '/notes' },
     ];
 

@@ -100,11 +100,11 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
     };
 
     return (
-        <div className="flex h-full gap-6 pb-4 px-2 flex-col overflow-y-auto lg:flex-row lg:overflow-x-auto lg:overflow-y-hidden snap-x snap-mandatory lg:snap-none">
+        <div className="flex h-full gap-4 pb-4 px-2 flex-col overflow-y-auto lg:flex-row lg:overflow-x-auto lg:overflow-y-hidden snap-x snap-mandatory lg:snap-none">
             {COLUMNS.map(col => (
                 <div
                     key={col.id}
-                    className="flex-shrink-0 flex-1 w-full lg:min-w-[320px] lg:max-w-[400px] flex flex-col gap-4 group/column snap-center"
+                    className="flex-shrink-0 flex-1 w-full lg:min-w-[260px] lg:max-w-[450px] flex flex-col gap-4 group/column snap-center"
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, col.id)}
                 >

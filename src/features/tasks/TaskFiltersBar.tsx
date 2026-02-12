@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { clsx } from 'clsx';
-import { ClipboardList, CheckCircle2, Calendar, Lock, Users, X, LayoutList, Table, KanbanSquare, Trash2 } from 'lucide-react';
+import { ClipboardList, CheckCircle2, Calendar, Lock, Users, X, Trash2 } from 'lucide-react';
 import { AvatarMemberFilter } from '../team/AvatarMemberFilter';
 import type { TeamMember, Task, UserProfile, EntityId } from '../../core/types';
 
@@ -11,8 +11,6 @@ interface TaskFiltersBarProps {
     setScopeFilter: (val: 'all' | 'private' | 'shared') => void;
     selectedMemberId: EntityId | null;
     setSelectedMemberId: (val: EntityId | null) => void;
-    viewMode: 'list' | 'board' | 'table';
-    setViewMode: (val: 'list' | 'board' | 'table') => void;
     team: Record<string, TeamMember>;
     hasActiveFilters: boolean;
     clearFilters: () => void;
@@ -25,7 +23,6 @@ export function TaskFiltersBar({
     timeFilter, setTimeFilter,
     scopeFilter, setScopeFilter,
     selectedMemberId, setSelectedMemberId,
-    viewMode, setViewMode,
     team,
     hasActiveFilters,
     clearFilters,
@@ -134,47 +131,6 @@ export function TaskFiltersBar({
                 label=""
             />
 
-            <div className="h-8 w-px bg-border-subtle/50 mx-1" />
-
-            {/* View Toggles */}
-            <div className="flex p-1 bg-bg-input/50 rounded-xl">
-                <button
-                    onClick={() => setViewMode('list')}
-                    className={clsx(
-                        "p-1.5 rounded-lg transition-all duration-200",
-                        viewMode === 'list'
-                            ? "bg-bg-card text-violet-600 shadow-sm"
-                            : "text-text-muted hover:text-text-secondary"
-                    )}
-                    title="List View"
-                >
-                    <LayoutList size={18} />
-                </button>
-                <button
-                    onClick={() => setViewMode('table')}
-                    className={clsx(
-                        "p-1.5 rounded-lg transition-all duration-200",
-                        viewMode === 'table'
-                            ? "bg-bg-card text-violet-600 shadow-sm"
-                            : "text-text-muted hover:text-text-secondary"
-                    )}
-                    title="Table View"
-                >
-                    <Table size={18} />
-                </button>
-                <button
-                    onClick={() => setViewMode('board')}
-                    className={clsx(
-                        "p-1.5 rounded-lg transition-all duration-200",
-                        viewMode === 'board'
-                            ? "bg-bg-card text-violet-600 shadow-sm"
-                            : "text-text-muted hover:text-text-secondary"
-                    )}
-                    title="Kanban Board"
-                >
-                    <KanbanSquare size={18} />
-                </button>
-            </div>
 
             {/* Clear Actions */}
             {(hasClearableTasks || hasActiveFilters) && (

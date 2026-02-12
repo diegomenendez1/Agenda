@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, Flag, ArrowRight, Sparkles, Loader2, Clock, User, Check, Eye, EyeOff, ListTodo } from 'lucide-react';
+import { X, Flag, ArrowRight, Sparkles, Loader2, Clock, User, Check, Eye, EyeOff, ListTodo, Search } from 'lucide-react';
 import { useStore } from '../../core/store';
 import type { InboxItem, Priority } from '../../core/types';
 import clsx from 'clsx';
@@ -61,6 +61,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
     const [isEditingDetails, setIsEditingDetails] = useState(true);
     const [modalError, setModalError] = useState<string | null>(null);
     const [loadingText, setLoadingText] = useState(t.modal.ai_processing);
+    const [assigneeSearch, setAssigneeSearch] = useState('');
 
     useEffect(() => {
         if (!isProcessing) return;
@@ -223,98 +224,79 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="w-full bg-bg-card border border-border-subtle rounded-xl shadow-2xl overflow-hidden flex flex-col max-w-5xl h-[85vh]">
+            <div className="w-full bg-bg-card border border-border-subtle rounded-xl shadow-2xl overflow-hidden flex flex-col max-w-4xl h-[85vh] max-h-[85vh] min-h-0">
                 {/* Header */}
-                <div className="p-6 border-b border-border-subtle flex justify-between items-start bg-bg-surface/50">
+                <div className="px-5 py-4 border-b border-border-subtle flex justify-between items-center bg-bg-surface/50 shrink-0">
                     <div>
-                        <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
-                            <Sparkles className="w-5 h-5 text-violet-500" />
+                        <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
+                            <Sparkles className="w-4 h-4 text-violet-500" />
                             {candidates.length > 1 ? t.modal.select_tasks : t.modal.process_title}
                         </h2>
-                        <p className="text-text-muted text-sm mt-1">
-                            {candidates.length > 1
-                                ? t.modal.ai_found.replace('{n}', candidates.length.toString()) + ` (${candidates.length})`
-                                : t.modal.turn_thought
-                            }
-                        </p>
                     </div>
                     <button
                         onClick={onClose}
-                        className="text-text-muted hover:text-text-primary p-2 hover:bg-bg-surface-hover rounded-lg transition-colors"
+                        className="text-text-muted hover:text-text-primary p-1.5 hover:bg-bg-surface-hover rounded-lg transition-colors"
                     >
-                        <X size={20} />
+                        <X size={18} />
                     </button>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 p-6 overflow-y-auto space-y-6 custom-scrollbar">
+                <div className="flex-1 p-4 overflow-y-auto space-y-3 custom-scrollbar min-h-0">
                     {/* Original Item context */}
-                    <div className="bg-bg-surface p-4 rounded-xl border border-border-subtle/50">
-                        <label className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2 block">
+                    <div className="bg-bg-surface p-3 rounded-lg border border-border-subtle/40">
+                        <label className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1 block">
                             {t.modal.original_input}
                         </label>
-                        <p className="text-text-primary">{item.text}</p>
-                        <div className="mt-2 text-xs text-text-muted flex gap-3">
-                            <span>Source: {item.source}</span>
-                            <span>{format(item.createdAt, 'MMM d, HH:mm')}</span>
-                        </div>
+                        <div className="text-text-primary text-xs max-h-20 overflow-y-auto custom-scrollbar pr-2 whitespace-pre-wrap break-words">{item.text}</div>
                     </div>
 
-                    {/* AI Process Button - Large centered version */}
-                    {/* AI Process Button & Manual Option */}
-                    {/* AI Process Trigger (Optional) */}
-                    {/* AI Process Trigger (Optional) */}
-                    {/* AI Process Button - Large centered version */}
-                    {candidates.length <= 1 && (
-                        <div className="flex flex-col gap-3 py-4">
-                            <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider text-center mb-2">
-                                {t.modal.how_process}
-                            </h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                <button
-                                    type="button"
-                                    onClick={handleReviewOnly}
-                                    disabled={isProcessing}
-                                    className="flex flex-col items-center justify-center gap-2 px-4 py-4 bg-bg-surface border border-border-subtle hover:border-accent-primary/50 hover:bg-accent-primary/5 rounded-xl transition-all group shadow-sm hover:shadow-md"
-                                >
-                                    <div className="w-10 h-10 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                        <Eye size={20} />
-                                    </div>
-                                    <div className="text-center">
-                                        <span className="block text-sm font-bold text-text-primary">{t.modal.review_only}</span>
-                                        <span className="block text-[10px] text-text-muted">{t.modal.review_sub}</span>
-                                    </div>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={handleAutoProcess}
-                                    disabled={isProcessing}
-                                    className="flex flex-col items-center justify-center gap-2 px-4 py-4 bg-bg-surface border border-border-subtle hover:border-violet-500/50 hover:bg-violet-500/5 rounded-xl transition-all group shadow-sm hover:shadow-md"
-                                >
-                                    {isProcessing ? (
-                                        <div className="flex flex-col items-center gap-2">
-                                            <Loader2 className="w-8 h-8 animate-spin text-violet-500" />
-                                            <span className="text-xs text-violet-500 font-medium">{loadingText}</span>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <div className="w-10 h-10 rounded-full bg-violet-500/10 text-violet-500 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                                <Sparkles size={20} />
-                                            </div>
-                                            <div className="text-center">
-                                                <span className="block text-sm font-bold text-text-primary">{t.modal.extract_actions}</span>
-                                                <span className="block text-[10px] text-text-muted">{t.modal.extract_sub}</span>
-                                            </div>
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                            {modalError && (
-                                <div className="text-[10px] text-red-500 font-medium text-center mt-2 animate-in fade-in">
-                                    {modalError}
+                    {candidates.length <= 1 && !showAIPreview && (
+                        <div className="grid grid-cols-2 gap-3 py-2">
+                            <button
+                                type="button"
+                                onClick={handleReviewOnly}
+                                disabled={isProcessing}
+                                className="flex items-center gap-3 px-4 py-3 bg-bg-surface border border-border-subtle hover:border-accent-primary/50 hover:bg-accent-primary/5 rounded-xl transition-all group"
+                            >
+                                <div className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <Eye size={16} />
                                 </div>
-                            )}
+                                <div className="text-left">
+                                    <span className="block text-sm font-bold text-text-primary">{t.modal.review_only}</span>
+                                    <span className="block text-[10px] text-text-muted leading-tight">{t.modal.review_sub}</span>
+                                </div>
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleAutoProcess}
+                                disabled={isProcessing}
+                                className="flex items-center gap-3 px-4 py-3 bg-bg-surface border border-border-subtle hover:border-violet-500/50 hover:bg-violet-500/5 rounded-xl transition-all group"
+                            >
+                                {isProcessing ? (
+                                    <div className="flex items-center gap-2">
+                                        <Loader2 className="w-5 h-5 animate-spin text-violet-500" />
+                                        <span className="text-xs text-violet-500 font-medium">{loadingText}</span>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="w-8 h-8 rounded-full bg-violet-500/10 text-violet-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                            <Sparkles size={16} />
+                                        </div>
+                                        <div className="text-left">
+                                            <span className="block text-sm font-bold text-text-primary">{t.modal.extract_actions}</span>
+                                            <span className="block text-[10px] text-text-muted leading-tight">{t.modal.extract_sub}</span>
+                                        </div>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    )}
+
+                    {modalError && (
+                        <div className="text-[10px] text-red-500 font-medium text-center mt-2 animate-in fade-in">
+                            {modalError}
                         </div>
                     )}
 
@@ -374,76 +356,107 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                     {/* Form View */}
                     {candidates.length <= 1 && (
                         <div className={clsx(
-                            "flex flex-col gap-6 duration-500",
+                            "flex flex-col gap-4 duration-500",
                             isEditingDetails ? "animate-in slide-in-from-right-4" : "animate-in fade-in slide-in-from-bottom-4"
                         )}>
                             {/* Input Title */}
                             <div>
-                                <div className="flex items-center justify-between mb-2">
-                                    <label className="block text-xs uppercase text-text-muted font-bold tracking-wider">{t.modal.labels.title}</label>
-                                    {title !== originalTitle && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setTitle(originalTitle)}
-                                            className="text-[10px] text-accent-primary hover:underline flex items-center gap-1 font-bold"
-                                        >
-                                            <X size={10} /> {t.modal.use_original}
-                                        </button>
-                                    )}
-                                </div>
-                                <input
+                                <textarea
                                     autoFocus
-                                    type="text"
                                     value={title}
-                                    onChange={e => setTitle(e.target.value)}
+                                    onChange={e => {
+                                        setTitle(e.target.value);
+                                        e.target.style.height = 'auto';
+                                        e.target.style.height = e.target.scrollHeight + 'px';
+                                    }}
                                     className={clsx(
-                                        "input w-full text-lg font-medium transition-all",
-                                        showAIPreview && title !== originalTitle && "ring-2 ring-violet-500/20 border-violet-500/30"
+                                        "input w-full text-base font-bold transition-all bg-transparent border-transparent px-0 hover:bg-bg-input hover:px-3 focus:bg-bg-input focus:px-3 focus:border-accent-primary resize-none overflow-y-auto max-h-24",
+                                        showAIPreview && title !== originalTitle && "ring-2 ring-violet-500/20 shadow-lg",
                                     )}
+                                    placeholder={t.modal.labels.title}
+                                    rows={1}
+                                    style={{ minHeight: '38px', height: 'auto' }}
                                 />
                             </div>
 
                             {/* Extra Context */}
                             <div>
-                                <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2">{t.modal.labels.desc}</label>
+                                <label className="block text-[10px] uppercase text-text-muted font-bold tracking-wider mb-1.5">{t.modal.labels.desc}</label>
                                 <textarea
                                     value={context}
                                     onChange={e => setContext(e.target.value)}
-                                    className="input w-full min-h-[80px] text-sm resize-y leading-relaxed"
+                                    className="input w-full min-h-[60px] text-sm resize-y leading-relaxed"
                                     placeholder={t.modal.desc_placeholder}
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-5 animate-in slide-in-from-top-2">
-
-
+                            <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-2">
                                 {/* Due Date */}
-                                <div className="col-span-2 md:col-span-1">
-                                    <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
+                                <div className="col-span-1">
+                                    <label className="block text-[10px] uppercase text-text-muted font-bold tracking-wider mb-1.5 flex items-center gap-2">
                                         <Clock size={12} className="text-accent-secondary" /> {t.modal.labels.due_date.split('&')[0]}
                                     </label>
                                     <input
                                         type="date"
                                         value={dueDate}
                                         onChange={e => setDueDate(e.target.value)}
-                                        className="input w-full"
+                                        className="input w-full py-1.5 text-sm"
                                     />
                                 </div>
 
+                                {/* Priority */}
+                                <div className="col-span-1">
+                                    <label className="block text-[10px] uppercase text-text-muted font-bold tracking-wider mb-1.5 flex items-center gap-2">
+                                        <Flag size={12} className="text-accent-secondary" /> {t.modal.labels.priority}
+                                    </label>
+                                    <div className="flex gap-1">
+                                        {(['critical', 'high', 'medium', 'low'] as Priority[]).map((p) => (
+                                            <button
+                                                key={p}
+                                                type="button"
+                                                onClick={() => setPriority(p)}
+                                                className={clsx(
+                                                    "flex-1 py-1.5 rounded-lg border text-[9px] font-bold uppercase tracking-wider transition-all",
+                                                    priority === p
+                                                        ? p === 'critical' ? "bg-red-100 text-red-700 border-red-200 ring-1 ring-red-500/20" :
+                                                            p === 'high' ? "bg-orange-100 text-orange-700 border-orange-200 ring-1 ring-orange-500/20" :
+                                                                p === 'medium' ? "bg-yellow-100 text-yellow-700 border-yellow-200 ring-1 ring-yellow-500/20" :
+                                                                    "bg-blue-100 text-blue-700 border-blue-200 ring-1 ring-blue-500/20"
+                                                        : "bg-bg-input border-transparent text-text-muted hover:bg-bg-card-hover"
+                                                )}
+                                            >
+                                                {p}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
                                 {/* Share with / Assignee Selector - ALWAYS VISIBLE */}
-                                <div className="col-span-2 animate-in fade-in slide-in-from-top-2">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <label className="block text-xs uppercase text-text-muted font-bold tracking-wider flex items-center gap-2">
+                                <div className="col-span-2 mt-1 animate-in fade-in slide-in-from-top-2">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <label className="block text-[10px] uppercase text-text-muted font-bold tracking-wider flex items-center gap-2">
                                             <User size={12} className="text-accent-secondary" /> {t.modal.labels.share}
                                         </label>
-                                        <div className="text-[10px] text-text-muted italic">
-                                            {assigneeIds.length > 0
-                                                ? <span className="text-accent-primary font-bold flex items-center gap-1"><Eye size={10} /> {t.modal.shared_with_team}</span>
-                                                : <span className="flex items-center gap-1"><EyeOff size={10} /> {t.modal.private_task}</span>}
+                                        <div className="flex items-center gap-2">
+                                            <div className="text-[10px] text-text-muted italic">
+                                                {assigneeIds.length > 0
+                                                    ? <span className="text-accent-primary font-bold flex items-center gap-1"><Eye size={10} /> {t.modal.shared_with_team}</span>
+                                                    : <span className="flex items-center gap-1"><EyeOff size={10} /> {t.modal.private_task}</span>}
+                                            </div>
+                                            <div className="relative group/search">
+                                                <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
+                                                <input
+                                                    type="text"
+                                                    placeholder={t.modal.find_member}
+                                                    value={assigneeSearch}
+                                                    onChange={e => setAssigneeSearch(e.target.value)}
+                                                    className="pl-7 pr-2 py-0.5 bg-bg-surface border border-transparent hover:border-border-subtle rounded-full text-[10px] w-[110px] focus:w-[140px] transition-all focus:border-accent-primary focus:outline-none"
+                                                />
+                                            </div>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
                                         {Object.values(team)
                                             .filter(member => member.id !== user?.id)
                                             .filter(member => {
@@ -452,6 +465,10 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
 
                                                 if (!visibleMemberIds) return true;
                                                 return visibleMemberIds.has(member.id);
+                                            })
+                                            .filter(member => {
+                                                const search = assigneeSearch.toLowerCase();
+                                                return (member.name || '').toLowerCase().includes(search) || (member.email || '').toLowerCase().includes(search);
                                             })
                                             .map(member => {
                                                 const isSelected = assigneeIds.includes(member.id);
@@ -468,56 +485,28 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                                                             );
                                                         }}
                                                         className={clsx(
-                                                            "flex items-center gap-3 p-2 rounded-lg border transition-all text-left group",
+                                                            "flex items-center gap-2 p-1.5 rounded-lg border transition-all text-left",
                                                             isSelected
                                                                 ? "bg-accent-primary/5 border-accent-primary/30 shadow-inner"
                                                                 : "bg-bg-input border-transparent text-text-muted hover:bg-bg-card-hover hover:border-border-subtle"
                                                         )}
                                                     >
                                                         {member.avatar ? (
-                                                            <img src={member.avatar} alt={member.name} className="w-8 h-8 rounded-full border border-border-subtle" />
+                                                            <img src={member.avatar} alt={member.name} className="w-6 h-6 rounded-full border border-border-subtle" />
                                                         ) : (
-                                                            <div className="w-8 h-8 rounded-full bg-accent-secondary/20 flex items-center justify-center text-xs font-bold uppercase text-accent-primary">
+                                                            <div className="w-6 h-6 rounded-full bg-accent-secondary/20 flex items-center justify-center text-[10px] font-bold uppercase text-accent-primary">
                                                                 {(member.name || member.email || '?').charAt(0).toUpperCase()}
                                                             </div>
                                                         )}
                                                         <div className="flex-1 min-w-0">
-                                                            <div className={clsx("text-sm font-medium truncate", isSelected ? "text-accent-primary" : "text-text-primary")}>
+                                                            <div className={clsx("text-xs font-medium truncate", isSelected ? "text-accent-primary" : "text-text-primary")}>
                                                                 {member.name || member.email || 'Unknown User'}
                                                             </div>
-                                                            <div className="text-[10px] opacity-70 truncate text-text-muted">{member.email || 'No email'}</div>
                                                         </div>
-                                                        {isSelected && <div className="w-2 h-2 rounded-full bg-accent-primary shadow-sm shadow-accent-primary/50" />}
+                                                        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-accent-primary shadow-sm shadow-accent-primary/50" />}
                                                     </button>
                                                 );
                                             })}
-                                    </div>
-                                </div>
-
-                                {/* Priority */}
-                                <div className="col-span-2">
-                                    <label className="block text-xs uppercase text-text-muted font-bold tracking-wider mb-2 flex items-center gap-2">
-                                        <Flag size={12} className="text-accent-secondary" /> {t.modal.labels.priority}
-                                    </label>
-                                    <div className="flex gap-2">
-                                        {(['critical', 'high', 'medium', 'low'] as Priority[]).map((p) => (
-                                            <button
-                                                key={p}
-                                                type="button"
-                                                onClick={() => setPriority(p)}
-                                                className={clsx(
-                                                    "flex-1 py-2 rounded-lg border text-xs font-bold uppercase tracking-wider transition-all shadow-sm",
-                                                    priority === p
-                                                        ? p === 'critical' ? "bg-red-600 text-white border-red-700 shadow-red-600/20" :
-                                                            p === 'high' ? "bg-orange-500 text-white border-orange-600 shadow-orange-500/20" :
-                                                                p === 'medium' ? "bg-yellow-500 text-white border-yellow-600 shadow-yellow-500/20" :
-                                                                    "bg-blue-500 text-white border-blue-600 shadow-blue-500/20"
-                                                        : "bg-bg-input border-transparent text-text-muted hover:bg-bg-card-hover hover:text-text-primary"
-                                                )}
-                                            >
-                                                {p}
-                                            </button>
-                                        ))}
                                     </div>
                                 </div>
                             </div>
@@ -527,7 +516,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
 
                 {/* Footer */}
                 {((isEditingDetails && candidates.length <= 1) || candidates.length > 1) && (
-                    <div className="p-6 border-t border-border-subtle bg-bg-app/50 flex items-center justify-between mt-auto">
+                    <div className="px-5 py-4 border-t border-border-subtle bg-bg-app/50 flex items-center justify-between mt-auto shrink-0">
                         <div>
                             {candidates.length > 1 && (
                                 <button

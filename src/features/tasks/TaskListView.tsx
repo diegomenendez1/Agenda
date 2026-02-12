@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../../core/store';
-import { Sparkles, Loader2, Plus, CheckCircle2 } from 'lucide-react';
-import { FocusCard } from '../dashboard/FocusCard';
+import { Sparkles, Loader2, Plus } from 'lucide-react';
 import { KanbanBoard } from './KanbanBoard';
-import { TaskTable } from './TaskTable';
 import { EditTaskModal } from './EditTaskModal';
 import { useSearchParams, useParams } from 'react-router-dom';
 import clsx from 'clsx';
@@ -41,19 +39,6 @@ export function TaskListView() {
         }
     }, [searchParams, pathTaskId, tasks]);
 
-    // Persistent View Mode
-    const viewMode = user?.preferences?.taskViewMode || 'list';
-
-    const handleSetViewMode = (mode: 'list' | 'board' | 'table') => {
-        if (!user) return;
-        useStore.getState().updateUserProfile({
-            ...user,
-            preferences: {
-                ...user.preferences,
-                taskViewMode: mode
-            }
-        });
-    };
 
     const handleAutoPrioritize = async () => {
         try {
@@ -134,8 +119,6 @@ export function TaskListView() {
                         setScopeFilter={setScopeFilter}
                         selectedMemberId={selectedMemberId}
                         setSelectedMemberId={setSelectedMemberId}
-                        viewMode={viewMode}
-                        setViewMode={handleSetViewMode}
                         team={team}
                         hasActiveFilters={hasActiveFilters}
                         clearFilters={clearFilters}
@@ -147,54 +130,9 @@ export function TaskListView() {
             </header>
 
             <div className="flex-1 overflow-y-auto overflow-x-hidden -mr-4 pr-4">
-                {viewMode === 'board' ? (
-                    <div className="h-full overflow-x-auto pb-4">
-                        <KanbanBoard tasks={filteredTasks} />
-                    </div>
-                ) : viewMode === 'table' ? (
-                    <div className="max-w-6xl mx-auto w-full pb-20">
-                        <TaskTable tasks={filteredTasks} onToggleStatus={handleToggleTask} />
-                    </div>
-                ) : filteredTasks.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-64 text-text-muted border-2 border-dashed border-border-subtle rounded-2xl bg-bg-sidebar/50 max-w-5xl mx-auto w-full">
-                        <div className="w-16 h-16 rounded-full bg-bg-input flex items-center justify-center mb-4">
-                            <CheckCircle2 className="w-8 h-8 opacity-20" />
-                        </div>
-                        <p className="font-medium">No tasks found</p>
-                        <p className="text-sm opacity-60 mt-1">Try changing the filter or create a new task.</p>
-                    </div>
-                ) : (
-                    <div className="flex flex-col gap-8 pb-20 max-w-5xl mx-auto w-full animate-enter">
-                        {/* Smart Grouping Logic */}
-                        {(() => {
-                            const now = new Date();
-                            const todayTasks = filteredTasks.filter(t => t.dueDate && (isToday(t.dueDate) || isPast(t.dueDate)) && t.status !== 'done');
-                            const upcomingTasks = filteredTasks.filter(t => t.dueDate && !isToday(t.dueDate) && !isPast(t.dueDate) && t.status !== 'done');
-                            const noDateTasks = filteredTasks.filter(t => !t.dueDate && t.status !== 'done');
-                            const doneTasks = filteredTasks.filter(t => t.status === 'done');
-
-                            const renderGroup = (title: string, groupTasks: typeof filteredTasks) => (
-                                groupTasks.length > 0 && (
-                                    <div className="flex flex-col gap-3">
-                                        <h3 className="text-xs font-semibold text-text-muted uppercase tracking-wider pl-1 mb-1">{title} ({groupTasks.length})</h3>
-                                        {groupTasks.map(task => (
-                                            <FocusCard key={task.id} task={task} onToggleStatus={handleToggleTask} />
-                                        ))}
-                                    </div>
-                                )
-                            );
-
-                            return (
-                                <>
-                                    {renderGroup("Focus Now", todayTasks)}
-                                    {renderGroup("Upcoming", upcomingTasks)}
-                                    {renderGroup("Backlog / No Date", noDateTasks)}
-                                    {renderGroup("Completed", doneTasks)}
-                                </>
-                            );
-                        })()}
-                    </div>
-                )}
+                <div className="h-full overflow-x-auto pb-4">
+                    <KanbanBoard tasks={filteredTasks} />
+                </div>
             </div>
 
             {editingTask && (

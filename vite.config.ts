@@ -8,6 +8,13 @@ export default defineConfig({
     drop: ['console', 'debugger'],
   },
   server: {
-    port: 3000
+    port: 3000,
+    proxy: {
+      '/api/openai': {
+        target: 'https://api.openai.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/openai/, '')
+      }
+    }
   }
 })

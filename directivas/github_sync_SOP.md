@@ -1,53 +1,28 @@
-# DIRECTIVA: GITHUB_SYNC_SOP
+# Sincronización con GitHub (SOP)
 
-> **ID:** 20260211_GITHUB_SYNC
-> **Script Asociado:** N/A (Manual/Direct CLI)
-> **Última Actualización:** 2026-02-11
-> **Estado:** ACTIVO
+## Objetivo
+Mantener el repositorio remoto actualizado con cambios críticos de forma automática y determinista.
 
----
+## Entradas
+- Mensaje de commit descriptivo.
+- Archivos modificados o nuevos.
 
-## 1. Objetivos y Alcance
-*Automatizar la sincronización de cambios críticos con el repositorio remoto de GitHub.*
-- **Objetivo Principal:** Asegurar que el trabajo local esté respaldado y sea accesible enviando commits a GitHub tras cambios significativos.
-- **Criterio de Éxito:** Ejecución exitosa de `git push` sin conflictos.
+## Lógica de Ejecución
+1. Verificar el estado del repositorio local (`git status`).
+2. Añadir los cambios al área de preparación (`git add .`).
+3. Realizar un commit con el mensaje proporcionado (`git commit -m "[Mensaje]"`).
+4. Empujar los cambios a la rama principal (`git push origin main`).
 
-## 2. Especificaciones de Entrada/Salida (I/O)
+## Restricciones / Casos Borde
+- **Error de Conexión:** Si el `push` falla por red, reintentar una vez y, si persiste, notificar al usuario.
+- **Conflictos:** No intentar resolver conflictos automáticamente. Si hay un conflicto al hacer `pull` o `push`, detener la ejecución y pedir intervención manual.
+- **Token/Credenciales:** Se asume que el entorno tiene acceso configurado (SSH o credenciales cacheadas). Si falla por autenticación, no reintentar.
+- **Cambios Críticos:** Se consideran cambios críticos los siguientes:
+    - Finalización de una tarea en `task.md`.
+    - Creación de una nueva funcionalidad principal.
+    - Corrección de bugs críticos tras validación.
+    - Actualización importante de directivas.
 
-### Entradas (Inputs)
-- **Archivos Fuente:** Todos los archivos modificados bajo control de versiones.
-- **Mensaje de Commmit:** Descripción clara del cambio (siguiendo Conventional Commits).
-
-### Salidas (Outputs)
-- **Estado de Git:** Confirmación de `push` exitoso.
-
-## 3. Flujo Lógico (Algoritmo)
-
-1. **Estado:** Verificar archivos modificados con `git status`.
-2. **Adición:** Agregar cambios con `git add .` (evitando archivos en `.gitignore`).
-3. **Commit:** Realizar el commit con un mensaje descriptivo: `git commit -m "tipo: descripción"`.
-4. **Push:** Enviar a la rama actual: `git push origin [branch]`.
-
-## 4. Herramientas y Librerías
-- **Git CLI**
-- **GitHub Auth** (ya configurado en el sistema del usuario).
-
-## 5. Restricciones y Casos Borde (Edge Cases)
-- **Conflictos:** Si hay cambios remotos, realizar `git pull --rebase` antes del push.
-- **Archivos Grandes:** No subir archivos pesados o binarios no necesarios.
-- **Secretos:** NUNCA subir archivos `.env` o credenciales.
-
-## 6. Protocolo de Errores y Aprendizajes (Memoria Viva)
-
-| Fecha | Error Detectado | Causa Raíz | Solución/Parche Aplicado |
-|-------|-----------------|------------|--------------------------|
-| 11/02 | N/A | Inicialización | N/A |
-
-## 8. Checklist de Pre-Ejecución
-- [ ] Revisar cambios con `git status`.
-- [ ] Verificar que no haya secretos expuestos.
-- [ ] Build exitoso (npm run build).
-
-## 9. Checklist Post-Ejecución
-- [ ] Confirmar visualmente en GitHub (si es posible).
-- [ ] Actualizar `task.md`.
+## Instrucciones para el Script
+- El script debe usar `subprocess` para ejecutar los comandos de git.
+- Debe capturar errores y registrarlos en la directiva si es un error nuevo o recurrente.
