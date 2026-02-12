@@ -14,6 +14,8 @@ Mantener el repositorio remoto actualizado con cambios críticos de forma autom�
 4. Empujar los cambios a la rama principal (`git push origin main`).
 
 ## Restricciones / Casos Borde
+- **Entorno sin Python:** Se detectó que la terminal no reconoce los comandos `python` o `py`. En este caso, la sincronización debe realizarse mediante comandos de Git directos (`git add`, `git commit`, `git push`).
+- **Error de Conexión:** Si el `push` falla por red, reintentar una vez y, si persiste, notificar al usuario.
 - **Error de Conexión:** Si el `push` falla por red, reintentar una vez y, si persiste, notificar al usuario.
 - **Conflictos:** No intentar resolver conflictos automáticamente. Si hay un conflicto al hacer `pull` o `push`, detener la ejecución y pedir intervención manual.
 - **Token/Credenciales:** Se asume que el entorno tiene acceso configurado (SSH o credenciales cacheadas). Si falla por autenticación, no reintentar.
