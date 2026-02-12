@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../../core/store';
 import { supabase } from '../../core/supabase';
-import { Sparkles, Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
+import { Sparkles, Mail, Lock, Loader2, ArrowRight, User } from 'lucide-react';
+import { useTranslation } from '../../core/i18n';
 
 
 export function AuthView() {
     const { validateInvitation, acceptInvitation } = useStore();
+    const { t } = useTranslation();
     const [isLogin, setIsLogin] = useState(true);
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
@@ -92,14 +94,14 @@ export function AuthView() {
                     <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-xl shadow-indigo-500/25 mb-5 rotate-3 hover:rotate-6 transition-transform duration-500">
                         <Sparkles className="text-white w-7 h-7" />
                     </div>
-                    <h1 className="text-3xl font-display font-bold tracking-tight text-text-primary mb-2">Welcome Back</h1>
-                    <p className="text-text-muted text-[15px] max-w-[280px]">Enter your credentials to access your Cortex workspace.</p>
+                    <h1 className="text-3xl font-display font-bold tracking-tight text-text-primary mb-2">{t.auth.welcome}</h1>
+                    <p className="text-text-muted text-[15px] max-w-[280px]">{t.auth.subtitle}</p>
                 </div>
 
                 <form onSubmit={handleAuth} className="flex flex-col gap-5">
                     {!isLogin && (
                         <div className="space-y-1.5">
-                            <label className="text-xs font-semibold uppercase tracking-wider text-text-muted ml-0.5">Full Name</label>
+                            <label className="text-xs font-semibold uppercase tracking-wider text-text-muted ml-0.5">{t.auth.name_label}</label>
                             <div className="relative group">
                                 <input
                                     type="text"
@@ -110,14 +112,14 @@ export function AuthView() {
                                     required={!isLogin}
                                 />
                                 <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors">
-                                    <Mail size={18} />
+                                    <User size={18} />
                                 </div>
                             </div>
                         </div>
                     )}
 
                     <div className="space-y-1.5">
-                        <label className="text-xs font-semibold uppercase tracking-wider text-text-muted ml-0.5">Email Address</label>
+                        <label className="text-xs font-semibold uppercase tracking-wider text-text-muted ml-0.5">{t.auth.email_label}</label>
                         <div className="relative group">
                             <input
                                 type="email"
@@ -136,15 +138,15 @@ export function AuthView() {
 
                     <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                            <label className="text-xs font-semibold uppercase tracking-wider text-text-muted ml-0.5">Password</label>
+                            <label className="text-xs font-semibold uppercase tracking-wider text-text-muted ml-0.5">{t.auth.password_label}</label>
                             {isLogin ? (
-                                <a href="#" onClick={(e) => { e.preventDefault(); setIsLogin(false); }} className="text-xs text-text-muted hover:text-accent-primary font-medium hover:underline transition-colors">
-                                    Create an account
-                                </a>
+                                <button type="button" onClick={() => setIsLogin(false)} className="text-xs text-text-muted hover:text-accent-primary font-medium hover:underline transition-colors bg-transparent border-none p-0 cursor-pointer">
+                                    {t.auth.create_account}
+                                </button>
                             ) : (
-                                <a href="#" onClick={(e) => { e.preventDefault(); setIsLogin(true); }} className="text-xs text-text-muted hover:text-accent-primary font-medium hover:underline transition-colors">
-                                    Already have an account?
-                                </a>
+                                <button type="button" onClick={() => setIsLogin(true)} className="text-xs text-text-muted hover:text-accent-primary font-medium hover:underline transition-colors bg-transparent border-none p-0 cursor-pointer">
+                                    {t.auth.already_have_account}
+                                </button>
                             )}
                         </div>
                         <div className="relative group">
@@ -164,7 +166,7 @@ export function AuthView() {
 
                     {error && (
                         <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-sm font-medium flex items-start gap-2 animate-in fade-in slide-in-from-top-2">
-                            <div className="mt-0.5 text-xs font-bold uppercase shrink-0">Error</div>
+                            <div className="mt-0.5 text-xs font-bold uppercase shrink-0">{t.auth.error_title}</div>
                             <div>{error}</div>
                         </div>
                     )}
@@ -179,20 +181,20 @@ export function AuthView() {
                         ) : (
                             <>
                                 <span className="relative z-10 flex items-center justify-center gap-2">
-                                    {isLogin ? 'Sign In' : 'Create Account'} <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                    {isLogin ? t.auth.sign_in : t.auth.create_account} <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                                 </span>
                             </>
                         )}
                     </button>
                 </form>
 
-                <div className="mt-8 text-center">
+                <div className="mt-8 text-center text-xs text-text-muted/60">
                     {/* Public sign-up disabled to enforce Admin-only user creation */}
                 </div>
             </div >
 
             <div className="absolute bottom-6 text-center w-full text-xs text-text-muted font-medium opacity-60">
-                &copy; 2024 Cortex Systems Inc. All rights reserved.
+                &copy; {new Date().getFullYear()} Cortex Systems Inc. All rights reserved.
             </div>
         </div >
     );
