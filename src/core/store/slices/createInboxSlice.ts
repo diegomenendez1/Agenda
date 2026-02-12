@@ -9,7 +9,7 @@ export const createInboxSlice: StoreSlice<InboxSlice> = (set, get) => ({
         // Optimistic
         const userId = get().user?.id;
         const orgId = get().user?.organizationId;
-        const newItem = { id, text, source, processed: false, createdAt: Date.now(), organizationId: orgId };
+        const newItem = { id, text, source, processed: false, createdAt: Date.now(), organizationId: orgId, organization_id: orgId };
 
         set(state => ({ inbox: { ...state.inbox, [id]: newItem as any } }));
 

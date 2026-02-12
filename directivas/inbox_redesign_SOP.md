@@ -36,3 +36,9 @@
 
 ## 6. Memoria Viva (Lecciones Aprendidas)
 - *Nota Inicial:* El diseño de tarjetas original se percibía como "lento" para usuarios pro. La lista debe priorizar el contenido textual por encima de los iconos decorativos grandes.
+
+## 7. Problemas Conocidos y Soluciones Técnicas
+- **Inconsistencia de Datos (snake_case vs camelCase):**
+  - **Síntoma:** Los ítems creados no aparecen hasta recargar.
+  - **Causa:** Supabase devuelve `organization_id`, pero el store optimista usa `organizationId`. `InboxView` filtraba solo por `organization_id`.
+  - **Solución:** `createInboxSlice` debe inyectar ambas propiedades en la actualización optimista, y `InboxView` debe filtrar tolerando ambas.
