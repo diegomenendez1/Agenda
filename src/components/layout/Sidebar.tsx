@@ -7,6 +7,7 @@ import clsx from 'clsx';
 import { useState } from 'react';
 import { PresenceIndicator } from '../PresenceIndicator';
 import { CreateWorkspaceModal } from '../CreateWorkspaceModal';
+import { EditTaskModal } from '../../features/tasks/EditTaskModal'; // Import EditTaskModal
 
 interface SidebarProps {
     isOpen?: boolean;
@@ -20,6 +21,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     const { t } = useTranslation();
     const [collapsed, setCollapsed] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isTaskModalOpen, setIsTaskModalOpen] = useState(false); // New State
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -145,6 +147,25 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                         )}
                     </div>
 
+                    {/* Quick Add Button - Prominent CTA */}
+                    <div className={clsx("px-4 mb-2 mt-4 transition-all duration-300", collapsed && !isOpen ? "px-2" : "")}>
+                        <button
+                            onClick={() => setIsTaskModalOpen(true)}
+                            className={clsx(
+                                "w-full bg-accent-primary hover:brightness-110 text-white font-bold rounded-xl shadow-lg shadow-accent-primary/25 transition-all flex items-center justify-center gap-2 group overflow-hidden relative",
+                                collapsed && !isOpen ? "p-3 rounded-full aspect-square" : "py-3 px-4"
+                            )}
+                            title="Create New Task"
+                        >
+                            <Plus size={20} className="relative z-10" strokeWidth={3} />
+                            {(!collapsed || isOpen) && (
+                                <span className="relative z-10 text-sm tracking-wide">New Task</span>
+                            )}
+                            {/* Shiny effect */}
+                            <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 ease-in-out" />
+                        </button>
+                    </div>
+
                     {/* Nav */}
                     <nav className="flex flex-1 flex-col gap-1 px-3 mt-2 overflow-y-auto custom-scrollbar">
                         {/* ... existing nav mapping ... */}
@@ -255,6 +276,14 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                     isOpen={isCreateModalOpen}
                     onClose={() => setIsCreateModalOpen(false)}
                 />
+
+                {isTaskModalOpen && (
+                    <EditTaskModal
+                        task={{ status: 'todo', priority: 'medium' }}
+                        mode="create"
+                        onClose={() => setIsTaskModalOpen(false)}
+                    />
+                )}
             </aside >
         </>
     );
