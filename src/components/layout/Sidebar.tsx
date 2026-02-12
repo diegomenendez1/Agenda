@@ -16,10 +16,12 @@ interface SidebarProps {
 import { useTranslation } from '../../core/i18n';
 
 export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
-    const { user, myWorkspaces } = useStore();
+    const { user, myWorkspaces, team } = useStore();
     const { t } = useTranslation();
     const [collapsed, setCollapsed] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+
+    const teamMembersCount = Object.keys(team || {}).length;
 
     const handleLogout = async () => {
         await supabase.auth.signOut();
@@ -30,7 +32,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         { icon: LayoutDashboard, label: t.nav.dashboard, path: '/' },
         { icon: Inbox, label: t.nav.inbox, path: '/inbox' },
         { icon: CheckCircle2, label: t.nav.my_tasks, path: '/tasks' },
-        { icon: Users, label: t.nav.my_team, path: '/my-team' },
+        ...(teamMembersCount > 1 ? [{ icon: Users, label: t.nav.my_team, path: '/my-team' }] : []),
         { icon: Calendar, label: t.nav.calendar, path: '/calendar' },
 
         // { icon: BarChart2, label: t.nav.analytics, path: '/kpis' }, // Hidden for MVP Simplicity

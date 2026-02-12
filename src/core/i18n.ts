@@ -7,7 +7,7 @@ const DICTIONARY = {
         nav: {
             dashboard: 'Panel',
             inbox: 'Captura',
-            my_tasks: 'Mis Cosas',
+            my_tasks: 'Pendientes',
             my_team: 'Equipo',
             calendar: 'Calendario',
             analytics: 'Insights',
@@ -19,7 +19,7 @@ const DICTIONARY = {
         },
         // Task Status (Kanban)
         status: {
-            backlog: 'Por Clasificar',
+            backlog: 'Entrada',
             todo: 'Por Hacer',
             in_progress: 'En Progreso',
             review: 'Revisión',
