@@ -7,7 +7,7 @@ const DICTIONARY = {
         nav: {
             dashboard: 'Panel',
             inbox: 'Captura',
-            my_tasks: 'Pendientes',
+            my_tasks: 'Mis Cosas',
             my_team: 'Equipo',
             calendar: 'Calendario',
             analytics: 'Insights',
@@ -19,7 +19,7 @@ const DICTIONARY = {
         },
         // Task Status (Kanban)
         status: {
-            backlog: 'Entrada',
+            backlog: 'Por Clasificar',
             todo: 'Por Hacer',
             in_progress: 'En Progreso',
             review: 'Revisión',
@@ -136,21 +136,6 @@ const DICTIONARY = {
             no_urgent: 'Sin tareas urgentes. ¡Disfruta tu día! ☕',
             go_to_inbox: 'Ir al Inbox',
             review: 'Revisar'
-        },
-        // Auth / Login
-        auth: {
-            welcome: 'Bienvenido',
-            subtitle: 'Ingresa tus datos para continuar a tu espacio.',
-            email_label: 'CORREO ELECTRÓNICO',
-            password_label: 'CONTRASEÑA',
-            name_label: 'NOMBRE COMPLETO',
-            sign_in: 'Entrar',
-            create_account: 'Crear cuenta',
-            already_have_account: '¿Ya tienes cuenta?',
-            forgot_password: 'Olvidé mi contraseña',
-            creating_account: 'Creando cuenta...',
-            signing_in: 'Entrando...',
-            error_title: 'Algo salió mal'
         }
     },
     en: {
@@ -281,20 +266,6 @@ const DICTIONARY = {
             no_urgent: 'No urgent tasks. Enjoy your day! ☕',
             go_to_inbox: 'Go to Inbox',
             review: 'Review'
-        },
-        auth: {
-            welcome: 'Welcome',
-            subtitle: 'Enter your details to continue to your workspace.',
-            email_label: 'EMAIL ADDRESS',
-            password_label: 'PASSWORD',
-            name_label: 'FULL NAME',
-            sign_in: 'Sign In',
-            create_account: 'Create Account',
-            already_have_account: 'Already have an account?',
-            forgot_password: 'Forgot password?',
-            creating_account: 'Creating account...',
-            signing_in: 'Signing in...',
-            error_title: 'Error'
         }
     }
 };

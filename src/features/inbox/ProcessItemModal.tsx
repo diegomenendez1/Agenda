@@ -431,85 +431,84 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                                     </div>
                                 </div>
 
-                                {Object.keys(team || {}).length > 1 && (
-                                    <div className="col-span-2 mt-1 animate-in fade-in slide-in-from-top-2">
-                                        <div className="flex items-center justify-between mb-1.5">
-                                            <label className="block text-[10px] uppercase text-text-muted font-bold tracking-wider flex items-center gap-2">
-                                                <User size={12} className="text-accent-secondary" /> {t.modal.labels.share}
-                                            </label>
-                                            <div className="flex items-center gap-2">
-                                                <div className="text-[10px] text-text-muted italic">
-                                                    {assigneeIds.length > 0
-                                                        ? <span className="text-accent-primary font-bold flex items-center gap-1"><Eye size={10} /> {t.modal.shared_with_team}</span>
-                                                        : <span className="flex items-center gap-1"><EyeOff size={10} /> {t.modal.private_task}</span>}
-                                                </div>
-                                                <div className="relative group/search">
-                                                    <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
-                                                    <input
-                                                        type="text"
-                                                        placeholder={t.modal.find_member}
-                                                        value={assigneeSearch}
-                                                        onChange={e => setAssigneeSearch(e.target.value)}
-                                                        className="pl-7 pr-2 py-0.5 bg-bg-surface border border-transparent hover:border-border-subtle rounded-full text-[10px] w-[110px] focus:w-[140px] transition-all focus:border-accent-primary focus:outline-none"
-                                                    />
-                                                </div>
+                                {/* Share with / Assignee Selector - ALWAYS VISIBLE */}
+                                <div className="col-span-2 mt-1 animate-in fade-in slide-in-from-top-2">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <label className="block text-[10px] uppercase text-text-muted font-bold tracking-wider flex items-center gap-2">
+                                            <User size={12} className="text-accent-secondary" /> {t.modal.labels.share}
+                                        </label>
+                                        <div className="flex items-center gap-2">
+                                            <div className="text-[10px] text-text-muted italic">
+                                                {assigneeIds.length > 0
+                                                    ? <span className="text-accent-primary font-bold flex items-center gap-1"><Eye size={10} /> {t.modal.shared_with_team}</span>
+                                                    : <span className="flex items-center gap-1"><EyeOff size={10} /> {t.modal.private_task}</span>}
+                                            </div>
+                                            <div className="relative group/search">
+                                                <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-text-muted" />
+                                                <input
+                                                    type="text"
+                                                    placeholder={t.modal.find_member}
+                                                    value={assigneeSearch}
+                                                    onChange={e => setAssigneeSearch(e.target.value)}
+                                                    className="pl-7 pr-2 py-0.5 bg-bg-surface border border-transparent hover:border-border-subtle rounded-full text-[10px] w-[110px] focus:w-[140px] transition-all focus:border-accent-primary focus:outline-none"
+                                                />
                                             </div>
                                         </div>
-
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
-                                            {Object.values(team)
-                                                .filter(member => member.id !== user?.id)
-                                                .filter(member => {
-                                                    // Filter out invalid members or ghosts
-                                                    if (!member.email && (!member.name || member.name === 'Unknown' || member.name === 'Unknown User')) return false;
-
-                                                    if (!visibleMemberIds) return true;
-                                                    return visibleMemberIds.has(member.id);
-                                                })
-                                                .filter(member => {
-                                                    const search = assigneeSearch.toLowerCase();
-                                                    return (member.name || '').toLowerCase().includes(search) || (member.email || '').toLowerCase().includes(search);
-                                                })
-                                                .map(member => {
-                                                    const isSelected = assigneeIds.includes(member.id);
-
-                                                    return (
-                                                        <button
-                                                            key={member.id}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setAssigneeIds(prev =>
-                                                                    isSelected
-                                                                        ? prev.filter(id => id !== member.id)
-                                                                        : [...prev, member.id]
-                                                                );
-                                                            }}
-                                                            className={clsx(
-                                                                "flex items-center gap-2 p-1.5 rounded-lg border transition-all text-left",
-                                                                isSelected
-                                                                    ? "bg-accent-primary/5 border-accent-primary/30 shadow-inner"
-                                                                    : "bg-bg-input border-transparent text-text-muted hover:bg-bg-card-hover hover:border-border-subtle"
-                                                            )}
-                                                        >
-                                                            {member.avatar ? (
-                                                                <img src={member.avatar} alt={member.name} className="w-6 h-6 rounded-full border border-border-subtle" />
-                                                            ) : (
-                                                                <div className="w-6 h-6 rounded-full bg-accent-secondary/20 flex items-center justify-center text-[10px] font-bold uppercase text-accent-primary">
-                                                                    {(member.name || member.email || '?').charAt(0).toUpperCase()}
-                                                                </div>
-                                                            )}
-                                                            <div className="flex-1 min-w-0">
-                                                                <div className={clsx("text-xs font-medium truncate", isSelected ? "text-accent-primary" : "text-text-primary")}>
-                                                                    {member.name || member.email || 'Unknown User'}
-                                                                </div>
-                                                            </div>
-                                                            {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-accent-primary shadow-sm shadow-accent-primary/50" />}
-                                                        </button>
-                                                    );
-                                                })}
-                                        </div>
                                     </div>
-                                )}
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-[160px] overflow-y-auto pr-2 custom-scrollbar">
+                                        {Object.values(team)
+                                            .filter(member => member.id !== user?.id)
+                                            .filter(member => {
+                                                // Filter out invalid members or ghosts
+                                                if (!member.email && (!member.name || member.name === 'Unknown' || member.name === 'Unknown User')) return false;
+
+                                                if (!visibleMemberIds) return true;
+                                                return visibleMemberIds.has(member.id);
+                                            })
+                                            .filter(member => {
+                                                const search = assigneeSearch.toLowerCase();
+                                                return (member.name || '').toLowerCase().includes(search) || (member.email || '').toLowerCase().includes(search);
+                                            })
+                                            .map(member => {
+                                                const isSelected = assigneeIds.includes(member.id);
+
+                                                return (
+                                                    <button
+                                                        key={member.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setAssigneeIds(prev =>
+                                                                isSelected
+                                                                    ? prev.filter(id => id !== member.id)
+                                                                    : [...prev, member.id]
+                                                            );
+                                                        }}
+                                                        className={clsx(
+                                                            "flex items-center gap-2 p-1.5 rounded-lg border transition-all text-left",
+                                                            isSelected
+                                                                ? "bg-accent-primary/5 border-accent-primary/30 shadow-inner"
+                                                                : "bg-bg-input border-transparent text-text-muted hover:bg-bg-card-hover hover:border-border-subtle"
+                                                        )}
+                                                    >
+                                                        {member.avatar ? (
+                                                            <img src={member.avatar} alt={member.name} className="w-6 h-6 rounded-full border border-border-subtle" />
+                                                        ) : (
+                                                            <div className="w-6 h-6 rounded-full bg-accent-secondary/20 flex items-center justify-center text-[10px] font-bold uppercase text-accent-primary">
+                                                                {(member.name || member.email || '?').charAt(0).toUpperCase()}
+                                                            </div>
+                                                        )}
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className={clsx("text-xs font-medium truncate", isSelected ? "text-accent-primary" : "text-text-primary")}>
+                                                                {member.name || member.email || 'Unknown User'}
+                                                            </div>
+                                                        </div>
+                                                        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-accent-primary shadow-sm shadow-accent-primary/50" />}
+                                                    </button>
+                                                );
+                                            })}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}

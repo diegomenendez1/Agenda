@@ -1,13 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../../core/store';
 import { supabase } from '../../core/supabase';
-import { Sparkles, Mail, Lock, Loader2, ArrowRight, User } from 'lucide-react';
-import { useTranslation } from '../../core/i18n';
-
+import { Sparkles, Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
 
 export function AuthView() {
     const { validateInvitation, acceptInvitation } = useStore();
-    const { t } = useTranslation();
     const [isLogin, setIsLogin] = useState(true);
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
@@ -82,120 +79,119 @@ export function AuthView() {
     };
 
     return (
-        <div className="min-h-screen w-full flex items-center justify-center bg-bg-app relative overflow-hidden selection:bg-accent-primary/20 selection:text-accent-primary">
-            {/* Extended Background Effects */}
-            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+        <div className="min-h-screen w-full flex items-center justify-center bg-bg-app relative overflow-hidden">
+            {/* Subtle Textured Background - Matching App Cleanliness */}
+            <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-40 pointer-events-none" />
 
-            <div className="absolute -top-32 -left-32 w-[600px] h-[600px] bg-accent-primary/10 rounded-full blur-[120px] pointer-events-none opacity-60 animate-pulse" />
-            <div className="absolute bottom-0 right-0 w-[800px] h-[800px] bg-indigo-500/5 rounded-full blur-[140px] pointer-events-none" />
-
-            <div className="w-full max-w-[420px] p-8 md:p-10 glass-panel rounded-3xl relative z-10 animate-in fade-in zoom-in-95 duration-700 slide-in-from-bottom-4 shadow-2xl ring-1 ring-white/40 dark:ring-white/5">
-                <div className="flex flex-col items-center mb-8 text-center">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-xl shadow-indigo-500/25 mb-5 rotate-3 hover:rotate-6 transition-transform duration-500">
-                        <Sparkles className="text-white w-7 h-7" />
+            <div className="w-full max-w-[400px] p-8 md:p-10 bg-bg-card border border-border-subtle rounded-2xl shadow-xl relative z-10 animate-in fade-in zoom-in-95 duration-500">
+                <div className="flex flex-col items-center mb-10 text-center">
+                    <div className="w-12 h-12 rounded-xl bg-accent-primary/10 flex items-center justify-center mb-4">
+                        <Sparkles className="text-accent-primary w-6 h-6" />
                     </div>
-                    <h1 className="text-3xl font-display font-bold tracking-tight text-text-primary mb-2">{t.auth.welcome}</h1>
-                    <p className="text-text-muted text-[15px] max-w-[280px]">{t.auth.subtitle}</p>
+                    <h1 className="text-2xl font-display font-bold text-text-primary mb-2">
+                        {isLogin ? 'Welcome Back' : 'Create Account'}
+                    </h1>
+                    <p className="text-text-secondary text-sm">
+                        Enter your credentials to access your workspace.
+                    </p>
                 </div>
 
                 <form onSubmit={handleAuth} className="flex flex-col gap-5">
                     {!isLogin && (
                         <div className="space-y-1.5">
-                            <label className="text-xs font-semibold uppercase tracking-wider text-text-muted ml-0.5">{t.auth.name_label}</label>
+                            <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide ml-1">Full Name</label>
                             <div className="relative group">
                                 <input
                                     type="text"
                                     value={fullName}
                                     onChange={(e) => setFullName(e.target.value)}
-                                    className="input pl-11 py-3"
+                                    className="input pl-11"
                                     placeholder="Jane Doe"
                                     required={!isLogin}
                                 />
-                                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors">
-                                    <User size={18} />
+                                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors">
+                                    <Mail size={16} />
                                 </div>
                             </div>
                         </div>
                     )}
 
                     <div className="space-y-1.5">
-                        <label className="text-xs font-semibold uppercase tracking-wider text-text-muted ml-0.5">{t.auth.email_label}</label>
+                        <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide ml-1">Email Address</label>
                         <div className="relative group">
                             <input
                                 type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="input pl-11 py-3"
+                                className="input pl-11"
                                 placeholder="name@company.com"
                                 required
                                 disabled={isInviteValid}
                             />
-                            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors">
-                                <Mail size={18} />
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors">
+                                <Mail size={16} />
                             </div>
                         </div>
                     </div>
 
                     <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                            <label className="text-xs font-semibold uppercase tracking-wider text-text-muted ml-0.5">{t.auth.password_label}</label>
-                            {isLogin ? (
-                                <button type="button" onClick={() => setIsLogin(false)} className="text-xs text-text-muted hover:text-accent-primary font-medium hover:underline transition-colors bg-transparent border-none p-0 cursor-pointer">
-                                    {t.auth.create_account}
-                                </button>
-                            ) : (
-                                <button type="button" onClick={() => setIsLogin(true)} className="text-xs text-text-muted hover:text-accent-primary font-medium hover:underline transition-colors bg-transparent border-none p-0 cursor-pointer">
-                                    {t.auth.already_have_account}
-                                </button>
-                            )}
+                            <label className="text-xs font-semibold text-text-secondary uppercase tracking-wide ml-1">Password</label>
                         </div>
                         <div className="relative group">
                             <input
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="input pl-11 py-3"
+                                className="input pl-11"
                                 placeholder="••••••••"
                                 required
                             />
-                            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors">
-                                <Lock size={18} />
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-accent-primary transition-colors">
+                                <Lock size={16} />
                             </div>
                         </div>
                     </div>
 
                     {error && (
-                        <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-600 dark:text-red-400 text-sm font-medium flex items-start gap-2 animate-in fade-in slide-in-from-top-2">
-                            <div className="mt-0.5 text-xs font-bold uppercase shrink-0">{t.auth.error_title}</div>
-                            <div>{error}</div>
+                        <div className="p-3 rounded-lg bg-red-50 text-red-600 border border-red-100 text-sm font-medium flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+                            <div className="w-1 h-4 bg-red-500 rounded-full" />
+                            {error}
                         </div>
                     )}
 
                     <button
                         type="submit"
                         disabled={loading}
-                        className="btn btn-primary w-full py-3.5 mt-2 text-[15px] font-semibold tracking-wide relative overflow-hidden group rounded-xl shadow-lg shadow-accent-primary/25 hover:shadow-accent-primary/40 transition-all"
+                        className="btn btn-primary w-full py-3 mt-2 rounded-lg justify-center group"
                     >
                         {loading ? (
-                            <Loader2 className="animate-spin" />
+                            <Loader2 className="animate-spin" size={20} />
                         ) : (
                             <>
-                                <span className="relative z-10 flex items-center justify-center gap-2">
-                                    {isLogin ? t.auth.sign_in : t.auth.create_account} <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                                </span>
+                                {isLogin ? 'Sign In' : 'Create Account'}
+                                <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
                             </>
                         )}
                     </button>
                 </form>
 
-                <div className="mt-8 text-center text-xs text-text-muted/60">
-                    {/* Public sign-up disabled to enforce Admin-only user creation */}
+                <div className="mt-8 text-center border-t border-border-subtle pt-6">
+                    <p className="text-sm text-text-muted">
+                        {isLogin ? "Don't have an account? " : "Already have an account? "}
+                        <button
+                            onClick={() => { setIsLogin(!isLogin); setError(null); }}
+                            className="text-accent-primary hover:text-accent-secondary font-semibold hover:underline transition-all"
+                        >
+                            {isLogin ? 'Sign up' : 'Sign in'}
+                        </button>
+                    </p>
                 </div>
-            </div >
-
-            <div className="absolute bottom-6 text-center w-full text-xs text-text-muted font-medium opacity-60">
-                &copy; {new Date().getFullYear()} Cortex Systems Inc. All rights reserved.
             </div>
-        </div >
+
+            <div className="absolute bottom-6 text-center w-full text-xs text-text-muted opacity-50">
+                &copy; {new Date().getFullYear()} Cortex Systems. All rights reserved.
+            </div>
+        </div>
     );
 }
