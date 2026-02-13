@@ -4,6 +4,7 @@ import { Inbox, Mail, User, CheckCircle2, Trash2, Pencil, CheckSquare, Square, X
 import { format } from 'date-fns';
 import { ProcessItemModal } from './ProcessItemModal';
 import { SmartInput } from '../../components/SmartInput';
+import { ModuleHeader } from '../../components/layout/ModuleHeader';
 import type { InboxItem } from '../../core/types';
 import clsx from 'clsx';
 
@@ -78,57 +79,40 @@ export function InboxView() {
         .sort((a, b) => b.createdAt - a.createdAt);
 
     return (
-        <div id="inbox-view" className="flex flex-col h-full w-full max-w-[1600px] mx-auto p-6 md:p-10 transition-all duration-300 relative">
+        <div id="inbox-view" className="flex flex-col h-full w-full max-w-[1600px] mx-auto p-6 md:p-6 md:pt-6 transition-all duration-300 relative">
             {/* Header Section */}
-            <div className="mb-12 animate-enter">
-                <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-border-subtle pb-8">
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-2xl bg-accent-primary/10 flex items-center justify-center shadow-lg shadow-accent-primary/5">
-                                <Inbox className="w-7 h-7 text-accent-primary" />
-                            </div>
-                            <div>
-                                <h1 className="text-3xl md:text-4xl font-display font-bold tracking-tight">
-                                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-indigo-600">
-                                        Inbox
-                                    </span>
-                                </h1>
-                                <p className="text-text-muted text-base font-normal">
-                                    Quick capture for everything on your mind.
-                                </p>
-                            </div>
+            <ModuleHeader
+                icon={Inbox}
+                title="Inbox"
+                subtitle="Quick capture for everything on your mind."
+                actions={
+                    inboxItems.length > 0 && (
+                        <button
+                            onClick={() => setIsSelectionMode(!isSelectionMode)}
+                            className={clsx(
+                                "flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all border shadow-sm active:scale-95",
+                                isSelectionMode
+                                    ? "bg-accent-primary text-white border-transparent"
+                                    : "bg-bg-card text-text-secondary border-border-subtle hover:bg-bg-card-hover hover:border-border-highlight"
+                            )}
+                        >
+                            {isSelectionMode ? <CheckSquare size={18} /> : <Square size={18} />}
+                            {isSelectionMode ? "Done Selecting" : "Bulk Action"}
+                        </button>
+                    )
+                }
+            />
+
+            {!isSelectionMode && (
+                <div className="w-full max-w-2xl mx-auto">
+                    <div className="relative group">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-violet-600/20 to-indigo-600/20 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+                        <div className="relative">
+                            <SmartInput onCapture={handleCapture} />
                         </div>
                     </div>
-
-                    <div className="flex items-center gap-3">
-                        {inboxItems.length > 0 && (
-                            <button
-                                onClick={() => setIsSelectionMode(!isSelectionMode)}
-                                className={clsx(
-                                    "flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all border shadow-sm active:scale-95",
-                                    isSelectionMode
-                                        ? "bg-accent-primary text-white border-transparent"
-                                        : "bg-bg-card text-text-secondary border-border-subtle hover:bg-bg-card-hover hover:border-border-highlight"
-                                )}
-                            >
-                                {isSelectionMode ? <CheckSquare size={18} /> : <Square size={18} />}
-                                {isSelectionMode ? "Done Selecting" : "Bulk Action"}
-                            </button>
-                        )}
-                    </div>
-                </header>
-
-                {!isSelectionMode && (
-                    <div className="w-full max-w-2xl mx-auto">
-                        <div className="relative group">
-                            <div className="absolute -inset-1 bg-gradient-to-r from-violet-600/20 to-indigo-600/20 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
-                            <div className="relative">
-                                <SmartInput onCapture={handleCapture} />
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
+                </div>
+            )}
 
             {/* List Section */}
             <div className="flex-1 overflow-y-auto pb-32 custom-scrollbar">
@@ -264,44 +248,48 @@ export function InboxView() {
             </div>
 
             {/* Bulk Actions Bar */}
-            {isSelectionMode && (
-                <div className="fixed bottom-12 left-1/2 -translate-x-1/2 w-[calc(100%-4rem)] max-w-lg z-50 animate-in slide-in-from-bottom-5 duration-500">
-                    <div className="bg-slate-900/95 dark:bg-white/95 text-white dark:text-slate-900 rounded-2xl p-4 shadow-2xl flex items-center justify-between border border-white/10 dark:border-black/5 backdrop-blur-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-white dark:via-slate-50 dark:to-white">
-                        <div className="flex items-center gap-4">
-                            <button
-                                onClick={clearSelection}
-                                className="p-2.5 hover:bg-white/10 dark:hover:bg-black/10 rounded-xl transition-colors"
-                            >
-                                <X size={20} />
-                            </button>
-                            <div className="flex flex-col">
-                                <span className="text-sm font-bold">{selectedIds.size} Selected</span>
+            {
+                isSelectionMode && (
+                    <div className="fixed bottom-12 left-1/2 -translate-x-1/2 w-[calc(100%-4rem)] max-w-lg z-50 animate-in slide-in-from-bottom-5 duration-500">
+                        <div className="bg-slate-900/95 dark:bg-white/95 text-white dark:text-slate-900 rounded-2xl p-4 shadow-2xl flex items-center justify-between border border-white/10 dark:border-black/5 backdrop-blur-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-white dark:via-slate-50 dark:to-white">
+                            <div className="flex items-center gap-4">
                                 <button
-                                    onClick={toggleAll}
-                                    className="text-[10px] uppercase tracking-widest font-black opacity-60 hover:opacity-100 text-left transition-opacity"
+                                    onClick={clearSelection}
+                                    className="p-2.5 hover:bg-white/10 dark:hover:bg-black/10 rounded-xl transition-colors"
                                 >
-                                    {selectedIds.size === inboxItems.length ? "Deselect All" : "Select All"}
+                                    <X size={20} />
                                 </button>
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-bold">{selectedIds.size} Selected</span>
+                                    <button
+                                        onClick={toggleAll}
+                                        className="text-[10px] uppercase tracking-widest font-black opacity-60 hover:opacity-100 text-left transition-opacity"
+                                    >
+                                        {selectedIds.size === inboxItems.length ? "Deselect All" : "Select All"}
+                                    </button>
+                                </div>
                             </div>
+
+                            <button
+                                onClick={handleBulkDelete}
+                                disabled={selectedIds.size === 0}
+                                className="bg-red-500 hover:bg-red-600 text-white flex items-center gap-2 py-3 px-6 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:grayscale shadow-lg shadow-red-500/30 active:scale-95"
+                            >
+                                <Trash2 size={18} /> Delete Selected
+                            </button>
                         </div>
-
-                        <button
-                            onClick={handleBulkDelete}
-                            disabled={selectedIds.size === 0}
-                            className="bg-red-500 hover:bg-red-600 text-white flex items-center gap-2 py-3 px-6 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:grayscale shadow-lg shadow-red-500/30 active:scale-95"
-                        >
-                            <Trash2 size={18} /> Delete Selected
-                        </button>
                     </div>
-                </div>
-            )}
+                )
+            }
 
-            {processingItem && (
-                <ProcessItemModal
-                    item={processingItem!}
-                    onClose={() => setProcessingItem(null)}
-                />
-            )}
-        </div>
+            {
+                processingItem && (
+                    <ProcessItemModal
+                        item={processingItem!}
+                        onClose={() => setProcessingItem(null)}
+                    />
+                )
+            }
+        </div >
     );
 }

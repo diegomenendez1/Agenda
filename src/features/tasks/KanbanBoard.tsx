@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useStore } from '../../core/store';
 import type { TaskStatus, Task } from '../../core/types';
 import { clsx } from 'clsx';
-import { MoreHorizontal, Calendar, CheckCircle2, Lock, Flag, Clock, X, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Calendar, CheckCircle2, Lock, Flag, Clock, X, Trash2, ListChecks, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
 import { EditTaskModal } from './EditTaskModal';
 
@@ -99,12 +99,40 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
         }
     };
 
+    if (tasksToUse.length === 0) {
+        return (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 bg-bg-card/30 rounded-[2.5rem] border-2 border-dashed border-border-subtle/50 min-h-[400px] animate-enter">
+                <div className="w-24 h-24 bg-gradient-to-br from-violet-100 to-indigo-100 rounded-3xl flex items-center justify-center mb-8 shadow-inner shadow-indigo-500/5">
+                    <ListChecks className="w-12 h-12 text-indigo-500 opacity-60" />
+                </div>
+                <h3 className="text-2xl font-display font-bold text-text-primary mb-3 text-center">
+                    Tus tareas aparecerán aquí
+                </h3>
+                <p className="text-text-muted text-center max-w-sm mb-10 leading-relaxed font-medium">
+                    Parece que tu tablero está vacío. Empieza capturando ideas en el Inbox o crea tu primera tarea ahora mismo.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                    <button
+                        onClick={() => window.location.hash = '/inbox'}
+                        className="px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold shadow-lg shadow-indigo-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                    >
+                        <Calendar size={18} />
+                        Ir al Inbox
+                    </button>
+                </div>
+                <div className="mt-12 flex items-center gap-3 text-xs font-bold text-text-muted/40 uppercase tracking-widest">
+                    <span>Protip: Usa el tour para aprender a procesar</span>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="flex h-full gap-4 pb-4 px-2 flex-col overflow-y-auto lg:flex-row lg:overflow-x-auto lg:overflow-y-hidden snap-x snap-mandatory lg:snap-none">
             {COLUMNS.map(col => (
                 <div
                     key={col.id}
-                    className="flex-shrink-0 flex-1 w-full lg:min-w-[260px] lg:max-w-[450px] flex flex-col gap-4 group/column snap-center"
+                    className="flex-1 lg:min-w-[190px] flex flex-col gap-4 group/column snap-center"
                     onDragOver={handleDragOver}
                     onDrop={(e) => handleDrop(e, col.id)}
                 >

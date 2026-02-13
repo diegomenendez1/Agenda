@@ -27,9 +27,9 @@ export const calculateNextDueDate = (
         const d = new Date(baseTimestamp);
 
         // Extract UTC components (Floating Date interpretation)
-        let year = d.getUTCFullYear();
-        let month = d.getUTCMonth();
-        let day = d.getUTCDate();
+        const year = d.getUTCFullYear();
+        const month = d.getUTCMonth();
+        const day = d.getUTCDate();
 
         // Perform calculation manually or via lightweight logic to avoid date-fns Local conversion issues
         // OR: Construct a "UTC Date" object, use date-fns (which uses setMonth/getDate), then read back?

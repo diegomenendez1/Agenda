@@ -4,7 +4,7 @@ export const tourSteps: DriveStep[] = [
     {
         popover: {
             title: '¡Bienvenido a Agenda!',
-            description: 'Tu nuevo centro de control para la productividad. ¿Empezamos?',
+            description: 'Tu nuevo centro de control de alto rendimiento. Diseñado para que nada se escape y todo se ejecute. ¿Empezamos?',
             side: "over",
             align: 'center'
         }
@@ -12,8 +12,8 @@ export const tourSteps: DriveStep[] = [
     {
         element: '#nav-dashboard',
         popover: {
-            title: 'Panel Principal',
-            description: 'Tu visión global: indicadores clave, actividad reciente y tus tareas prioritarias.',
+            title: 'Tu Panel de Mando',
+            description: 'Aquí es donde vive tu enfoque. Verás tus métricas clave y lo que requiere tu atención inmediata.',
             side: "right",
             align: 'start'
         },
@@ -22,8 +22,8 @@ export const tourSteps: DriveStep[] = [
     {
         element: '#dashboard-view',
         popover: {
-            title: 'Analiza tu Día',
-            description: 'Aquí verás un resumen inteligente de lo que requiere tu atención inmediata.',
+            title: 'Visión de 360°',
+            description: 'Un resumen inteligente. Menos ruido, más claridad sobre tus objetivos del día.',
             side: "top",
             align: 'center'
         }
@@ -31,8 +31,8 @@ export const tourSteps: DriveStep[] = [
     {
         element: '#nav-inbox',
         popover: {
-            title: 'Captura Rápida',
-            description: 'La clave de la productividad es sacar las ideas de tu cabeza. Usa el Inbox para capturar todo sin fricción.',
+            title: 'Captura sin Fricciones',
+            description: 'El Inbox es tu descarga mental instantánea. Escribe ideas rápidas o pega textos largos para procesar después.',
             side: "right",
             align: 'start'
         },
@@ -41,8 +41,8 @@ export const tourSteps: DriveStep[] = [
     {
         element: '#first-inbox-item',
         popover: {
-            title: 'Procesamiento',
-            description: 'Haz clic en una captura para procesarla. Vamos a ver cómo funciona la herramienta de procesamiento...',
+            title: 'El Poder de la IA',
+            description: 'Procesar es transformar ideas en acciones. Nuestra IA extraerá tareas, fechas y prioridades por ti.',
             side: "top",
             align: 'center'
         },
@@ -53,8 +53,8 @@ export const tourSteps: DriveStep[] = [
     {
         element: '#process-item-modal',
         popover: {
-            title: 'Herramienta de Procesado',
-            description: 'Aquí ocurre la magia. Nuestra IA analiza el texto y te sugiere títulos, fechas y prioridades. Puedes convertir una captura en una tarea estructurada con un solo clic.',
+            title: 'Procesador Inteligente',
+            description: 'Analiza, categoriza y delega en segundos. De un solo párrafo puedes extraer un plan de acción completo.',
             side: "over",
             align: 'center'
         }
@@ -62,13 +62,12 @@ export const tourSteps: DriveStep[] = [
     {
         element: '#nav-tasks',
         popover: {
-            title: 'Gestor de Tareas',
-            description: 'Donde la planificación se convierte en ejecución.',
+            title: 'Gestor de Ejecución',
+            description: 'Donde los planes se convierten en realidad. Tu tablero Kanban visual para dominar el flujo.',
             side: "right",
             align: 'start'
         },
         onHighlightStarted: (el) => {
-            // Close modal if open before moving to tasks
             const closeBtn = document.querySelector('#process-item-modal button') as HTMLElement;
             if (closeBtn) closeBtn.click();
             if (el) (el as HTMLElement).click();
@@ -77,8 +76,8 @@ export const tourSteps: DriveStep[] = [
     {
         element: '#smart-sort-btn',
         popover: {
-            title: 'Smart Sort (IA)',
-            description: 'Nuestra IA analiza dependencias y plazos para ordenarte el tablero de forma óptima.',
+            title: 'Smart Sort (Orden Inteligente)',
+            description: 'Deja que la IA calcule por ti el orden óptimo basado en plazos, importancia y dependencias.',
             side: "bottom",
             align: 'center'
         }
@@ -86,16 +85,8 @@ export const tourSteps: DriveStep[] = [
     {
         element: '#tasks-view',
         popover: {
-            title: 'Flujo de Trabajo',
-            description: `
-                Mueve tus tareas entre columnas para reflejar su estado actual. ¡Es tan simple como arrastrar!
-                <div class="kanban-demo-container">
-                    <div class="kanban-demo-col">TODO</div>
-                    <div class="kanban-demo-col">IN PROGRESS</div>
-                    <div class="kanban-demo-card"></div>
-                    <div class="kanban-demo-hand"></div>
-                </div>
-            `,
+            title: 'Flujo Visual',
+            description: 'Arrastra y suelta tareas para actualizar su progreso. Intuitivo, rápido y eficiente.',
             side: "top",
             align: 'center'
         }
@@ -103,8 +94,8 @@ export const tourSteps: DriveStep[] = [
     {
         element: '#nav-my-team',
         popover: {
-            title: 'Equipo',
-            description: 'Colabora, delega y supervisa la carga de trabajo de tu organización.',
+            title: 'Colaboración en Vivo',
+            description: 'Supervisa el rendimiento de tu equipo y delega responsabilidades con un solo clic.',
             side: "right",
             align: 'start'
         },
@@ -113,8 +104,8 @@ export const tourSteps: DriveStep[] = [
     {
         element: '#nav-calendar',
         popover: {
-            title: 'Calendario',
-            description: 'Bloquea tiempo para lo que realmente importa.',
+            title: 'Enfoque Temporal',
+            description: 'Bloquea tiempo de calidad para tus tareas críticas. Una agenda visual para una mente tranquila.',
             side: "right",
             align: 'start'
         },
@@ -123,8 +114,8 @@ export const tourSteps: DriveStep[] = [
     {
         element: '#help-tour-btn',
         popover: {
-            title: '¿Dudas?',
-            description: 'Reinicia este tour en cualquier momento desde aquí. ¡Buena suerte!',
+            title: 'Asistencia Continua',
+            description: '¿Necesitas un repaso? Reinicia este tour siempre que quieras desde aquí.',
             side: "top",
             align: 'center'
         }
@@ -132,7 +123,7 @@ export const tourSteps: DriveStep[] = [
     {
         popover: {
             title: '¡Agenda Dominada!',
-            description: 'Estás listo para llevar tu productividad al siguiente nivel.',
+            description: 'Estás listo para alcanzar el máximo rendimiento. ¡A por ello!',
             side: "over",
             align: 'center'
         },

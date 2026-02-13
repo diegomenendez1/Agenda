@@ -97,7 +97,6 @@ export const createAuthSlice: StoreSlice<AuthSlice> = (set, get) => ({
                         avatar: user.user_metadata?.avatar_url,
                         role: currentUser?.role || 'member',
                         preferences: {
-                            theme: 'light',
                             autoPrioritize: true,
                             ...(currentUser?.preferences || {})
                         },
@@ -144,7 +143,7 @@ export const createAuthSlice: StoreSlice<AuthSlice> = (set, get) => ({
             }
 
             // Fetch All Data (Optimized with Time-Window Sync and Organization Multi-tenancy)
-            let activeOrgId = profile?.organization_id;
+            const activeOrgId = profile?.organization_id;
 
             // AUTO-RECOVERY
             if (!activeOrgId && get().myWorkspaces.length > 0) {

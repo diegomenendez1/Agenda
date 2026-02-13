@@ -66,8 +66,14 @@ export function NotesView() {
 
                 <div className="flex-1 overflow-y-auto p-3 hover:custom-scrollbar">
                     {notesList.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-40 text-text-muted text-sm italic opacity-60">
-                            No notes found.
+                        <div className="flex flex-col items-center justify-center py-20 px-4 text-center animate-in fade-in zoom-in duration-500">
+                            <div className="w-16 h-16 bg-bg-app rounded-2xl flex items-center justify-center text-text-muted mb-6 shadow-inner">
+                                <Search size={24} className="opacity-20" />
+                            </div>
+                            <h3 className="text-sm font-bold text-text-primary mb-1">No notes yet</h3>
+                            <p className="text-xs text-text-muted max-w-[180px] leading-relaxed">
+                                Start capturing your thoughts and ideas.
+                            </p>
                         </div>
                     ) : (
                         <ul className="flex flex-col gap-1.5">

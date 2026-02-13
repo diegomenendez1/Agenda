@@ -77,51 +77,6 @@
   --font-display: 'Outfit', system-ui, -apple-system, sans-serif;
 }
 
-.dark {
-  /* Dark Mode - Deep Slate */
-  --bg-app: #020617;
-  /* Slate 950 */
-  --bg-sidebar: #0F172A;
-  /* Slate 900 */
-  --bg-card: #1E293B;
-  /* Slate 800 */
-  --bg-card-hover: #334155;
-  /* Slate 700 */
-  --bg-input: #1E293B;
-
-  --text-primary: #F8FAFC;
-  /* Slate 50 */
-  --text-secondary: #CBD5E1;
-  /* Slate 300 */
-  --text-muted: #64748B;
-  /* Slate 500 */
-
-  --border-subtle: #1E293B;
-  --border-highlight: #334155;
-
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.5);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.3);
-  --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.5), 0 10px 10px -5px rgb(0 0 0 / 0.3);
-  --shadow-glow: 0 0 30px rgba(99, 102, 241, 0.25);
-
-  --accent-primary: #818CF8;
-  /* Indigo 400 */
-  --accent-secondary: #60A5FA;
-  /* Blue 400 */
-
-
-  /* Dark Badge Backgrounds */
-  --bg-badge-critical: #7F1D1D;
-  --text-badge-critical: #FECACA;
-  --bg-badge-high: #7C2D12;
-  --text-badge-high: #FED7AA;
-  --bg-badge-medium: #713F12;
-  --text-badge-medium: #FEF08A;
-  --bg-badge-low: #1E3A8A;
-  --text-badge-low: #BFDBFE;
-  --bg-badge-success: #064E3B;
-  --text-badge-success: #A7F3D0;
-}
 
 body {
   font-family: var(--font-sans);

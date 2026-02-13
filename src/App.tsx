@@ -49,11 +49,6 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, [initialize]);
 
-  useEffect(() => {
-    // Force light mode
-    document.documentElement.classList.remove('dark');
-  }, []);
-
 
   if (loading) {
     return (

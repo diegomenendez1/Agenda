@@ -52,7 +52,6 @@ export function AuthView() {
                             full_name: fullName,
                             avatar_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=random`,
                             preferences: {
-                                theme: 'light',
                                 autoPrioritize: true
                             }
                         },

@@ -82,13 +82,13 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
     }, [aiLoading]);
 
     const handleAutoProcess = async () => {
-        if (!task.id) return; // Cannot process without ID
+        if (!title.trim()) return; // Requerir algo de texto para procesar
         setAiLoading(true);
         try {
             if (!user?.id) throw new Error("User not found");
 
             // Use Client Service instead of N8N
-            const results = await processTaskInputWithAI(user.id, task.title || '', {
+            const results = await processTaskInputWithAI(user.id, title, {
                 organizationId: user.organizationId,
                 userRoleContext: user.preferences?.aiContext,
                 appLanguage: user.preferences?.appLanguage
@@ -343,7 +343,7 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                 )}
 
                                 {/* AI Process Button */}
-                                {!task.title && (
+                                {title.length > 5 && (
                                     <div className="flex justify-center py-4">
                                         <button
                                             type="button"

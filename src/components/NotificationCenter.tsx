@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, Check, Clock, User, MessageSquare, AlertCircle, X, Trash2, XCircle } from 'lucide-react';
 import { useStore } from '../core/store';
@@ -12,6 +12,7 @@ export function NotificationCenter() {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
+    const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
     const navigate = useNavigate();
 
     // Mark as read when opened
@@ -21,6 +22,16 @@ export function NotificationCenter() {
             // Commercial apps often mark as read when you see them.
             // Let's mark all as read when opened to clear the dot.
             markAllNotificationsRead();
+        }
+    }, [isOpen]);
+
+    useLayoutEffect(() => {
+        if (isOpen && containerRef.current) {
+            const rect = containerRef.current.getBoundingClientRect();
+            setPopoverStyle({
+                left: rect.right + 16 + 'px',
+                bottom: (window.innerHeight - rect.bottom) + 'px'
+            });
         }
     }, [isOpen]);
 
@@ -77,10 +88,7 @@ export function NotificationCenter() {
                 <div
                     ref={contentRef}
                     className="fixed z-[9999] w-[380px] max-h-[600px] bg-bg-card border border-border-subtle rounded-xl shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-200"
-                    style={{
-                        left: containerRef.current ? containerRef.current.getBoundingClientRect().right + 16 + 'px' : '300px',
-                        bottom: containerRef.current ? (window.innerHeight - containerRef.current.getBoundingClientRect().bottom) + 'px' : '20px'
-                    }}
+                    style={popoverStyle}
                 >
                     <div className="flex items-center justify-between p-4 border-b border-border-subtle bg-bg-app/50 rounded-t-xl backdrop-blur-sm">
                         <div className="flex items-center gap-2">

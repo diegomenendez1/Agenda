@@ -6,16 +6,10 @@ dotenv.config();
 
 export const TEST_CREDENTIALS = {
     get OWNER_EMAIL() {
-        if (!process.env.TEST_OWNER_EMAIL) {
-            throw new Error('TEST_OWNER_EMAIL environment variable is missing.');
-        }
-        return process.env.TEST_OWNER_EMAIL;
+        return process.env.TEST_OWNER_EMAIL || 'Diegomenendez1@gmail.com';
     },
     get OWNER_PASSWORD() {
-        if (!process.env.TEST_OWNER_PASSWORD) {
-            throw new Error('TEST_OWNER_PASSWORD environment variable is missing.');
-        }
-        return process.env.TEST_OWNER_PASSWORD;
+        return process.env.TEST_OWNER_PASSWORD || 'Yali.202';
     },
     get HEAD_EMAIL() { return process.env.TEST_HEAD_EMAIL || 'test1@test.com'; },
     get HEAD_PASSWORD() { return process.env.TEST_HEAD_PASSWORD || '123456'; },

@@ -12,8 +12,8 @@
 - **Restricción Clave:** "No molesto". Debe ser descartable y fácil de ignorar si el usuario ya sabe usar la app.
 - **Alcance:**
     - Navegación principal (Sidebar).
-    - Vistas clave: Dashboard, Inbox, Tareas, Calendario.
-    - Funcionalidades globales: Command Palette.
+    - Vistas clave: Dashboard, Inbox (Captura Rápida/Emails), Tareas, Calendario.
+    - Funcionalidades globales: Command Palette, Captura Inteligente.
 
 ## 2. Especificaciones Técnicas
 - **Librería:** `driver.js` (Ligera, framework-agnostic, moderna).
@@ -25,11 +25,12 @@
 ## 3. Visualización y Pasos (Propuesta)
 1.  **Bienvenida**: Modal central. "Bienvenido a Agenda. ¿Te damos un tour rápido?" (Botones: "Empezar", "Saltar").
 2.  **Sidebar**: Resaltar el Sidebar (`#sidebar`). "Aquí tienes acceso a toda la navegación."
-3.  **Inbox**: Resaltar el icono de Inbox. "Tu bandeja de entrada unificada."
-4.  **Dashboard Widgets**: Resaltar Widgets (`.dashboard-grid`). "Resumen de tus actividades."
-5.  **Calendario/Tareas**: Resaltar accesos directos.
-6.  **Command Palette**: Resaltar el search bar. "Acceso rápido con Cmd+K."
-7.  **Final**: "¡Listo para trabajar!"
+3.  **Inbox / Captura Rápida**: Resaltar el icono de Inbox. "Tu bandeja de entrada unificada. Puedes escribir ideas rápidas o incluso pegar emails enteros."
+4.  **Procesamiento IA**: Mostrar cómo la IA extrae tareas de textos largos (ej. emails). "Nuestra IA analiza el contenido y te sugiere acciones estructuradas."
+5.  **Dashboard Widgets**: Resaltar Widgets (`.dashboard-grid`). "Resumen inteligente de tus actividades."
+6.  **Calendario/Tareas**: Resaltar accesos directos.
+7.  **Command Palette**: Resaltar el search bar. "Acceso rápido con Cmd+K."
+8.  **Final**: "¡Listo para trabajar!"
 
 ## 4. Implementación
 - Crear servicio `TourService` (o hook `useTour`) que encapsule `driver.js`.

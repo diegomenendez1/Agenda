@@ -91,6 +91,7 @@ export function CommandPalette() {
 
     useEffect(() => {
         // Reset selection when query changes
+         
         setSelectedIndex(0);
     }, [query]);
 

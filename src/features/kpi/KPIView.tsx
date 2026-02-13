@@ -5,6 +5,7 @@ import clsx from 'clsx';
 import { useAnalytics } from '../../hooks/useAnalytics';
 import { DateRangePicker } from './analytics/DateRangePicker';
 import { VelocityChart, WorkloadChart, StatusChart } from './analytics/AnalyticsCharts';
+import { ModuleHeader } from '../../components/layout/ModuleHeader';
 
 export function KPIView() {
 
@@ -15,23 +16,20 @@ export function KPIView() {
     return (
         <div className="h-full flex flex-col bg-bg-app text-text-primary overflow-hidden">
             {/* Header */}
-            <header className="px-6 py-8 border-b border-border-subtle flex flex-col md:flex-row md:items-center justify-between gap-6 shrink-0 max-w-[1600px] mx-auto w-full">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-accent-primary/10 rounded-2xl flex items-center justify-center text-accent-primary shadow-inner">
-                        <TrendingUp size={28} />
-                    </div>
-                    <div>
-                        <h1 className="text-3xl font-display font-extrabold tracking-tight">Analytics & Control</h1>
-                        <p className="text-sm text-text-muted mt-0.5 font-medium italic opacity-80">Workspace insights and performance metrics</p>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    <div className="bg-bg-card border border-border-subtle p-1 rounded-2xl shadow-sm flex items-center">
-                        <DateRangePicker value={filter.dateRange} onChange={(d) => setFilter({ ...filter, dateRange: d })} />
-                    </div>
-                </div>
-            </header>
+            {/* Header */}
+            <div className="px-6 pt-6 shrink-0 max-w-[1600px] mx-auto w-full">
+                <ModuleHeader
+                    className="mb-0 border-none pb-0"
+                    icon={TrendingUp}
+                    title="Analytics & Control"
+                    subtitle="Workspace insights and performance metrics"
+                    actions={
+                        <div className="bg-bg-card border border-border-subtle p-1 rounded-2xl shadow-sm flex items-center">
+                            <DateRangePicker value={filter.dateRange} onChange={(d) => setFilter({ ...filter, dateRange: d })} />
+                        </div>
+                    }
+                />
+            </div>
 
             {/* Tabs */}
             <div className="px-6 pt-2 shrink-0 max-w-[1600px] mx-auto w-full">

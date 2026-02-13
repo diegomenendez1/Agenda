@@ -9,12 +9,8 @@ test.describe('Onboarding & Team Management Flow', () => {
     });
 
     test('Scenario 1: First User Sign Up (Freelancer/Personal Workspace)', async ({ page }) => {
-        // 1. Fill Sign Up Form (No Token)
-        await page.click('button:has-text("Create Account")'); // Toggle to Sign Up mode if initially Sign In
-        // Note: The UI defaults to 'Sign In', toggling might differ based on state. 
-        // Assuming 'isLogin' is true by default, clicking 'Create Account' button usually submits.
-        // Needs check if there is a toggle switch. The button text changes dynamically.
-        // Let's assume we need to fill credentials first.
+        // 1. Fill Sign Up Form (Toggle from Login)
+        await page.click('button:has-text("Sign up")');
 
         // Actually, the button says "Create Account" when isLogin is false.
         // To toggle, usually there is a link.
@@ -37,10 +33,10 @@ test.describe('Onboarding & Team Management Flow', () => {
         // If the toggle is missing, I need to fix AuthView first.
 
         // Assuming fixed:
+        await page.fill('input[type="text"][placeholder="Jane Doe"]', 'Owner User');
         await page.fill('input[type="email"]', `owner_${Date.now()}@test.com`);
         await page.fill('input[type="password"]', 'password123');
-        // Toggle to Sign Up (Simulated check)
-        // await page.click('text=Don\'t have an account?'); // Hypothetical toggle
+        await page.click('button[type="submit"]');
 
         // Since I suspect the toggle is missing based on "Public sign-up disabled" comment,
         // checks might fail. 
@@ -57,7 +53,7 @@ test.describe('Onboarding & Team Management Flow', () => {
 
         // Verify UI State
         await expect(page.locator('input[type="email"]')).toBeDisabled(); // Should be locked
-        await expect(page.locator('button[type="submit"]')).toHaveText(/Create Account/); // Forced Sign Up
+        await expect(page.locator('button[type="submit"]')).toContainText(/Create Account/); // Forced Sign Up
 
         await page.fill('input[type="text"][placeholder="Jane Doe"]', 'Team Member User');
         await page.fill('input[type="password"]', 'password123');

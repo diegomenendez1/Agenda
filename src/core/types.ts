@@ -16,7 +16,6 @@ export interface UserProfile {
     organizationId: EntityId; // NEW: Multi-tenancy support
     preferences: {
         autoPrioritize: boolean;
-        theme: 'light' | 'dark' | 'system';
         taskViewMode?: 'list' | 'board' | 'table';
         aiContext?: string;
         appLanguage?: 'es' | 'en'; // NEW: Language preference

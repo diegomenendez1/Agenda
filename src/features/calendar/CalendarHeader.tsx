@@ -12,12 +12,16 @@ interface CalendarHeaderProps {
 
 export function CalendarHeader({ currentDate, setCurrentDate, filterMode, setFilterMode, isMobile }: CalendarHeaderProps) {
     return (
-        <div className="flex items-center justify-between p-4 border-b border-border-subtle bg-bg-card/50 backdrop-blur-sm shrink-0">
-            <div className="flex items-center gap-4">
-                <h2 className="text-xl font-display font-bold text-text-primary flex items-center gap-2">
-                    <CalendarIcon className="text-accent-primary" />
-                    {format(currentDate, 'MMMM yyyy')}
-                </h2>
+        <div className="flex items-center justify-between p-6 border-b border-border-subtle bg-bg-card/50 backdrop-blur-sm shrink-0">
+            <div className="flex items-center gap-6">
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-accent-primary/10 flex items-center justify-center shadow-sm shrink-0">
+                        <CalendarIcon size={20} className="text-accent-primary" />
+                    </div>
+                    <h2 className="text-2xl md:text-3xl font-display font-bold text-text-primary tracking-tight">
+                        {format(currentDate, 'MMMM yyyy')}
+                    </h2>
+                </div>
 
                 <div className="flex items-center gap-1 bg-bg-app border border-border-subtle rounded-lg p-1 ml-4 shadow-inner">
                     <button

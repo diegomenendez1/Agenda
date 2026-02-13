@@ -24,7 +24,7 @@ export function buildTree(members: TeamMember[]): TreeNode[] {
         const node = map.get(m.id);
         if (!node) return;
 
-        let parent = m.reportsTo ? map.get(m.reportsTo) : undefined;
+        const parent = m.reportsTo ? map.get(m.reportsTo) : undefined;
 
         // Cycle Check: Trace parents upwards to see if we reach the current node
         let isCycle = false;

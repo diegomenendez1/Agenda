@@ -16,6 +16,7 @@ import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { supabase } from '../../core/supabase';
 import { useTour } from '../../hooks/useTour';
+import { ModuleHeader } from '../../components/layout/ModuleHeader';
 
 export function DashboardView() {
     const { user, tasks, team } = useStore();
@@ -65,28 +66,19 @@ export function DashboardView() {
     const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
     return (
-        <div id="dashboard-view" className="flex flex-col h-full w-full max-w-[1600px] mx-auto p-6 md:p-10 overflow-y-auto">
+        <div id="dashboard-view" className="flex flex-col h-full w-full max-w-[1600px] mx-auto p-6 md:p-6 md:pt-6 overflow-y-auto">
             {/* Header */}
-            <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6 animate-enter">
-                <div id="tour-welcome">
-                    <h1 className="text-3xl md:text-4xl font-display font-bold text-text-primary mb-2 flex items-center gap-3">
-                        <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-indigo-600">
-                            {greeting}, {user?.name?.split(' ')[0]}
-                        </span>
-                        <span className="text-2xl">👋</span>
-                    </h1>
-                    <p className="text-text-muted text-lg font-light">
-                        Here's what's happening in your workspace today.
-                    </p>
-                </div>
-
-                <div className="flex items-center gap-3">
+            <ModuleHeader
+                icon={LayoutDashboard}
+                title={`${greeting}, ${user?.name?.split(' ')[0]} 👋`}
+                subtitle="Here's what's happening in your workspace today."
+                actions={
                     <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-bg-card border border-border-subtle rounded-xl shadow-sm text-sm text-text-muted">
                         <Calendar size={16} />
                         {format(new Date(), 'EEEE, MMMM d, yyyy')}
                     </div>
-                </div>
-            </header>
+                }
+            />
 
             {/* KPI Grid */}
             <div id="dashboard-kpi" className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 animate-enter" style={{ animationDelay: '0.1s' }}>

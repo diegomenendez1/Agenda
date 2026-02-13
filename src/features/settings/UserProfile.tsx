@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../../core/store';
-import { User, Save, Users, Check, X } from 'lucide-react';
+import { User, Save, Users, Check, X, Settings } from 'lucide-react';
 import clsx from 'clsx';
 import { useTranslation } from '../../core/i18n';
+import { ModuleHeader } from '../../components/layout/ModuleHeader';
 
 export function UserProfile() {
     const { user, updateUserProfile } = useStore();
@@ -29,7 +30,6 @@ export function UserProfile() {
             // Role is preserved from the existing user object, not editable here
             preferences: {
                 ...user.preferences,
-                theme: 'light',
                 aiContext,
                 appLanguage: language
             }
@@ -40,8 +40,12 @@ export function UserProfile() {
 
     return (
         <div className="max-w-4xl mx-auto p-6">
-            <h1 className="text-3xl font-bold mb-2">{t.settings.title}</h1>
-            <p className="text-text-secondary mb-8">{t.settings.subtitle}</p>
+            <ModuleHeader
+                icon={Settings}
+                title={t.settings.title}
+                subtitle={t.settings.subtitle}
+                className="mb-8"
+            />
 
             <div className="bg-bg-card border border-border-subtle rounded-xl overflow-hidden shadow-sm">
 

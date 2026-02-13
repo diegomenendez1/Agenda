@@ -122,6 +122,7 @@ export function StatusChart({ data, height = 160, className }: StatusChartProps)
         return data.map(d => {
             const deg = (d.count / total) * 360;
             const segment = `${d.color} ${currentDeg}deg ${currentDeg + deg}deg`;
+             
             currentDeg += deg;
             return segment;
         }).join(', ');

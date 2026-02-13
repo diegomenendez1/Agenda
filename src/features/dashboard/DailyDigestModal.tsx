@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useStore } from '../../core/store';
 import { X, Sunrise, AlertCircle, ArrowRight } from 'lucide-react';
@@ -33,7 +33,8 @@ export function DailyDigestModal() {
 
     // Calculate Stats
     const allTasks = Object.values(tasks);
-    const now = Date.now();
+     
+    const now = useMemo(() => Date.now(), []);
 
     const staleTasks = allTasks.filter(t =>
         t.status === 'in_progress' &&
