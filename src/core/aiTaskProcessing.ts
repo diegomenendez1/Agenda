@@ -3,7 +3,8 @@ import { supabase } from './supabase';
 export interface PromptContext {
     userRoleContext?: string;
     organizationId?: string;
-    appLanguage?: 'es' | 'en'; // NEW
+    appLanguage?: 'es' | 'en';
+    mode?: 'full' | 'smart_triage'; // NEW
 }
 
 /**
@@ -46,13 +47,24 @@ export async function processTaskInputWithAI(
                 userRoleContext: context.userRoleContext || 'Productivity',
                 appLanguage: context.appLanguage || 'es',
                 availableProjects,
-                availableTeam
+                availableTeam,
+                mode: context.mode || 'full' // Pass mode
             }
         });
 
         if (error) {
             console.error("Link to AI Function failed:", error);
             throw error;
+        }
+
+        // Handle Smart Triage Mode
+        if (context.mode === 'smart_triage' && content.title) {
+            return [{
+                title: content.title,
+                smart_analysis: {
+                    summary: content.formatted_text // Return cleaned text here
+                }
+            }];
         }
 
         const aiTasks = content.tasks || [];

@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { X, Flag, Clock, Trash2, User, Lock, Sparkles, ArrowRight, Layout, AlertTriangle, Search, Loader2, Check, ListTodo, Sparkle, CircleDashed, CheckCircle2, CircleDot, Eye, EyeOff } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { X, Flag, Clock, Trash2, User, Lock, Sparkles, ArrowRight, Layout, AlertTriangle, Search, Loader2, Check, ListTodo, Sparkle, CircleDashed, CheckCircle2, CircleDot, Eye, EyeOff, AlignLeft } from 'lucide-react';
 import { useStore } from '../../core/store';
 import { ActivityFeed } from '../../components/ActivityFeed';
 import type { Task, Priority, TaskStatus, RecurrenceConfig } from '../../core/types';
@@ -53,6 +53,20 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
     const [aiLoading, setAiLoading] = useState(false);
     const [loadingText, setLoadingText] = useState(t.modal.ai_processing);
     const [assigneeSearch, setAssigneeSearch] = useState('');
+
+    // Refs for auto-expanding textareas
+    const titleRef = useRef<HTMLTextAreaElement>(null);
+    const contextRef = useRef<HTMLTextAreaElement>(null);
+
+    // Auto-expand effect on load or content change
+    useEffect(() => {
+        [titleRef, contextRef].forEach(ref => {
+            if (ref.current) {
+                ref.current.style.height = 'auto';
+                ref.current.style.height = ref.current.scrollHeight + 'px';
+            }
+        });
+    }, [title, description, task]);
 
     // Fix: Stale Data - Sync state with task prop when it updates
     useEffect(() => {
@@ -394,34 +408,37 @@ export function EditTaskModal({ task, onClose, isProcessing = false, mode = 'edi
                                             )}
                                         </div>
                                         <textarea
+                                            ref={titleRef}
                                             autoFocus={canEdit}
                                             disabled={!canEdit}
+                                            spellCheck={false}
                                             value={title}
-                                            onChange={e => {
-                                                setTitle(e.target.value);
-                                                e.target.style.height = 'auto';
-                                                e.target.style.height = e.target.scrollHeight + 'px';
-                                            }}
+                                            onChange={e => setTitle(e.target.value)}
                                             className={clsx(
-                                                "input w-full text-lg font-medium transition-all bg-transparent border-transparent px-0 hover:bg-bg-input hover:px-3 focus:bg-bg-input focus:px-3 focus:border-accent-primary resize-none overflow-y-auto max-h-32 h-auto",
-                                                title !== originalTitle && "ring-2 ring-violet-500/20 border-violet-500/30",
-                                                !canEdit && "opacity-70 cursor-not-allowed"
+                                                "w-full text-lg font-display font-bold leading-tight transition-all rounded-xl resize-none py-3 px-4",
+                                                canEdit ? "bg-bg-input/30 border border-border-subtle hover:bg-bg-input hover:border-border-highlight focus:bg-bg-card focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/5 focus:outline-none" : "bg-transparent border-transparent px-0 cursor-not-allowed opacity-80",
+                                                title !== originalTitle && "border-indigo-200 border-l-4 border-l-accent-primary bg-indigo-50/30",
+                                                "custom-scrollbar overflow-y-auto max-h-[140px]"
                                             )}
                                             placeholder="Task Title"
                                             rows={1}
-                                            style={{ minHeight: '44px', height: 'auto' }}
                                         />
                                     </div>
 
-                                    <div>
-                                        <label className="block text-[10px] uppercase text-text-muted font-bold tracking-wider mb-1.5">{t.modal.labels.desc}</label>
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2 px-1">
+                                            <AlignLeft size={12} className="text-text-muted" />
+                                            <label className="text-[10px] uppercase text-text-muted font-bold tracking-wider">{t.modal.labels.desc}</label>
+                                        </div>
                                         <textarea
+                                            ref={contextRef}
                                             disabled={!canEdit}
+                                            spellCheck={false}
                                             value={description}
                                             onChange={e => setDescription(e.target.value)}
                                             className={clsx(
-                                                "input w-full min-h-[100px] text-sm resize-y leading-relaxed",
-                                                !canEdit && "opacity-70 cursor-not-allowed bg-transparent border-transparent px-0 resize-none"
+                                                "input w-full min-h-[120px] text-sm leading-relaxed custom-scrollbar overflow-hidden resize-none bg-bg-input/20 border-border-subtle/50 focus:bg-bg-card transition-all",
+                                                !canEdit && "opacity-70 cursor-not-allowed bg-transparent border-transparent px-0"
                                             )}
                                             placeholder={canEdit ? t.modal.desc_placeholder : t.modal.no_desc}
                                         />

@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { X, Flag, ArrowRight, Sparkles, Loader2, Clock, User, Check, Eye, EyeOff, ListTodo, Search } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { X, Flag, ArrowRight, Sparkles, Loader2, Clock, User, Check, Eye, EyeOff, ListTodo, Search, AlignLeft } from 'lucide-react';
 import { useStore } from '../../core/store';
 import type { InboxItem, Priority } from '../../core/types';
 import clsx from 'clsx';
@@ -63,6 +63,20 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
     const [loadingText, setLoadingText] = useState(t.modal.ai_processing);
     const [assigneeSearch, setAssigneeSearch] = useState('');
 
+    // Refs for auto-expanding textareas
+    const titleRef = useRef<HTMLTextAreaElement>(null);
+    const contextRef = useRef<HTMLTextAreaElement>(null);
+
+    // Auto-expand effect on load or content change
+    useEffect(() => {
+        [titleRef, contextRef].forEach(ref => {
+            if (ref.current) {
+                ref.current.style.height = 'auto';
+                ref.current.style.height = ref.current.scrollHeight + 'px';
+            }
+        });
+    }, [title, context, showAIPreview]);
+
     useEffect(() => {
         if (!isProcessing) return;
         const messages = [
@@ -80,21 +94,97 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
         return () => clearInterval(interval);
     }, [isProcessing]);
 
-    const handleReviewOnly = () => {
-        // Heuristic: Take first line as subject for the "Review" task
-        const firstLine = item.text.split('\n')[0].trim();
-        const subject = firstLine.length > 60 ? firstLine.substring(0, 60) + '...' : firstLine;
+    const handleReviewOnly = async () => {
+        // Intelligent Heuristic for "Review Later"
+        const text = item.text;
+        let subject = '';
+        let isOptimistic = false;
 
-        setTitle(`Revisar: ${subject}`);
-        setContext(`Subject exacto para buscar: "${firstLine}"\n\n---\nContexto:\n${item.text.substring(0, 500)}...`);
-        setPriority('medium');
-        setDueDate('');
+        // 1. Try to find explicit Subject/Asunto patterns common in forwarded emails
+        const subjectRegex = /(?:Subject|Asunto|RE|FW):\s*(.+)/i;
+        const match = text.match(subjectRegex);
 
-        // Ensure single task mode
-        setCandidates([]);
-        setIsEditingDetails(true);
-        // Clear any previous AI preview flags if we want it to look 'manual'
-        setShowAIPreview(false);
+        if (match && match[1]) {
+            // OPTIMISTIC FLOW
+            isOptimistic = true;
+            subject = match[1].trim().replace(/[*_]/g, '').trim();
+
+            // Set UI immediately
+            setTitle(`Revisar: ${subject}`);
+            setContext(CLEANING_PLACEHOLDER); // Show placeholder instead of raw text
+            setPriority('medium');
+            setDueDate('');
+            setCandidates([]);
+            setIsEditingDetails(true);
+            setShowAIPreview(false);
+
+            // Trigger background AI Cleanup
+            // We only set isProcessing if we want to block interaction. 
+            // Here we want to ALLOW interaction but show loading in the description area.
+            // We'll use a local loading state or just reusing isProcessing but handling the UI carefully?
+            // Actually, if we set isEditingDetails(true), the form is visible.
+            // If isProcessing is true, the form might be disabled? Let's check.
+            // In the "Form View" (lines 424+), inputs are NOT disabled by isProcessing generally.
+            // But the Save buttons might be.
+            // Let's use a specific loading text to indicate background work.
+            setLoadingText("Mejorando contexto...");
+            setIsProcessing(true); // This might block "Save" which is safer to avoid saving mid-stream.
+        } else {
+            // Standard Blocking Flow
+            setIsProcessing(true);
+            setLoadingText("Generando título inteligente...");
+        }
+
+        try {
+            if (!user?.id) throw new Error("User context missing");
+
+            const results = await processTaskInputWithAI(user.id, item.text, {
+                organizationId: user.organizationId,
+                appLanguage: user.preferences?.appLanguage,
+                mode: 'smart_triage'
+            });
+
+            if (results && results.length > 0) {
+                // Always update context with cleaned version if available
+                if (results[0].smart_analysis?.summary) {
+                    setContext(results[0].smart_analysis.summary);
+                }
+
+                // If NOT optimistic (was text free), set the title from AI
+                if (!isOptimistic && results[0].title) {
+                    setTitle(results[0].title);
+                    setContext(results[0].smart_analysis?.summary || item.text);
+                    setPriority('medium');
+                    setDueDate('');
+                    setCandidates([]);
+                    setIsEditingDetails(true);
+                    setShowAIPreview(false);
+                }
+            } else {
+                if (!isOptimistic) throw new Error("Empty AI summary");
+            }
+        } catch (err) {
+            console.warn("Smart Triage failed:", err);
+            // Fallback for non-optimistic flow
+            if (!isOptimistic) {
+                const firstLine = text.split('\n').find(l => l.trim().length > 0) || '';
+                const words = firstLine.split(/\s+/);
+                if (words.length > 8) {
+                    subject = words.slice(0, 8).join(' ') + '...';
+                } else {
+                    subject = firstLine.substring(0, 60) + (firstLine.length > 60 ? '...' : '');
+                }
+                setTitle(`Revisar: ${subject}`);
+                setContext(item.text);
+                setPriority('medium');
+                setDueDate('');
+                setCandidates([]);
+                setIsEditingDetails(true);
+                setShowAIPreview(false);
+            }
+        } finally {
+            setIsProcessing(false);
+        }
     };
 
     const handleAutoProcess = async () => {
@@ -156,6 +246,9 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
 
     const [isSuccess, setIsSuccess] = useState(false);
 
+    // CLEANING_PLACEHOLDER
+    const CLEANING_PLACEHOLDER = "✨ Mejorando formato y limpieza del correo... (Puedes guardar ahora para mantener el original)";
+
     const handleSave = async () => {
         setModalError(null);
         try {
@@ -166,12 +259,15 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
             // Derived Visibility: only 'team' if someone else is assigned
             const finalVisibility = assigneeIds.filter(id => id !== user?.id).length > 0 ? 'team' : 'private';
 
+            // Check if context is the placeholder. If so, fallback to original text.
+            const descriptionToSave = context === CLEANING_PLACEHOLDER || context === '' ? item.text : context;
+
             await convertInboxToTask(item.id, {
                 title,
                 priority,
                 projectId: undefined,
                 dueDate: dueDate ? new Date(dueDate).getTime() : undefined,
-                description: context,
+                description: descriptionToSave,
                 assigneeIds,
                 visibility: finalVisibility,
                 status: 'backlog'
@@ -259,12 +355,12 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                                 disabled={isProcessing}
                                 className="flex items-center gap-3 px-4 py-3 bg-bg-surface border border-border-subtle hover:border-accent-primary/50 hover:bg-accent-primary/5 rounded-xl transition-all group"
                             >
-                                <div className="w-8 h-8 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                    <Eye size={16} />
+                                <div className="w-8 h-8 rounded-full bg-orange-500/10 text-orange-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <Clock size={16} />
                                 </div>
                                 <div className="text-left">
-                                    <span className="block text-sm font-bold text-text-primary">{t.modal.review_only}</span>
-                                    <span className="block text-[10px] text-text-muted leading-tight">{t.modal.review_sub}</span>
+                                    <span className="block text-sm font-bold text-text-primary">Revisar más Tarde</span>
+                                    <span className="block text-[10px] text-text-muted leading-tight">Guardar para triaje posterior</span>
                                 </div>
                             </button>
 
@@ -359,34 +455,74 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
                             "flex flex-col gap-4 duration-500",
                             isEditingDetails ? "animate-in slide-in-from-right-4" : "animate-in fade-in slide-in-from-bottom-4"
                         )}>
-                            {/* Input Title */}
-                            <div>
+                            {/* Input Title - Refined for better space and clarity */}
+                            <div className="relative group/title">
+                                <div className="flex items-center justify-between mb-1.5 ml-1">
+                                    <div className="flex items-center gap-3">
+                                        <label className="text-[10px] uppercase text-text-muted font-bold tracking-wider opacity-60 italic">Título de la Tarea</label>
+                                        {showAIPreview && (
+                                            <div className="px-2 py-0.5 bg-indigo-50 border border-indigo-100 text-indigo-600 shadow-sm rounded-full flex items-center gap-1.5 animate-in fade-in zoom-in duration-300">
+                                                <Sparkles size={8} className="text-violet-500 fill-violet-500/20" />
+                                                <span className="text-[8px] font-black uppercase tracking-wider">Sugerido por IA</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {(title !== originalTitle || context !== '') && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setTitle(originalTitle);
+                                                setContext('');
+                                                setShowAIPreview(false);
+                                            }}
+                                            className="text-[10px] text-accent-primary hover:text-accent-primary/80 font-bold flex items-center gap-1 transition-colors"
+                                        >
+                                            <X size={10} /> Usar Original
+                                        </button>
+                                    )}
+                                </div>
                                 <textarea
+                                    ref={titleRef}
                                     autoFocus
+                                    spellCheck={false}
                                     value={title}
-                                    onChange={e => {
-                                        setTitle(e.target.value);
-                                        e.target.style.height = 'auto';
-                                        e.target.style.height = e.target.scrollHeight + 'px';
-                                    }}
+                                    onChange={e => setTitle(e.target.value)}
                                     className={clsx(
-                                        "input w-full text-base font-bold transition-all bg-transparent border-transparent px-0 hover:bg-bg-input hover:px-3 focus:bg-bg-input focus:px-3 focus:border-accent-primary resize-none overflow-y-auto max-h-24",
-                                        showAIPreview && title !== originalTitle && "ring-2 ring-violet-500/20 shadow-lg",
+                                        "w-full text-lg font-display font-bold leading-tight transition-all rounded-xl resize-none py-4 px-4",
+                                        "bg-bg-input/30 border border-border-subtle hover:border-border-highlight",
+                                        "focus:bg-bg-card focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/5 focus:outline-none",
+                                        showAIPreview && "border-indigo-200 border-l-4 border-l-accent-primary bg-indigo-50/30 shadow-sm",
+                                        "custom-scrollbar overflow-y-auto max-h-[160px]"
                                     )}
                                     placeholder={t.modal.labels.title}
                                     rows={1}
-                                    style={{ minHeight: '38px', height: 'auto' }}
                                 />
                             </div>
 
-                            {/* Extra Context */}
-                            <div>
-                                <label className="block text-[10px] uppercase text-text-muted font-bold tracking-wider mb-1.5">{t.modal.labels.desc}</label>
+                            {/* Extra Context - Also auto-expanding */}
+                            <div className="mt-4 space-y-2">
+                                <div className="flex items-center justify-between px-1">
+                                    <div className="flex items-center gap-2">
+                                        <AlignLeft size={12} className="text-text-muted" />
+                                        <label className="text-[10px] uppercase text-text-muted font-bold tracking-wider">Notas y Contexto</label>
+                                    </div>
+                                    {context !== '' && context !== item.text && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setContext(item.text)}
+                                            className="text-[10px] text-accent-primary hover:text-accent-primary/80 font-bold flex items-center gap-1 transition-colors"
+                                        >
+                                            <X size={10} /> Usar Original
+                                        </button>
+                                    )}
+                                </div>
                                 <textarea
+                                    ref={contextRef}
+                                    spellCheck={false}
                                     value={context}
                                     onChange={e => setContext(e.target.value)}
-                                    className="input w-full min-h-[60px] text-sm resize-y leading-relaxed"
-                                    placeholder={t.modal.desc_placeholder}
+                                    className="input w-full min-h-[140px] text-sm leading-relaxed custom-scrollbar overflow-hidden resize-none bg-bg-input/20 border-border-subtle/50 focus:bg-bg-card transition-all placeholder:italic"
+                                    placeholder="Escribe aquí cualquier detalle adicional..."
                                 />
                             </div>
 

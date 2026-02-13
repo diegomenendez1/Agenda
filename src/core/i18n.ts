@@ -114,7 +114,7 @@ const DICTIONARY = {
             view_only: 'Solo lectura • Solo el dueño o líderes pueden editar.',
             labels: {
                 title: 'TÍTULO',
-                desc: 'DESCRIPCIÓN / CONTEXTO',
+                desc: 'NOTAS Y CONTEXTO',
                 status: 'ESTADO',
                 due_date: 'FECHA Y REPETICIÓN',
                 share: 'COMPARTIR / DELEGAR',
@@ -245,7 +245,7 @@ const DICTIONARY = {
             view_only: 'View only mode • Only the task owner or heads can edit details.',
             labels: {
                 title: 'TITLE',
-                desc: 'DESCRIPTION / CONTEXT',
+                desc: 'NOTES & CONTEXT',
                 status: 'STATUS',
                 due_date: 'DUE DATE & REPEAT',
                 share: 'SHARE / DELEGATE',

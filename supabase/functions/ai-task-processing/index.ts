@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
     }
 
     try {
-        const { inputText, userRoleContext, appLanguage, availableProjects, availableTeam } = await req.json()
+        const { inputText, userRoleContext, appLanguage, availableProjects, availableTeam, mode } = await req.json()
 
         if (!inputText) {
             throw new Error('Missing inputText')
@@ -25,15 +25,43 @@ Deno.serve(async (req) => {
         const currentDate = new Date().toISOString().split('T')[0]
         const targetLang = appLanguage === 'en' ? 'English' : 'Spanish'
 
-        const systemPrompt = `Role: Senior Executive Asst (GTD). Convert raw input into structured tasks. 
+        let systemPrompt = '';
+
+        if (mode === 'smart_triage') {
+            systemPrompt = `Role: Professional Editor & Executive Assistant.
+Task: Analyze the input. 
+1. Generate a "title": Single, high-quality summary (max 10 words).
+2. Generate "formatted_text": THE SAME CONTENT as input, but rewritten for professional clarity.
+   - **AGGRESSIVE DE-NOISING**: 
+     - REMOVE ALL Email Headers (From:, Sent:, To:, Subject:).
+     - REMOVE ALL Signatures, Logos, Phone numbers, Addresses.
+     - REMOVE ALL Legal Disclaimers (CAUTION, Confidentiality notices).
+   - **STRUCTURE**: Format as a clean conversation/narrative.
+     - Example: "Daniel asked: [Content]... Pat replied: [Content]..."
+   - **PRESERVE**: Keep ALL dates, specific names, numbers, and business details.
+   - **GOAL**: Turn a messy email thread into a clean, readable script.
 Rules:
 1. OUTPUT LANGUAGE: MUST BE IN ${targetLang.toUpperCase()}.
-2. PRESERVE ORIGINALS: Text inside quotes "..." must remain in original language (e.g. email subjects).
+2. PRESERVE ORIGINALS: Keep critical identifiers intact.
+Output JSON: { "title": "The summary string", "formatted_text": "The cleaned up content..." }`
+        } else {
+            systemPrompt = `Role: Senior Executive Asst (GTD). Convert raw input into structured tasks. 
+Rules:
+1. OUTPUT LANGUAGE: MUST BE IN ${targetLang.toUpperCase()}.
+2. PRESERVE ORIGINALS: Text inside quotes "..." must remain in original language.
 3. One task unless actions are totally unrelated.
 4. Priority: critical|high|medium|low based on role context.
 5. Use refs: Projects[${availableProjects || 'None'}], Team[${availableTeam || 'None'}].
 6. Date: Today is ${currentDate}.
-Output JSON: { "tasks": [{ "title": "Action in ${targetLang}", "priority": "lvl", "date": "YYYY-MM-DD", "reason": "why in ${targetLang}", "pid": "id", "aids": ["ids"] }] }`
+7. DESCRIPTION (reason): 
+   - STRICTLY FORBIDDEN: Do NOT include sections like "Original Text", "Actions", "Summary".
+   - STRICTLY FORBIDDEN: Do NOT repeat the input verbatim.
+   - ONLY provide the "Strategic Goal" or "Why" in 1-2 sentences.
+   - If the Title self-explanatory, keep Description EMPTY.
+   - NO formatting (no lists, no bold). Just plain text.
+8. STRICT NO-HALLUCINATION: Do NOT invent names, dates, or details.
+Output JSON: { "tasks": [{ "title": "Action in ${targetLang}", "priority": "lvl", "date": "YYYY-MM-DD", "reason": "Strategic context or empty", "pid": "id", "aids": ["ids"] }] }`
+        }
 
         const userPrompt = `Input: "${inputText}"\nRoleCtx: "${userRoleContext || 'Productivity'}"`
 

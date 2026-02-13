@@ -1,0 +1,33 @@
+{
+  "timestamp": "2026-02-13T15:45:19.235Z",
+  "steps": [
+    {
+      "name": "Linting (Análisis Estático)",
+      "success": false,
+      "duration": 10.027,
+      "command": "npm run lint",
+      "output": "\n> volatile-event@0.0.0 lint\n> eslint .\n\n\nC:\\Users\\Diego Menendez\\OneDrive - Europartners\\Desktop\\Antigravity\\AGENDA\\src\\components\\ActivityFeed.tsx\n  80:37  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any\n\nC:\\Users\\Diego Menendez\\OneDrive - Europartners\\Desktop\\Antigravity\\AGENDA\\src\\components\\CreateWorkspaceModal.tsx\n  45:25  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any\n\nC:\\Users\\Diego Menendez\\OneDrive - Europartners\\Desktop\\Antigravity\\AGENDA\\src\\components\\NotificationCenter.tsx\n  26:8   warning  React Hook useEffect has missing dependencies: 'markAllNotificationsRead' and 'unreadCount'. Either include them or remove the dependency array  react-hooks/exhaustive-deps\n  55:50  warning  Unexpected any. Specify a different type                                                                                                         @typescript-eslint/no-explicit-any\n\nC:\\Users\\Diego Menendez\\OneDrive - Europartners\\Desktop\\Antigravity\\AGENDA\\src\\components\\layout\\CommandPalette.tsx\n  95:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders\n\nEffects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:\n* Update external systems with the latest state from React.\n* Subscribe for updates from some external system, calling setState in a callback function when external state changes.\n\nCalling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).\n\nC:\\Users\\Diego Menendez\\OneDrive - Europartners\\Desktop\\Antigravity\\AGENDA\\src\\components\\layout\\CommandPalette.tsx:95:9\n  93 |         // Reset selection when query changes\n  94 |          \n> 95 |         setSelectedIn"
+    },
+    {
+      "name": "Build (TypeScript Check)",
+      "success": true,
+      "duration": 16.089,
+      "command": "npm run build",
+      "output": "\n> volatile-event@0.0.0 build\n> tsc -b && vite build\n\n\u001b[36mvite v7.3.0 \u001b[32mbuilding client environment for production...\u001b[36m\u001b[39m\ntransforming...\n\u001b[32m✓\u001b[39m 2666 modules transformed.\nrendering chunks...\ncomputing gzip size...\n\u001b[2mdist/\u001b[22m\u001b[32mindex.html                 \u001b[39m\u001b[1m\u001b[2m  0.45 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   0.30 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[35massets/index-B7O6KgcL.css  \u001b[39m\u001b[1m\u001b[2m 74.12 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:  13.06 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/index-BE8-yjCu.js   \u001b[39m\u001b[1m\u001b[33m736.05 kB\u001b[39m\u001b[22m\u001b[2m │ gzip: 206.73 kB\u001b[22m\n\u001b[32m✓ built in 8.14s\u001b[39m\n\n\u001b[33m[plugin vite:reporter] \n(!) C:/Users/Diego Menendez/OneDrive - Europartners/Desktop/Antigravity/AGENDA/src/features/tasks/EditTaskModal.tsx is dynamically imported by C:/Users/Diego Menendez/OneDrive - Europartners/Desktop/Antigravity/AGENDA/src/features/calendar/CalendarView.tsx but also statically imported by C:/Users/Diego Menendez/OneDrive - Europartners/Desktop/Antigravity/AGENDA/src/components/layout/Sidebar.tsx, C:/Users/Diego Menendez/OneDrive - Europartners/Desktop/Antigravity/AGENDA/src/features/dashboard/FocusCard.tsx, C:/Users/Diego Menendez/OneDrive - Europartners/Desktop/Antigravity/AGENDA/src/features/tasks/KanbanBoard.tsx, C:/Users/Diego Menendez/OneDrive - Europartners/Desktop/Antigravity/AGENDA/src/features/tasks/TaskListView.tsx, dynamic import will not move module into another chunk.\n\u001b[39m\n\u001b[33m\n(!) Some chunks are larger than 500 kB after minification. Consider:\n- Using dynamic import() to code-split the application\n- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks\n- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.\u001b[39m\n"
+    },
+    {
+      "name": "Unit Tests (Vitest)",
+      "success": true,
+      "duration": 6.933,
+      "command": "npm run test",
+      "output": "\n> volatile-event@0.0.0 test\n> vitest run\n\n\n\u001b[1m\u001b[46m RUN \u001b[49m\u001b[22m \u001b[36mv4.0.17 \u001b[39m\u001b[90mC:/Users/Diego Menendez/OneDrive - Europartners/Desktop/Antigravity/AGENDA\u001b[39m\n\n \u001b[32m✓\u001b[39m src/core/taskUtils.test.ts \u001b[2m(\u001b[22m\u001b[2m7 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 35\u001b[2mms\u001b[22m\u001b[39m\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m1 passed\u001b[39m\u001b[22m\u001b[90m (1)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m7 passed\u001b[39m\u001b[22m\u001b[90m (7)\u001b[39m\n\u001b[2m   Start at \u001b[22m 10:45:46\n\u001b[2m   Duration \u001b[22m 5.49s\u001b[2m (transform 97ms, setup 0ms, import 3.52s, tests 35ms, environment 1.50s)\u001b[22m\n\n\n"
+    },
+    {
+      "name": "Seguridad (RLS Check)",
+      "success": true,
+      "duration": 1.159,
+      "command": "node \"C:\\Users\\Diego Menendez\\OneDrive - Europartners\\Desktop\\Antigravity\\AGENDA\\scripts\\verificar_aislamiento_datos.js\"",
+      "output": "\n--- Verificando RLS en Tablas ---\n1. Probando acceso anónimo (debe ser denegado o vacío)...\nOK: Tabla 'tasks' segura para anónimos (0 registros).\nOK: Tabla 'profiles' segura para anónimos (0 registros).\nOK: Tabla 'inbox_items' segura para anónimos (0 registros).\nOK: Tabla 'projects' segura para anónimos (0 registros).\n\n[PASSED] Verificación de Seguridad RLS completada satisfactoriamente.\n\n"
+    }
+  ]
+}
