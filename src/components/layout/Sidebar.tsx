@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Inbox, CheckCircle2, Calendar, StickyNote, Users, Sparkles, LogOut, ChevronRight, BarChart2, Plus, X, LayoutDashboard } from 'lucide-react';
+import { Inbox, CheckCircle2, Calendar, StickyNote, Users, Sparkles, LogOut, ChevronRight, BarChart2, Plus, X, LayoutDashboard, HelpCircle } from 'lucide-react';
 import { useStore } from '../../core/store';
 import { supabase } from '../../core/supabase';
 import { NotificationCenter } from '../NotificationCenter';
@@ -7,7 +7,8 @@ import clsx from 'clsx';
 import { useState } from 'react';
 import { PresenceIndicator } from '../PresenceIndicator';
 import { CreateWorkspaceModal } from '../CreateWorkspaceModal';
-import { EditTaskModal } from '../../features/tasks/EditTaskModal'; // Import EditTaskModal
+import { EditTaskModal } from '../../features/tasks/EditTaskModal';
+import { useTour } from '../../hooks/useTour';
 
 interface SidebarProps {
     isOpen?: boolean;
@@ -19,6 +20,7 @@ import { useTranslation } from '../../core/i18n';
 export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
     const { user, myWorkspaces } = useStore();
     const { t } = useTranslation();
+    const { resetTour } = useTour();
     const [collapsed, setCollapsed] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isTaskModalOpen, setIsTaskModalOpen] = useState(false); // New State
@@ -50,6 +52,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
             )}
 
             <aside
+                id="sidebar-container"
                 className={clsx(
                     "h-full border-r border-border-subtle bg-bg-sidebar flex flex-col justify-between shrink-0 transition-all duration-300 relative z-50",
                     // Desktop: Relative and collapsible
@@ -150,6 +153,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                     {/* Quick Add Button - Prominent CTA */}
                     <div className={clsx("px-4 mb-2 mt-4 transition-all duration-300", collapsed && !isOpen ? "px-2" : "")}>
                         <button
+                            id="new-task-btn"
                             onClick={() => setIsTaskModalOpen(true)}
                             className={clsx(
                                 "w-full bg-accent-primary hover:brightness-110 text-white font-bold rounded-xl shadow-lg shadow-accent-primary/25 transition-all flex items-center justify-center gap-2 group overflow-hidden relative",
@@ -173,6 +177,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                             <NavLink
                                 key={item.path}
                                 to={item.path}
+                                id={`nav-${item.path.replace('/', '') || 'dashboard'}`}
                                 onClick={() => isOpen && onClose?.()} // Close on navigation (mobile)
                                 className={({ isActive }) => clsx(
                                     "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative mx-1",
@@ -213,6 +218,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                         {/* ... existing footer ... */}
                         {(!collapsed || isOpen) && (
                             <button
+                                id="cmd-palette-btn"
                                 className="flex items-center gap-3 px-3 py-2.5 w-full text-left bg-bg-input hover:bg-bg-card-hover transition-all rounded-lg border border-transparent mb-4 group shadow-none active:translate-y-[1px]"
                                 onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }))}
                             >
@@ -222,14 +228,51 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                             </button>
                         )}
 
-                        <div className={clsx("flex items-center gap-2", (collapsed && !isOpen) ? "justify-center flex-col gap-4" : "")}>
-                            {/* Notification Center */}
-                            <div className={clsx("transition-all", (collapsed && !isOpen) && "mx-auto")}>
-                                <NotificationCenter />
+                        <div className="space-y-4">
+                            {/* System Controls Row */}
+                            <div className={clsx(
+                                "flex items-center gap-2",
+                                (collapsed && !isOpen) ? "flex-col justify-center" : "justify-between px-1"
+                            )}>
+                                <div className="flex items-center gap-1">
+                                    <div className={clsx("transition-all", (collapsed && !isOpen) && "mb-2")}>
+                                        <NotificationCenter />
+                                    </div>
+
+                                    <button
+                                        id="help-tour-btn"
+                                        onClick={() => resetTour()}
+                                        className={clsx(
+                                            "p-2 rounded-lg text-text-muted hover:text-accent-primary hover:bg-bg-input transition-all relative group/help",
+                                            (collapsed && !isOpen) && "mx-auto"
+                                        )}
+                                        title="Tour de Ayuda"
+                                    >
+                                        <HelpCircle size={19} strokeWidth={2.2} />
+                                        <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] rounded font-bold opacity-0 group-hover/help:opacity-100 pointer-events-none transition-opacity whitespace-nowrap shadow-xl">
+                                            Reiniciar Tour
+                                        </span>
+                                    </button>
+                                </div>
+
+                                <button
+                                    onClick={handleLogout}
+                                    className={clsx(
+                                        "text-text-muted hover:text-red-500 transition-all hover:bg-red-50/50 rounded-lg shrink-0 flex items-center justify-center p-2",
+                                        (collapsed && !isOpen) && "mx-auto"
+                                    )}
+                                    title="Sign Out"
+                                >
+                                    <LogOut size={18} strokeWidth={2} />
+                                </button>
                             </div>
 
-                            <NavLink to="/settings" className={clsx("flex items-center gap-3 min-w-0 hover:bg-bg-input rounded-lg transition-colors group p-2 flex-1 border border-transparent hover:border-border-subtle", (!collapsed || isOpen) && "")}>
-                                <div className="w-9 h-9 rounded-full bg-accent-primary/10 p-[1px] shrink-0 relative overflow-hidden ring-2 ring-transparent group-hover:ring-accent-primary/20 transition-all">
+                            {/* User Profile Section */}
+                            <NavLink to="/settings" className={clsx(
+                                "flex items-center gap-3 min-w-0 hover:bg-bg-input rounded-xl transition-all group p-2 border border-transparent hover:border-border-subtle hover:shadow-sm",
+                                (collapsed && !isOpen) ? "w-12 h-12 justify-center p-0 mx-auto" : "w-full"
+                            )}>
+                                <div className="w-9 h-9 rounded-full bg-accent-primary/10 p-[1px] shrink-0 relative overflow-hidden ring-2 ring-transparent group-hover:ring-accent-primary/20 transition-all shadow-sm">
                                     <img src={user?.avatar || "https://ui-avatars.com/api/?name=User&background=random"} alt="User" className="rounded-full w-full h-full object-cover" />
                                     <div className="absolute bottom-0 right-0 z-10">
                                         <PresenceIndicator userId={user?.id || ''} size="sm" showOffline={false} />
@@ -237,19 +280,11 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                                 </div>
                                 {(!collapsed || isOpen) && (
                                     <div className="flex-1 min-w-0">
-                                        <div className="text-[13px] font-semibold truncate text-text-primary group-hover:text-accent-primary transition-colors">{user?.name || "User"}</div>
-                                        <div className="text-[11px] text-text-muted truncate group-hover:text-text-secondary">{user?.email}</div>
+                                        <div className="text-[13px] font-bold truncate text-text-primary group-hover:text-accent-primary transition-colors leading-none mb-1">{user?.name || "User"}</div>
+                                        <div className="text-[11px] text-text-muted truncate group-hover:text-text-secondary transition-colors font-medium">{user?.email}</div>
                                     </div>
                                 )}
                             </NavLink>
-
-                            <button
-                                onClick={handleLogout}
-                                className={clsx("text-text-muted hover:text-red-500 transition-all hover:bg-red-50 rounded-lg shrink-0 flex items-center justify-center", (!collapsed || isOpen) ? "p-2.5" : "p-2.5")}
-                                title="Sign Out"
-                            >
-                                <LogOut size={18} strokeWidth={2} />
-                            </button>
                         </div>
 
                         {/* Leave Team Option (Non-Owners) */}

@@ -200,7 +200,7 @@ function CalendarContent() {
     };
 
     return (
-        <div className="flex flex-col h-full overflow-hidden bg-bg-app">
+        <div id="calendar-view" className="flex flex-col h-full overflow-hidden bg-bg-app">
             <CalendarHeader
                 currentDate={currentDate}
                 setCurrentDate={setCurrentDate}

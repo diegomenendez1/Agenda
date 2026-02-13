@@ -64,7 +64,7 @@ export function TaskListView() {
     };
 
     return (
-        <div className={clsx(
+        <div id="tasks-view" className={clsx(
             "flex flex-col h-full bg-bg-app overflow-hidden px-4 pt-4 pb-2 md:px-8 md:pt-8 md:pb-2 transition-all duration-300"
         )}>
             {/* Header Section */}
@@ -79,6 +79,7 @@ export function TaskListView() {
 
                     <div className="flex items-center gap-3 self-start md:self-center">
                         <button
+                            id="smart-sort-btn"
                             onClick={handleAutoPrioritize}
                             disabled={isOrganizing}
                             className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold text-sm shadow-md shadow-indigo-500/20 transition-all active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"

@@ -15,11 +15,15 @@ import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import clsx from 'clsx';
 import { supabase } from '../../core/supabase';
+import { useTour } from '../../hooks/useTour';
 
 export function DashboardView() {
     const { user, tasks, team } = useStore();
     const [recentActivities, setRecentActivities] = useState<any[]>([]);
     const [loadingActivities, setLoadingActivities] = useState(true);
+
+    // Initialize Tour
+    useTour();
 
     const taskList = Object.values(tasks);
 
@@ -61,10 +65,10 @@ export function DashboardView() {
     const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
     return (
-        <div className="flex flex-col h-full w-full max-w-[1600px] mx-auto p-6 md:p-10 overflow-y-auto">
+        <div id="dashboard-view" className="flex flex-col h-full w-full max-w-[1600px] mx-auto p-6 md:p-10 overflow-y-auto">
             {/* Header */}
             <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6 animate-enter">
-                <div>
+                <div id="tour-welcome">
                     <h1 className="text-3xl md:text-4xl font-display font-bold text-text-primary mb-2 flex items-center gap-3">
                         <span className="bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-indigo-600">
                             {greeting}, {user?.name?.split(' ')[0]}
@@ -85,7 +89,7 @@ export function DashboardView() {
             </header>
 
             {/* KPI Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 animate-enter" style={{ animationDelay: '0.1s' }}>
+            <div id="dashboard-kpi" className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 animate-enter" style={{ animationDelay: '0.1s' }}>
                 <div className="bg-bg-card p-6 rounded-2xl border border-border-subtle shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                         <Clock size={80} className="text-orange-500" />
@@ -130,7 +134,7 @@ export function DashboardView() {
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 animate-enter" style={{ animationDelay: '0.2s' }}>
 
                 {/* Left Column: Recent Activity (2/3 width) */}
-                <div className="xl:col-span-2 flex flex-col gap-6">
+                <div id="dashboard-recent" className="xl:col-span-2 flex flex-col gap-6">
                     <div className="bg-bg-card rounded-2xl border border-border-subtle shadow-sm overflow-hidden flex flex-col">
                         <div className="p-6 border-b border-border-subtle flex justify-between items-center">
                             <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">

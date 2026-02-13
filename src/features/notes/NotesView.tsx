@@ -33,7 +33,7 @@ export function NotesView() {
     const selectedNote = noteId ? notes[noteId] : null;
 
     return (
-        <div className="flex h-full overflow-hidden bg-bg-app">
+        <div id="notes-view" className="flex h-full overflow-hidden bg-bg-app">
             {/* Notes Sidebar */}
             <div className="w-80 border-r border-border-subtle bg-bg-sidebar/50 backdrop-blur-xl flex flex-col z-10 transition-all duration-300">
                 <div className="p-5 border-b border-border-subtle">

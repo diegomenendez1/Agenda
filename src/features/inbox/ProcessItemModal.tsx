@@ -224,7 +224,7 @@ export function ProcessItemModal({ item, onClose }: ProcessItemModalProps) {
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="w-full bg-bg-card border border-border-subtle rounded-xl shadow-2xl overflow-hidden flex flex-col max-w-4xl h-[85vh] max-h-[85vh] min-h-0">
+            <div id="process-item-modal" className="w-full bg-bg-card border border-border-subtle rounded-xl shadow-2xl overflow-hidden flex flex-col max-w-4xl h-[85vh] max-h-[85vh] min-h-0">
                 {/* Header */}
                 <div className="px-5 py-4 border-b border-border-subtle flex justify-between items-center bg-bg-surface/50 shrink-0">
                     <div>

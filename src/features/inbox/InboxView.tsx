@@ -78,7 +78,7 @@ export function InboxView() {
         .sort((a, b) => b.createdAt - a.createdAt);
 
     return (
-        <div className="flex flex-col h-full w-full max-w-[1600px] mx-auto p-6 md:p-10 transition-all duration-300 relative">
+        <div id="inbox-view" className="flex flex-col h-full w-full max-w-[1600px] mx-auto p-6 md:p-10 transition-all duration-300 relative">
             {/* Header Section */}
             <div className="mb-12 animate-enter">
                 <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-border-subtle pb-8">
@@ -147,6 +147,7 @@ export function InboxView() {
                         {inboxItems.map((item, index) => (
                             <div
                                 key={item.id}
+                                id={index === 0 ? "first-inbox-item" : undefined}
                                 style={{ animationDelay: `${index * 30}ms` }}
                                 onClick={() => {
                                     if (isSelectionMode) {

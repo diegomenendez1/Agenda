@@ -90,7 +90,7 @@ export function MyTeamView() {
     if (!user) return null;
 
     return (
-        <div className="space-y-8 animate-enter flex flex-col h-full w-full max-w-[1600px] mx-auto p-4 md:p-8">
+        <div id="team-view" className="space-y-8 animate-enter flex flex-col h-full w-full max-w-[1600px] mx-auto p-4 md:p-8">
 
             {/* Header Section */}
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
