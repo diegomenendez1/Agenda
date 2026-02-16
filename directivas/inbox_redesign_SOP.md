@@ -7,7 +7,7 @@
 
 ---
 
-## 1. Objetivos y Alcance
+## 1. Objetivos y Alcancek
 - **Objetivo Principal:** Rediseñar la vista de Inbox de un sistema de cuadrícula (cards) a una lista de alta densidad optimizada para el "triaje" rápido de información.
 - **Criterio de éxito:** La interfaz permite ver al menos el doble de elementos sin hacer scroll, con una jerarquía visual clara y acciones rápidas accesibles vía hover.
 
