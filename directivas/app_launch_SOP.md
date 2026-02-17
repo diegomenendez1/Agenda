@@ -46,7 +46,10 @@
 ## 7. Ejemplos de Uso
 
 ```bash
-# Iniciar server de desarrollo
+# Iniciar server de desarrollo (Recomendado en este entorno)
+cmd /c npm run dev
+
+# Alternativa (si las políticas lo permiten)
 npm run dev
 ```
 

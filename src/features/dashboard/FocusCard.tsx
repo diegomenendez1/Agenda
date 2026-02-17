@@ -67,8 +67,8 @@ export function FocusCard({ task, onToggleStatus }: FocusCardProps) {
                 >
                     <div className="flex items-start justify-between gap-4">
                         <span className={clsx(
-                            "text-[15px] font-medium leading-normal transition-colors",
-                            task.status === 'done' ? "text-text-muted line-through" : "text-text-primary group-hover:text-accent-primary"
+                            "text-[15px] font-display font-semibold leading-normal transition-all duration-300",
+                            task.status === 'done' ? "text-text-muted line-through" : "text-text-primary group-hover:text-accent-primary group-hover:translate-x-0.5"
                         )}>
                             {task.title}
                         </span>
