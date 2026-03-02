@@ -19,6 +19,7 @@ Mantener el repositorio remoto actualizado con cambios críticos de forma autom�
 - **Error de Conexión:** Si el `push` falla por red, reintentar una vez y, si persiste, notificar al usuario.
 - **Conflictos:** No intentar resolver conflictos automáticamente. Si hay un conflicto al hacer `pull` o `push`, detener la ejecución y pedir intervención manual.
 - **Token/Credenciales:** Se asume que el entorno tiene acceso configurado (SSH o credenciales cacheadas). Si falla por autenticación, no reintentar.
+- **Sintaxis PowerShell:** En la terminal actual, el operador `&&` no es válido. Los comandos de Git deben ejecutarse individualmente o usando el separador `;`. Evitar usar acentos en mensajes de commit si se ejecutan desde el script inicial para prevenir errores de codificación.
 - **Cambios Críticos:** Se consideran cambios críticos los siguientes:
     - Finalización de una tarea en `task.md`.
     - Creación de una nueva funcionalidad principal.
