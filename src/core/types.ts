@@ -115,6 +115,7 @@ export interface Task {
     // Recurrence
     recurrence?: RecurrenceConfig;
     originalTaskId?: EntityId; // If this is a spawned instance
+    archived?: boolean; // Soft delete for historical metrics
 }
 
 export interface Project {

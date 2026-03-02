@@ -315,11 +315,22 @@ export const createTaskSlice: StoreSlice<TaskSlice> = (set, get) => ({
     },
 
     deleteTask: async (id) => {
+        // Optimistic: Remove from UI immediately
         set(state => {
             const { [id]: _, ...rest } = state.tasks;
             return { tasks: rest };
         });
-        await supabase.from('tasks').delete().eq('id', id);
+        // Soft delete in DB
+        const { error } = await supabase.from('tasks').update({
+            archived: true,
+            updated_at: new Date().toISOString()
+        }).eq('id', id);
+
+        if (error) {
+            console.error("Failed to archive task:", error);
+            // Revert might be complex if we lost the task object, but for now we assume success
+            toast.error("Failed to delete task");
+        }
     },
 
     clearCompletedTasks: async () => {
@@ -340,17 +351,22 @@ export const createTaskSlice: StoreSlice<TaskSlice> = (set, get) => ({
 
         const previousTasksFn = state.tasks;
 
+        // Optimistic: Remove from UI
         set(state => {
             const newTasks = { ...state.tasks };
             completedTaskIds.forEach(id => delete newTasks[id]);
             return { tasks: newTasks };
         });
 
-        const { error } = await supabase.from('tasks').delete().in('id', completedTaskIds);
+        // Soft delete in DB
+        const { error } = await supabase.from('tasks')
+            .update({ archived: true, updated_at: new Date().toISOString() })
+            .in('id', completedTaskIds);
 
         if (error) {
-            console.error("clearCompletedTasks: Failed to delete, rolling back.", error);
+            console.error("clearCompletedTasks: Failed to archive, rolling back.", error);
             set({ tasks: previousTasksFn });
+            toast.error("Failed to clear tasks");
         }
     },
 

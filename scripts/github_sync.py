@@ -1,50 +1,49 @@
 import subprocess
 import sys
-import os
 
-def run_git_command(command):
-    """Ejecuta un comando de git y devuelve el resultado."""
+def run_command(command):
     try:
-        result = subprocess.run(
-            command,
-            check=True,
-            capture_output=True,
-            text=True,
-            shell=True
-        )
-        return result.stdout.strip()
+        result = subprocess.run(command, shell=True, check=True, text=True, capture_output=True)
+        print(f"Comando ejecutado: {command}")
+        print(result.stdout)
+        return True, result.stdout
     except subprocess.CalledProcessError as e:
-        print(f"Error ejecutando {' '.join(command)}: {e.stderr}")
-        sys.exit(1)
+        print(f"Error al ejecutar: {command}")
+        print(f"Mensaje de error: {e.stderr}")
+        return False, e.stderr
 
-def sync_with_github(commit_message):
-    """Sincroniza los cambios locales con GitHub."""
-    print(f"Iniciando sincronización con GitHub: {commit_message}")
+def sync_github(commit_message):
+    print("Iniciando sincronización con GitHub...")
     
-    # 1. Verificar estado
-    status = run_git_command(["git", "status", "--short"])
-    if not status:
-        print("No hay cambios para sincronizar.")
-        return
-
-    # 2. Agregar cambios
-    print("Agregando cambios...")
-    run_git_command(["git", "add", "."])
-
-    # 3. Commit
-    print(f"Realizando commit: {commit_message}")
-    run_git_command(["git", "commit", "-m", f'"{commit_message}"'])
-
-    # 4. Push
-    print("Enviando cambios a origin main...")
-    run_git_command(["git", "push", "origin", "main"])
+    # 1. git add .
+    success, output = run_command("git add .")
+    if not success:
+        return False, f"Error en git add: {output}"
+    
+    # 2. git commit
+    success, output = run_command(f'git commit -m "{commit_message}"')
+    if not success:
+        if "nothing to commit" in output:
+            print("No hay cambios para confirmar.")
+        else:
+            return False, f"Error en git commit: {output}"
+    
+    # 3. git push
+    success, output = run_command("git push origin main")
+    if not success:
+        return False, f"Error en git push: {output}"
     
     print("Sincronización completada con éxito.")
+    return True, "Sincronización exitosa"
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Uso: python github_sync.py 'mensaje de commit'")
-        sys.exit(1)
+    message = "feat: Sincronización de cambios locales, directivas y scripts"
+    if len(sys.argv) > 1:
+        message = sys.argv[1]
     
-    message = sys.argv[1]
-    sync_with_github(message)
+    success, result = sync_github(message)
+    if not success:
+        print(f"\nFALLO EN LA SINCRONIZACIÓN: {result}")
+        sys.exit(1)
+    else:
+        sys.exit(0)

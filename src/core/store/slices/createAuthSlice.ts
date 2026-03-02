@@ -173,6 +173,7 @@ export const createAuthSlice: StoreSlice<AuthSlice> = (set, get) => ({
 
                 supabase.from('tasks').select('*')
                     .eq('organization_id', activeOrgId)
+                    .eq('archived', false)
                     .or(`status.neq.done,updated_at.gt.${new Date(thirtyDaysAgo).toISOString()}`),
 
                 supabase.from('projects').select('*')

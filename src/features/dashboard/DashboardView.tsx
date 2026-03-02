@@ -29,9 +29,14 @@ export function DashboardView() {
     const taskList = Object.values(tasks);
 
     // KPI Calculations
-    const pendingTasks = taskList.filter(t => (t.status === 'todo' || t.status === 'in_progress') && t.assigneeIds?.includes(user?.id || '')).length;
-    const inReviewTasks = taskList.filter(t => t.status === 'review' && t.assigneeIds?.includes(user?.id || '')).length;
-    const completedTasks = taskList.filter(t => t.status === 'done' && t.assigneeIds?.includes(user?.id || '')).length;
+    const pendingTasks = taskList.filter(t =>
+        (t.status === 'todo' || t.status === 'in_progress') &&
+        (t.ownerId === user?.id || t.assigneeIds?.includes(user?.id || ''))
+    ).length;
+    const inReviewTasks = taskList.filter(t =>
+        t.status === 'review' &&
+        (t.ownerId === user?.id || t.assigneeIds?.includes(user?.id || ''))
+    ).length;
 
     // Recent Activities Fetcher
     useEffect(() => {
@@ -55,9 +60,57 @@ export function DashboardView() {
         fetchRecent();
     }, []);
 
+    // Historical Stats
+    const [historicalStats, setHistoricalStats] = useState({
+        totalCompleted: 0,
+        completionRate: 0
+    });
+
+    // Real-time Activity Subscription
+    useEffect(() => {
+        const channel = supabase
+            .channel('dashboard-activities')
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'activity_logs'
+            }, (payload) => {
+                setRecentActivities(prev => [payload.new, ...prev].slice(0, 10));
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, []);
+
+    // Fetch Historical Stats
+    useEffect(() => {
+        async function fetchHistory() {
+            const { count: totalCompleted } = await supabase
+                .from('tasks')
+                .select('*', { count: 'exact', head: true })
+                .eq('status', 'done');
+            // We count ALL done tasks, including archived ones (soft deleted)
+
+            const { count: totalCreated } = await supabase
+                .from('tasks')
+                .select('*', { count: 'exact', head: true });
+
+            setHistoricalStats({
+                totalCompleted: totalCompleted || 0,
+                completionRate: totalCreated ? Math.round(((totalCompleted || 0) / totalCreated) * 100) : 0
+            });
+        }
+        fetchHistory();
+    }, []);
+
     // Get My Tasks (Top 5 due soon)
     const myTasks = taskList
-        .filter(t => t.status !== 'done' && t.assigneeIds?.includes(user?.id || ''))
+        .filter(t =>
+            t.status !== 'done' &&
+            (t.ownerId === user?.id || t.assigneeIds?.includes(user?.id || ''))
+        )
         .sort((a, b) => (a.dueDate || Infinity) - (b.dueDate || Infinity))
         .slice(0, 5);
 
@@ -114,10 +167,14 @@ export function DashboardView() {
                     </div>
                     <div className="relative z-10">
                         <div className="flex items-center gap-2 mb-2 text-emerald-600 font-bold uppercase text-xs tracking-wider">
-                            <TrendingUp size={14} /> Completed
+                            <TrendingUp size={14} /> Global Completed
                         </div>
-                        <div className="text-4xl font-display font-bold text-text-primary mb-1">{completedTasks}</div>
-                        <div className="text-sm text-text-muted">Tasks finished effectively</div>
+                        <div className="text-4xl font-display font-bold text-text-primary mb-1">
+                            {historicalStats.totalCompleted}
+                        </div>
+                        <div className="text-sm text-text-muted">
+                            All time ({historicalStats.completionRate}% rate)
+                        </div>
                     </div>
                 </div>
             </div>

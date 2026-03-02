@@ -1,6 +1,7 @@
 import { useState, useEffect, Component, type ErrorInfo, type ReactNode, lazy, Suspense } from 'react';
 import { startOfWeek, addDays, format, isSameDay, setHours } from 'date-fns';
-import { Plus, AlertCircle } from 'lucide-react';
+import { Plus, AlertCircle, Check } from 'lucide-react';
+import { toast } from 'sonner';
 import clsx from 'clsx';
 import { useStore } from '../../core/store';
 import type { Task } from '../../core/types';
@@ -96,12 +97,10 @@ function CalendarContent() {
         tasks,
         currentDate,
         weekStart,
-
         filterMode,
         user,
         isMobile
     );
-    // const getPositionedTasks = (day: Date) => []; // Safe Mode
 
     // --- Resizing Logic ---
     useEffect(() => {
@@ -109,7 +108,7 @@ function CalendarContent() {
 
         const handleMouseMove = (e: MouseEvent) => {
             const deltaY = e.clientY - resizing.initialY;
-            const deltaMins = Math.round((deltaY / 80) * 60 / 15) * 15; // 80px per hour
+            const deltaMins = Math.round((deltaY / 80) * 60 / 15) * 15;
 
             if (resizing.type === 'bottom') {
                 const newMins = Math.max(resizing.initialValue + deltaMins, 15);
@@ -178,7 +177,6 @@ function CalendarContent() {
         }
     };
 
-    // --- Handlers for Event Component ---
     const onMouseDownTop = (e: React.MouseEvent, task: Task) => {
         e.stopPropagation();
         setResizing({
@@ -199,6 +197,18 @@ function CalendarContent() {
         });
     };
 
+    const handleContextMenu = (e: React.MouseEvent, task: Task) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Copiar automáticamente al portapapeles
+        navigator.clipboard.writeText(task.title);
+        toast.success(`Copiado: ${task.title}`, {
+            icon: <Check size={16} className="text-emerald-500" />,
+            duration: 1500
+        });
+    };
+
     return (
         <div id="calendar-view" className="flex flex-col h-full overflow-hidden bg-bg-app">
             <CalendarHeader
@@ -209,9 +219,7 @@ function CalendarContent() {
                 isMobile={isMobile}
             />
 
-            {/* Calendar Grid */}
             <div className="flex-1 flex flex-col overflow-hidden relative">
-                {/* Days Header */}
                 <div
                     className="grid border-b border-border-subtle bg-bg-card z-10 shadow-sm shrink-0"
                     style={{ gridTemplateColumns: `60px repeat(${weekDays.length}, 1fr)` }}
@@ -242,7 +250,6 @@ function CalendarContent() {
                     })}
                 </div>
 
-                {/* Scrollable Content */}
                 <div ref={(ref) => {
                     if (ref && !ref.dataset.scrolled) {
                         ref.scrollTop = workingStart * 80;
@@ -253,7 +260,6 @@ function CalendarContent() {
                         className="grid min-h-[1920px]"
                         style={{ gridTemplateColumns: `60px repeat(${weekDays.length}, 1fr)` }}
                     >
-                        {/* Time labels Column */}
                         <div className="border-r border-border-subtle bg-bg-card/30 relative">
                             {hours.map(hour => (
                                 <div key={`time-${hour}`} className="h-20 border-b border-border-subtle/50 relative">
@@ -264,10 +270,8 @@ function CalendarContent() {
                             ))}
                         </div>
 
-                        {/* Day Columns */}
                         {weekDays.map((day, dayIdx) => (
                             <div key={dayIdx} className="relative border-r border-border-subtle group/column bg-bg-app/10">
-                                {/* Hour Cells */}
                                 {hours.map(hour => {
                                     const isWorkingHour = hour >= workingStart && hour < workingEnd;
                                     return (
@@ -289,7 +293,6 @@ function CalendarContent() {
                                     );
                                 })}
 
-                                {/* Render Events */}
                                 {getPositionedTasks(day).map(task => (
                                     <CalendarEvent
                                         key={task.id}
@@ -299,13 +302,13 @@ function CalendarContent() {
                                         resizePreview={resizePreview}
                                         onMouseDownTop={onMouseDownTop}
                                         onMouseDownBottom={onMouseDownBottom}
-                                        onClick={() => setEditingTask(task)} // Single click now opens edit for simplicity? Or keep double click logic?
+                                        onClick={() => setEditingTask(task)}
                                         onDoubleClick={() => setEditingTask(task)}
                                         onDragStart={(e) => handleDragStart(e, task)}
+                                        onContextMenu={handleContextMenu}
                                     />
                                 ))}
 
-                                {/* Current Time Indicator */}
                                 {isSameDay(day, today) && (
                                     <div
                                         className="absolute w-full border-t-2 border-red-500 z-50 pointer-events-none shadow-[0_0_8px_rgba(239,68,68,0.6)]"

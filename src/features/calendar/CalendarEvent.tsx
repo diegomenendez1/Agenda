@@ -14,6 +14,7 @@ interface CalendarEventProps {
     onClick: (e: React.MouseEvent) => void;
     onDoubleClick: (e: React.MouseEvent) => void;
     onDragStart: (e: React.DragEvent) => void;
+    onContextMenu: (e: React.MouseEvent, task: Task) => void;
 }
 
 export function CalendarEvent({
@@ -25,7 +26,8 @@ export function CalendarEvent({
     onMouseDownBottom,
     onClick,
     onDoubleClick,
-    onDragStart
+    onDragStart,
+    onContextMenu
 }: CalendarEventProps) {
     const isDone = task.status === 'done';
     const isResizingThis = resizing?.taskId === task.id;
@@ -58,11 +60,11 @@ export function CalendarEvent({
                 left: `calc(${left}% + 2px)`,
                 width: `calc(${width}% - 4px)`,
                 position: 'absolute' as const,
-                zIndex: (task.colIndex || 0) + (isResizingThis ? 1000 : 10),
+                zIndex: (task.colIndex || 0) + (isResizingThis ? 2000 : 100),
                 opacity: isResizingThis ? 0.8 : 1,
-                userSelect: 'none' as const,
                 cursor: resizing ? 'grabbing' : 'pointer',
-                display: 'block' // Explicitly set display
+                display: 'block',
+                pointerEvents: 'auto' as const
             };
         } catch (e) {
             return { display: 'none' };
@@ -90,8 +92,9 @@ export function CalendarEvent({
             onDragStart={onDragStart}
             onClick={(e) => { e.stopPropagation(); onClick(e); }}
             onDoubleClick={(e) => { e.stopPropagation(); onDoubleClick(e); }}
+            onContextMenu={(e) => { e.stopPropagation(); onContextMenu(e, task); }}
             className={clsx(
-                "rounded-md p-1.5 text-[10px] border cursor-pointer hover:z-[100] transition-all group/card select-none overflow-hidden flex flex-col gap-0.5",
+                "rounded-md p-1.5 text-[10px] border cursor-pointer hover:z-[100] transition-all group/card overflow-hidden flex flex-col gap-0.5",
                 "hover:shadow-lg hover:ring-1 hover:ring-primary/30",
                 cardStyle,
                 isResizingThis && "ring-2 ring-accent-primary z-[500]"

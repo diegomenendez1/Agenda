@@ -2,8 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { useStore } from '../../core/store';
 import type { TaskStatus, Task } from '../../core/types';
 import { clsx } from 'clsx';
-import { MoreHorizontal, Calendar, CheckCircle2, Lock, Flag, Clock, X, Trash2, ListChecks, Sparkles } from 'lucide-react';
+import { MoreHorizontal, Calendar, CheckCircle2, Lock, Flag, Clock, X, Trash2, ListChecks, Sparkles, Copy, Check, Plus } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 import { EditTaskModal } from './EditTaskModal';
 
 import { useTranslation } from '../../core/i18n';
@@ -20,6 +21,8 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
     const { t } = useTranslation();
     const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+    // No extra effects needed for auto-copy
 
     const tasksToUse = propTasks || Object.values(storeTasks);
 
@@ -75,6 +78,20 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
         }
         setDraggedTaskId(null);
     };
+
+    const handleContextMenu = (e: React.MouseEvent, task: Task) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Auto-copy on right click
+        navigator.clipboard.writeText(task.title);
+        toast.success(`Copiado: ${task.title}`, {
+            icon: <Check size={16} className="text-emerald-500" />,
+            duration: 1500
+        });
+    };
+
+
 
     const getPriorityBadge = (priority: string) => {
         switch (priority) {
@@ -180,16 +197,17 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                             {tasksByStatus[col.id].map(task => (
                                 <div
                                     key={task.id}
-                                    draggable={task.status !== 'backlog'}
-                                    onDragStart={(e) => task.status !== 'backlog' && handleDragStart(e, task.id)}
+                                    draggable={true}
+                                    onDragStart={(e) => handleDragStart(e, task.id)}
                                     className={clsx(
-                                        "p-4 rounded-xl transition-all duration-200 group relative cursor-pointer border",
+                                        "p-4 rounded-xl transition-all duration-200 group relative cursor-pointer border pointer-events-auto",
                                         "bg-bg-card hover:border-violet-300 hover:shadow-lg hover:shadow-violet-500/5 hover:-translate-y-0.5",
-                                        "border-border-subtle shadow-sm",
+                                        "border-border-subtle shadow-sm z-10",
                                         task.status === 'done' && "opacity-60 saturate-50 hover:opacity-100 transition-opacity",
-                                        task.status === 'backlog' && "cursor-default border-dashed"
+                                        task.status === 'backlog' && "border-dashed"
                                     )}
                                     onClick={() => setEditingTask(task)}
+                                    onContextMenu={(e) => handleContextMenu(e, task)}
                                 >
                                     <div className="flex justify-between items-start gap-2 mb-2">
                                         <h4 className={clsx(
@@ -294,6 +312,8 @@ export function KanbanBoard({ tasks: propTasks }: KanbanBoardProps = {}) {
                     onClose={() => setEditingTask(null)}
                 />
             )}
+
+
         </div>
     );
 }

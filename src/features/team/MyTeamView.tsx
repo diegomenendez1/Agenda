@@ -217,57 +217,53 @@ export function MyTeamView() {
                 </div>
             )}
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="group bg-bg-card border border-border-subtle p-6 rounded-2xl shadow-sm hover:shadow-md hover:border-border-highlight transition-all duration-300 flex flex-col relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-bl-full -mr-12 -mt-12 transition-transform group-hover:scale-110" />
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2.5 bg-blue-500/10 text-blue-500 rounded-xl">
-                            <Users size={20} />
+            {/* Compact Stats Bar */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-bg-card border border-border-subtle p-4 rounded-xl shadow-sm flex items-center justify-between group hover:border-accent-primary/50 transition-all">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-500/10 text-blue-500 rounded-lg">
+                            <Users size={18} />
                         </div>
-                        <span className="font-bold text-text-muted text-xs uppercase tracking-widest">Total Members</span>
-                    </div>
-                    <div className="text-4xl font-display font-extrabold text-text-primary tracking-tight">
-                        {myTeamMembers.length}
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Members</span>
+                            <span className="text-xl font-display font-bold text-text-primary leading-none">{myTeamMembers.length}</span>
+                        </div>
                     </div>
                 </div>
 
-                <div className="group bg-bg-card border border-border-subtle p-6 rounded-2xl shadow-sm hover:shadow-md hover:border-border-highlight transition-all duration-300 flex flex-col relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-bl-full -mr-12 -mt-12 transition-transform group-hover:scale-110" />
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2.5 bg-amber-500/10 text-amber-500 rounded-xl">
-                            <Mail size={20} />
+                <div className="bg-bg-card border border-border-subtle p-4 rounded-xl shadow-sm flex items-center justify-between group hover:border-accent-primary/50 transition-all">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-amber-500/10 text-amber-500 rounded-lg">
+                            <Mail size={18} />
                         </div>
-                        <span className="font-bold text-text-muted text-xs uppercase tracking-widest">Pending</span>
-                    </div>
-                    <div className="text-4xl font-display font-extrabold text-text-primary tracking-tight">
-                        {pendingInvites.length}
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Pending</span>
+                            <span className="text-xl font-display font-bold text-text-primary leading-none">{pendingInvites.length}</span>
+                        </div>
                     </div>
                 </div>
 
-                <div className="group bg-bg-card border border-border-subtle p-6 rounded-2xl shadow-sm hover:shadow-md hover:border-border-highlight transition-all duration-300 flex flex-col relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-bl-full -mr-12 -mt-12 transition-transform group-hover:scale-110" />
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2.5 bg-purple-500/10 text-purple-500 rounded-xl">
-                            <Shield size={20} />
+                <div className="bg-bg-card border border-border-subtle p-4 rounded-xl shadow-sm flex items-center justify-between group hover:border-accent-primary/50 transition-all">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-purple-500/10 text-purple-500 rounded-lg">
+                            <Shield size={18} />
                         </div>
-                        <span className="font-bold text-text-muted text-xs uppercase tracking-widest">Approvals</span>
-                    </div>
-                    <div className="text-4xl font-display font-extrabold text-text-primary tracking-tight">
-                        {isExec ? approvalRequests.length : '0'}
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Approvals</span>
+                            <span className="text-xl font-display font-bold text-text-primary leading-none">{isExec ? approvalRequests.length : '0'}</span>
+                        </div>
                     </div>
                 </div>
 
-                <div className="group bg-bg-card border border-border-subtle p-6 rounded-2xl shadow-sm hover:shadow-md hover:border-border-highlight transition-all duration-300 flex flex-col relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 rounded-bl-full -mr-12 -mt-12 transition-transform group-hover:scale-110" />
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2.5 bg-emerald-500/10 text-emerald-500 rounded-xl">
-                            <CheckCircle size={20} />
+                <div className="bg-bg-card border border-border-subtle p-4 rounded-xl shadow-sm flex items-center justify-between group hover:border-accent-primary/50 transition-all">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-emerald-500/10 text-emerald-500 rounded-lg">
+                            <CheckCircle size={18} />
                         </div>
-                        <span className="font-bold text-text-muted text-xs uppercase tracking-widest">Efficiency</span>
-                    </div>
-                    <div className="text-4xl font-display font-extrabold text-emerald-500 tracking-tight">
-                        --<span className="text-2xl ml-0.5">%</span>
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-text-muted uppercase tracking-wider">Efficiency</span>
+                            <span className="text-xl font-display font-bold text-emerald-500 leading-none">--%</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -284,7 +280,7 @@ export function MyTeamView() {
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id as any)}
                         className={clsx(
-                            "group pb-4 text-sm font-bold transition-all relative flex items-center gap-2 whitespace-nowrap",
+                            "group pb-3 text-sm font-bold transition-all relative flex items-center gap-2 whitespace-nowrap",
                             activeTab === tab.id
                                 ? "text-accent-primary"
                                 : "text-text-muted hover:text-text-primary"
@@ -300,16 +296,16 @@ export function MyTeamView() {
                             </span>
                         )}
                         {activeTab === tab.id && (
-                            <div className="absolute bottom-0 left-0 w-full h-1 bg-accent-primary rounded-t-full shadow-[0_-2px_6px_rgba(var(--accent-primary-rgb),0.3)] anim-scale-x" />
+                            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-accent-primary rounded-t-full shadow-[0_-2px_6px_rgba(var(--accent-primary-rgb),0.3)] anim-scale-x" />
                         )}
                     </button>
                 ))}
             </div>
 
             {/* Content Area */}
-            <div className="flex-1">
+            <div className="flex-1 min-h-0">
                 {activeTab === 'members' && (
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                         {filteredMembers.length === 0 ? (
                             <div className="col-span-full py-20 text-center bg-bg-card border-2 border-dashed border-border-subtle rounded-3xl">
                                 <Users size={48} className="mx-auto mb-4 text-text-muted opacity-20" />
@@ -326,12 +322,12 @@ export function MyTeamView() {
                                     <div
                                         key={member.id}
                                         onClick={() => setSelectedMemberId(member.id)}
-                                        className="group bg-bg-card hover:bg-bg-card-hover border border-border-subtle hover:border-accent-primary/50 rounded-2xl p-6 transition-all duration-300 shadow-sm hover:shadow-xl hover:-translate-y-1 cursor-pointer relative overflow-hidden"
+                                        className="group bg-bg-card hover:bg-bg-card-hover border border-border-subtle hover:border-accent-primary/50 rounded-xl p-4 transition-all duration-300 shadow-sm hover:shadow-lg hover:-translate-y-0.5 cursor-pointer relative overflow-hidden"
                                     >
-                                        <div className="flex items-start gap-5">
-                                            {/* Avatar */}
-                                            <div className="relative">
-                                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-primary/20 to-accent-secondary/20 flex items-center justify-center text-accent-primary text-xl font-extrabold shadow-inner overflow-hidden border border-white/10">
+                                        <div className="flex items-start gap-3">
+                                            {/* Avatar Compact */}
+                                            <div className="relative shrink-0">
+                                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-primary/20 to-accent-secondary/20 flex items-center justify-center text-accent-primary text-lg font-extrabold shadow-inner overflow-hidden border border-white/10">
                                                     {member.avatar ? (
                                                         <img src={member.avatar} alt={member.name} className="w-full h-full object-cover" />
                                                     ) : (
@@ -339,20 +335,20 @@ export function MyTeamView() {
                                                     )}
                                                 </div>
                                                 {(isOwner || isLead) && (
-                                                    <div className="absolute -top-1.5 -right-1.5 p-1 bg-amber-500 rounded-lg text-white shadow-lg shadow-amber-500/20 border-2 border-bg-card">
-                                                        <Shield size={10} strokeWidth={3} />
+                                                    <div className="absolute -top-1 -right-1 p-0.5 bg-amber-500 rounded-md text-white shadow-sm border border-bg-card">
+                                                        <Shield size={8} strokeWidth={3} />
                                                     </div>
                                                 )}
                                             </div>
 
-                                            {/* Info */}
+                                            {/* Info Compact */}
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center justify-between gap-2 mb-1">
-                                                    <h3 className="text-lg font-bold text-text-primary truncate transition-colors group-hover:text-accent-primary">
+                                                <div className="flex items-center justify-between gap-2 mb-0.5">
+                                                    <h3 className="text-base font-bold text-text-primary truncate transition-colors group-hover:text-accent-primary">
                                                         {member.name}
                                                     </h3>
                                                     <span className={clsx(
-                                                        "text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-lg border",
+                                                        "text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border",
                                                         isOwner ? "bg-amber-500/10 text-amber-600 border-amber-500/20" :
                                                             isLead ? "bg-purple-500/10 text-purple-600 border-purple-500/20" :
                                                                 "bg-blue-500/10 text-blue-600 border-blue-500/20"
@@ -360,28 +356,19 @@ export function MyTeamView() {
                                                         {member.role}
                                                     </span>
                                                 </div>
-                                                <p className="text-sm text-text-muted truncate mb-4">{member.email}</p>
+                                                <p className="text-xs text-text-muted truncate mb-3">{member.email}</p>
 
-                                                {/* Mini Stats */}
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div className="bg-bg-app rounded-xl p-2.5 border border-border-subtle/50 group-hover:border-accent-primary/20 transition-colors">
-                                                        <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">Active Tasks</div>
-                                                        <div className="text-lg font-display font-bold text-text-primary tabular-nums">{stats.pending}</div>
+                                                {/* Micro Stats */}
+                                                <div className="flex gap-2">
+                                                    <div className="flex-1 bg-bg-app/50 rounded-lg px-2 py-1.5 border border-border-subtle/30 flex items-center justify-between">
+                                                        <span className="text-[9px] font-bold text-text-muted uppercase">Active</span>
+                                                        <span className="text-xs font-bold text-text-primary">{stats.pending}</span>
                                                     </div>
-                                                    <div className="bg-bg-app rounded-xl p-2.5 border border-border-subtle/50 group-hover:border-accent-primary/20 transition-colors">
-                                                        <div className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-0.5">Completed</div>
-                                                        <div className="text-lg font-display font-bold text-emerald-500 tabular-nums">{stats.done}</div>
+                                                    <div className="flex-1 bg-bg-app/50 rounded-lg px-2 py-1.5 border border-border-subtle/30 flex items-center justify-between">
+                                                        <span className="text-[9px] font-bold text-text-muted uppercase">Done</span>
+                                                        <span className="text-xs font-bold text-emerald-500">{stats.done}</span>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Hover Actions Bar */}
-                                        <div className="mt-4 pt-4 border-t border-border-subtle/30 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 flex items-center justify-between">
-                                            <span className="text-[10px] font-medium text-text-muted italic">Click card to manage member</span>
-                                            <div className="flex items-center gap-1.5">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                                <span className="text-[10px] font-bold text-emerald-500 uppercase">Active</span>
                                             </div>
                                         </div>
                                     </div>
